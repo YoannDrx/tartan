@@ -7,13 +7,13 @@ import { GESTURES } from "./gestures";
 export type MotionEngine = "v2";
 
 export const motionEngine = (catalogKey: string | null | undefined): MotionEngine | null =>
-  catalogKey && EXERCISE_CLIPS[catalogKey] ? "v2" : null;
+  catalogKey && (GESTURES[catalogKey] || EXERCISE_CLIPS[catalogKey]) ? "v2" : null;
 
 // Où en est un geste : écrit à la main, ou relevé du premier moteur (ses angles, rejoués par le nouveau corps).
 export const MOTION_LEVELS = ["ecrit", "releve"] as const;
 export type MotionLevel = (typeof MOTION_LEVELS)[number];
 
 export const motionLevel = (catalogKey: string | null | undefined): MotionLevel | null => {
-  if (!catalogKey || !EXERCISE_CLIPS[catalogKey]) return null;
+  if (!catalogKey || !motionEngine(catalogKey)) return null;
   return GESTURES[catalogKey] ? "ecrit" : "releve";
 };

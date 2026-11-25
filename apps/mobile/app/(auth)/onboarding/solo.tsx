@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { TrainingProfile } from "@tartan/contracts";
 import { ageAt } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { Redirect, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../../src/features/birth-date-field";
@@ -29,6 +29,7 @@ type Errors = Partial<Record<"firstName" | "lastName" | "birthDate" | "terms", s
 // personnel naît d'un seul envoi (`POST /me/personal-space`), puis la journée.
 export default function SoloOnboarding() {
   const router = useRouter();
+  const planner = useLocalSearchParams<{ ensuite?: string }>().ensuite === "planificateur";
   const status = useSession((s) => s.status);
   const me = useMe(status === "signed-in");
   const setActive = useSpaceStore((s) => s.setActive);
@@ -61,6 +62,7 @@ export default function SoloOnboarding() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         birthDate: me.data?.birthDate ? undefined : (toIsoBirthDate(birth) ?? undefined),
+        availableEquipment: profile.availableEquipment,
         disciplines: profile.disciplines,
         trainingObjectives: profile.trainingObjectives,
         termsAccepted: true,
@@ -76,9 +78,9 @@ export default function SoloOnboarding() {
 
   if (status === "signed-out") return <Redirect href="/sign-in" />;
   // Après la création : pourquoi les notifications, puis sa journée. Rien ne s'ouvre ensuite par-dessus.
-  if (created) return <PushStep coach={false} solo onDone={() => router.replace("/today")} />;
+  if (created) return <PushStep coach={false} solo onDone={() => router.replace(planner ? "/planner" : "/today")} />;
   if (me.isPending) return <LoadingState />;
-  if (me.data && me.data.spaces.length > 0 && !create.isPending) return <Redirect href="/" />;
+  if (me.data && me.data.spaces.length > 0 && !planner && !create.isPending) return <Redirect href="/" />;
 
   const index = STEPS.indexOf(step);
   const closed = options.data && !options.data.athlete;
@@ -185,7 +187,7 @@ export default function SoloOnboarding() {
           <TrainingProfileFields
             value={profile}
             onChange={setProfile}
-            keys={["disciplines", "trainingObjectives"]}
+            keys={planner ? undefined : ["disciplines", "trainingObjectives"]}
             hint={false}
           />
           <Button testID="solo-next" label={m.mobile.onboarding.next} onPress={() => setStep("go")} />

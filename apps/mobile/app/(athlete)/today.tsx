@@ -1,10 +1,12 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { api } from "../../src/lib/api";
+import { useSpaceStore } from "../../src/lib/space-store";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { celebrationFromResponse, programItems as programOf } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
-import { capitalize, formatDateLong, m } from "@tartan/i18n";
+import { dailyMantra, type EncouragementTone, capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
-import { useMemo, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AppState, Pressable, View } from "react-native";
 import { AthleteAfterSession, AthleteWelcome } from "../../src/features/athlete-onboarding";
 import { CommentsSection } from "../../src/features/comments";
 import { ExerciseRow, parseMedia } from "../../src/features/media";
@@ -31,11 +33,35 @@ const nextLine = (card: AthleteSessionCard) =>
     .filter(Boolean)
     .join(" · ");
 
+function DailyMantra({ tone }: { tone?: EncouragementTone }) {
+  const [message, setMessage] = useState(() => dailyMantra(tone));
+  useEffect(() => {
+    const refresh = () => setMessage(dailyMantra(tone));
+    refresh();
+    const timer = setInterval(refresh, 60_000);
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh();
+    });
+    return () => {
+      clearInterval(timer);
+      listener.remove();
+    };
+  }, [tone]);
+  return <T tone="muted">{message}</T>;
+}
+
 export default function Today() {
-  const { orgId, space: active } = useActiveSpace();
+  const { me, orgId, space: active } = useActiveSpace();
   // L'athlète autonome, dans son espace personnel : il planifie lui-même, sans coach ni groupe à qui répondre.
   const self = personalAthleteOf(active);
   const personal = Boolean(self);
+  const notebook = me.data?.spaces.find((s) => s.kind === "personal");
+  const setActive = useSpaceStore((s) => s.setActive);
+  const signup = useQuery({
+    queryKey: ["signup-options"],
+    queryFn: api.signupOptions,
+    enabled: Boolean(me.data && !notebook),
+  });
   const today = useToday(orgId);
   const client = useQueryClient();
   usePrefetchUpcomingSessions(orgId);
@@ -175,6 +201,7 @@ export default function Today() {
             />
           ) : null}
 
+          {me.data?.preferences?.homeTone !== "off" && <DailyMantra tone={me.data?.preferences?.homeTone} />}
           {others.map((card) => (
             <SessionHero
               key={card.id}
@@ -187,6 +214,18 @@ export default function Today() {
             />
           ))}
 
+          {notebook?.aiPlannerEnabled || (!notebook && signup.data?.athlete) ? (
+            <Button
+              label={m.aiPlanner.personalCreate}
+              variant="secondary"
+              onPress={() => {
+                if (notebook) {
+                  setActive(notebook.organizationId);
+                  router.push("/planner");
+                } else router.push({ pathname: "/(auth)/onboarding/solo", params: { ensuite: "planificateur" } });
+              }}
+            />
+          ) : null}
           <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="after" />
           {/* Ses premiers pas, après la séance du jour : jamais devant elle, jamais par-dessus. */}
           {self ? <PersonalFirstSteps orgId={orgId} athleteId={self} /> : null}

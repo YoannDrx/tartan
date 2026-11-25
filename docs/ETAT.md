@@ -4,13 +4,39 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## Illustrations, série pilote et atelier de relecture · 25 novembre 2026
+
+Douze silhouettes détaillées ont une image et une vignette WebP versionnées, 272 Kio sur disque au total, environ 5,2 Mio pour 233 au même poids. Le coût monétaire par reprise reste à chiffrer. La dernière série de quatre fiches a demandé six générations, soit environ 317 générations à prévoir pour les 211 restantes si ce taux se maintient. Texte, image et geste ont des validations séparées. Aucune validation humaine simulée. Deux tests de service et les parcours Playwright ordinateur et téléphone ont passé la validation puis la réouverture d’une image. Inventaire agrégé en lecture seule le 25 novembre : 197 fiches communes visibles, dont les 173 clés versionnées et 24 sans clé ni guide. Ces 24 figurent séparément dans l’atelier. Le pilote et les 60 nouvelles fiches attendent leur relecture sportive. Six images de renforcement au sol complètent le pilote. Quatre fiches supplémentaires illustrent le franchissement en hauteur, les rebonds pieds joints, la marche latérale avec bande et les foulées bondissantes. L’atelier compte 22 images sur 233, dont 211 restent à produire. Les 60 nouvelles fiches ont chacune une animation. Les 233 clés du catalogue versionné ont un geste, y compris les gros plans d’orteils, les ancrages des bandes, les patins glissants et les pas de corde. La [procédure de préparation](reference/illustrations-exercices.md) couvre une série et la reprise d’une seule image.
+
+## Encouragements du stade · 25 novembre 2026
+
+Deux préférences de compte règlent le ton de l’accueil et celui de la séance. Le catalogue local contient 30 mantras et 12 retours par ton. Le calcul tient compte des séries de toutes les occurrences du même mouvement dans un circuit. Vérifications du domaine, types, lint et design effectuées. La recette hors connexion et les lecteurs d’écran sur téléphone restent à faire.
+
+## Planifier pour soi depuis le club · 25 novembre 2026
+
+Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
+
+## Reprendre une proposition IA · 25 novembre 2026
+
+La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
+
+## Planificateur, revue des ajustements et semaine · 25 novembre 2026
+
+La demande propose séance ou sept jours, disciplines et disponibilités. Le coach peut comparer son ajustement, verrouiller des blocs et accepter ou annuler depuis un second appareil. Le calendrier garde les jours libres et les séances accessibles. La sélection partielle des jours est transactionnelle et rejouable, les clients installés peuvent toujours confirmer toute la proposition. Les 48 tests des propositions et 26 parcours Playwright avec prestataire simulé sont passés. La mesure sur consignes inédites et la dictée au stade restent ouvertes.
+
 ## APK Android de bêta · 25 novembre 2026
 
 Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.
 
 ## Console privée des testeurs · 25 novembre 2026
 
+Mise en production vérifiée sur `85d0a428`. Santé HTTP 200 et redirection de l’accès anonyme vers la connexion. Le [tableau de recette](tests/recette-lancement-testeurs.md) rassemble les mesures IA, les parcours et les essais qui nécessitent encore un appareil.
+
 La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.
+
+## Logo des stores · 25 novembre 2026
+
+La fiche Google Play a une icône carrée 512 px et une bannière tirée du même logotype que le site. Apple retourne deux icônes de type APP_STORE en 1024 px pour le build 18. La version sans masque reproduit le T du dépôt. Le dépôt sur Play attend le compte organisation.
 
 **En une phrase.**
 - Fait : le plan du 15 novembre est mené jusqu'au lot 4. Le constructeur est terminé sur le web et sur le mobile, Maestro tourne sur iOS et Android, et les 173 fiches ont un geste animé, de profil ou de face.
@@ -86,6 +112,12 @@ Le plan du 15 novembre s'arrête au lot 4 :
 - le lot 6 (IA qualifiée) est remplacé par la refonte du 21 novembre et l'essai du fondateur sur la Preview.
 
 Le fondateur a ouvert l'application au public le 23 novembre 2026 ; la page d'accueil ne parle plus ni de pilote ni de bêta.
+
+## Édition stade du 25 novembre
+
+60 fiches supplémentaires sont préparées pour la relecture dans la console des exercices. Les 173 fiches diffusées restent disponibles. Chaque nouvelle fiche indique les appuis, le matériel, le comptage et une variante. La diffusion aux athlètes attend les visuels et la relecture technique.
+
+Le pilote comporte douze illustrations détaillées et huit nouveaux gestes animés. Les trois validations par fiche ouvrent sa publication. L’inventaire de la base de production retrouve les 173 clés éditoriales initiales et 24 fiches communes supplémentaires sans clé à rapprocher.
 
 ## Décisions du fondateur en vigueur
 

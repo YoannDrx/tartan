@@ -2,6 +2,8 @@
 
 Les volumes et résultats datés vivent dans [ETAT.md](../ETAT.md), avec le commit, le runtime et les limites de preuve ; ils ne sont pas une garantie de couverture exhaustive. Les comptes sont dans [comptes.md](comptes.md), les tests à écrire dans [automatisation.md](automatisation.md).
 
+Le [tableau de recette du lancement testeurs](recette-lancement-testeurs.md) suit les preuves du planificateur, de la bibliothèque et des invitations.
+
 ## Les niveaux
 
 | Niveau      | Outil                                               | Prouve                           | Ne prouve pas                |

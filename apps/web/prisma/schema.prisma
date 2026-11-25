@@ -141,6 +141,8 @@ model Profile {
   // Avatar prédéfini (`athlete:…`, `animal:…`) ; nul dès qu'une photo est envoyée, et inversement.
   avatarPreset String? @map("avatar_preset")
   // Accord explicite avant tout envoi au planificateur IA (OpenAI).
+  homeTone String @default("calm") @map("home_tone")
+  sessionTone String @default("calm") @map("session_tone")
   aiConsentAt DateTime? @map("ai_consent_at")
   locale    String    @default("fr")
   units     String    @default("kg")
@@ -1957,6 +1959,9 @@ model AiPlannerOperation {
 // Contenu privé de travail, purgé au plus tard après sept jours ou sous 24 h
 // après conversion. Le registre de quota ne conserve que sa référence.
 model AiPlannerProposal {
+  adjustmentPreview Json? @map("adjustment_preview")
+  weekConfirmations Json? @map("week_confirmations")
+  savedReview Json? @map("saved_review")
   id String @id @db.Uuid
   organizationId String @map("organization_id") @db.Uuid
   actorId String @map("actor_id") @db.Uuid

@@ -11,6 +11,11 @@ env:
     visible:
       id: session-hero
     timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: start-session
+    direction: DOWN
+    timeout: 15000
 - tapOn:
     id: start-session
 - extendedWaitUntil:

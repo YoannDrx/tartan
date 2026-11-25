@@ -49,6 +49,8 @@ export const meResponse = z.object({
   spaces: z.array(spaceSummary),
   preferences: z
     .object({
+      homeTone: z.enum(["calm", "energetic", "off"]).optional(),
+      sessionTone: z.enum(["calm", "energetic", "off"]).optional(),
       aiConsent: z.boolean().optional(),
       calendarView: z.enum(["list", "month", "week"]).nullable(),
       calendarViewUpdatedAt: z.string().nullable().optional(),

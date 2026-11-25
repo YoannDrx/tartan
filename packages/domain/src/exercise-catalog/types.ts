@@ -17,6 +17,8 @@ export type CatalogueDraft = {
   level: ExerciseGuide["level"];
   loadKind: NonNullable<ExerciseInput["strengthLoadKind"]> | null;
   sides?: ExerciseGuide["counting"]["sides"];
+  countingCue?: string;
+  checkpoint?: string;
   unit?: ExerciseGuide["counting"]["unit"];
   objective: string;
   setup: string;

@@ -20,6 +20,7 @@ export const createPersonalSpaceInput = z.object({
   // Absente quand le compte connaît déjà sa date : elle ne se réécrit pas ici.
   birthDate: isoDate.optional(),
   disciplines: trainingProfileSchema.shape.disciplines.default([]),
+  availableEquipment: trainingProfileSchema.shape.availableEquipment.optional(),
   trainingObjectives: trainingProfileSchema.shape.trainingObjectives.default([]),
   termsAccepted: z.literal(true, "Accepte les conditions pour continuer."),
   // Deux accords facultatifs, comme à l'arrivée dans un groupe : santé (effort ressenti, douleurs) et vidéo.

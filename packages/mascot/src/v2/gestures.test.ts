@@ -17,17 +17,23 @@ import {
   STRENGTH_GESTURES,
   WEIGHTLIFTING_GESTURES,
 } from "./gestures";
+import { STADIUM_GESTURES } from "./gestures/stadium";
 import { rackPoint } from "./gestures/clean";
 import { GESTURE_VIEWS, project } from "./project";
-import { volumes } from "./skin";
+import { skin, volumes } from "./skin";
 import { SIDES } from "./solve";
 import { distance } from "./vec";
 
 const clips = Object.values(GESTURES).map((clip) => [clip.key, clip] as const);
 // Les gestes d'haltérophilie et de musculation se tiennent sur leurs deux pieds à chaque tenue.
 const TWO_FEET = new Set([...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES].map((clip) => clip.key));
-const JUMPS = new Set([...PLYOMETRIC_GESTURES, ...STRIDE_GESTURES].map((clip) => clip.key));
-const STRIDES = new Set(STRIDE_GESTURES.map((clip) => clip.key));
+const JUMPS = new Set([
+  ...[...PLYOMETRIC_GESTURES, ...STRIDE_GESTURES].map((clip) => clip.key),
+  "curve-arm-drive",
+  "jump-drive-target",
+  "scissor-jump",
+]);
+const STRIDES = new Set([...STRIDE_GESTURES.map((clip) => clip.key), "cone-high-knees"]);
 // Au moins 120 images par boucle ; 240 pour ne pas manquer une phase de moins de 150 ms.
 const SAMPLES = 240;
 const reports = new Map(clips.map(([key, clip]) => [key, inspect(clip, SAMPLES)]));
@@ -57,11 +63,13 @@ describe("gestes écrits à la main", () => {
         STRENGTH_GESTURES.length +
         OTHER_GESTURES.length +
         PLYOMETRIC_GESTURES.length +
-        STRIDE_GESTURES.length,
+        STRIDE_GESTURES.length +
+        STADIUM_GESTURES.length,
     );
     for (const key of ["snatch", "clean", "clean-and-jerk", "back-squat", "lateral-lunge"])
       expect(GESTURES[key], key).toBeDefined();
-    for (const key of Object.keys(GESTURES)) expect(EXERCISE_CLIPS[key], key).toBeDefined();
+    for (const key of Object.keys(GESTURES))
+      expect(EXERCISE_CLIPS[key] ?? STADIUM_GESTURES.find((clip) => clip.key === key), key).toBeDefined();
   });
 
   it("garde les athlètes de chaque famille : Malo en haltérophilie, Mehdi en musculation", () => {
@@ -74,7 +82,7 @@ describe("gestes écrits à la main", () => {
       for (const phase of clip.phases) expect(phase.id).toMatch(/^[a-z][a-z0-9-]*$/);
       for (const still of clip.stills) expect(still.id).toMatch(/^[a-z][a-z0-9-]*$/);
       const lines = clip.stills.flatMap((still) => (still.guide === undefined ? [] : [still.guide]));
-      expect(lines).toEqual([0, 1, 2, 3]);
+      expect(lines).toEqual(STADIUM_GESTURES.includes(clip) ? [0, 1, 2] : [0, 1, 2, 3]);
       expect(clip.positions.map((position) => position.guide)).toEqual(lines);
       expect(clip.positions[0]!.from).toBe(0);
       expect(clip.positions.at(-1)!.to).toBe(1);
@@ -160,7 +168,10 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
     for (let i = 0; i < SAMPLES; i += 1) {
       const t = i / SAMPLES;
       const nodes = drawClip(clip, t, view);
-      expect(nodes.length).toBeGreaterThan(20);
+      if (clip.pose(t).controls.barefootR) {
+        expect(nodes.filter((node) => node.id.startsWith("toeR-"))).toHaveLength(5);
+        expect(nodes.some((node) => node.id === "shoeL")).toBe(false);
+      } else expect(nodes.length).toBeGreaterThan(20);
       for (const node of nodes)
         expect(node.kind === "path" ? node.d : node.kind === "group" ? node.transform : "").not.toMatch(
           /NaN|Infinity|undefined/,
@@ -170,12 +181,17 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
         expect(project(c, view).y + r, `t = ${t}`).toBeLessThanOrEqual(0.01);
     }
     const box = framing(clip, view);
-    expect(box.width).toBeGreaterThan(100);
-    expect(box.height).toBeGreaterThan(100);
+    if (clip.pose(0).controls.barefootR) {
+      expect(box.width).toBeLessThan(100);
+      expect(box.height).toBeLessThan(100);
+    } else {
+      expect(box.width).toBeGreaterThan(100);
+      expect(box.height).toBeGreaterThan(100);
+    }
   });
 
   it("la frise montre les positions, dans l'ordre de la boucle", () => {
-    expect(clip.stills.length).toBeGreaterThanOrEqual(4);
+    expect(clip.stills.length).toBeGreaterThanOrEqual(clip.positions.length);
     const times = clip.stills.map((still) => still.t);
     expect(times).toEqual([...times].sort((a, b) => a - b));
   });
@@ -519,5 +535,128 @@ describe("fente latérale", () => {
     const push = phases(lateralLunge, "push");
     expect(push).toHaveLength(1);
     expect(push[0]!.planted).toEqual(["R", "L"]);
+  });
+});
+
+describe("appuis du triple saut", () => {
+  it.each([
+    ["step-jump-sand", ["R", "RL"]],
+    ["short-triple", ["L", "L", "R", "RL"]],
+    ["double-hop-step", ["L", "L", "R"]],
+    ["triple-rhythm-zones", ["L", "R", "RL"]],
+    ["step-switch-stick", ["R"]],
+    ["hop-runout", ["L", "L", "R", "L", "R"]],
+  ] as const)("%s pose chaque pied dans l’ordre des marques", (key, contacts) => {
+    const clip = GESTURES[key]!;
+    const landings = clip.phases.filter((phase) => phase.hold && phase.id.startsWith("contact-"));
+    expect(landings.map((phase) => phase.planted.join(""))).toEqual(contacts);
+  });
+
+  it("garde un appui pendant tout le triple marché et termine sur la quatrième marque", () => {
+    const clip = GESTURES["triple-walk"]!;
+    expect(clip.phases.filter((phase) => !phase.cut).every((phase) => phase.planted.length > 0)).toBe(true);
+    const finish = held(clip, "feet-together");
+    expect(finish.legs.L.ball.x).toBeCloseTo(finish.legs.R.ball.x);
+    expect(clip.props(0, finish)).toHaveLength(4);
+  });
+});
+
+describe("éducatifs de hauteur", () => {
+  it("fait tourner les appuis au passage de la porte et garde les plots de part et d’autre", () => {
+    const clip = GESTURES["curve-entry-gate"]!;
+    const first = held(clip, "plant-0");
+    const entry = held(clip, "plant-2");
+    const last = held(clip, "plant-5");
+    expect(entry.pelvis.z).toBeCloseTo(first.pelvis.z);
+    expect(last.pelvis.z).toBeGreaterThan(entry.pelvis.z + 20);
+    expect(last.controls.pelvisYaw).toBeGreaterThan(30);
+    const gates = clip.props(0, entry);
+    expect(gates[0]!.at).toBeLessThan(entry.pelvis.z);
+    expect(gates[1]!.at).toBeGreaterThan(entry.pelvis.z);
+  });
+
+  it("passe les jambes en ciseaux dans l’ordre et finit sur le tapis", () => {
+    const clip = GESTURES["scissor-jump"]!;
+    const leading = held(clip, "lead-clears");
+    const trailing = held(clip, "trailing-clears");
+    const finish = held(clip, "land");
+    expect(leading.legs.R.ball.x).toBeGreaterThan(8);
+    expect(leading.legs.L.ball.x).toBeLessThan(8);
+    expect(trailing.legs.L.ball.x).toBeGreaterThan(8);
+    expect(trailing.legs.L.ball.y).toBeGreaterThan(75);
+    for (const side of SIDES) expect(finish.legs[side].ball.y).toBeCloseTo(38);
+  });
+});
+
+describe("nouveaux éducatifs de stade", () => {
+  it("le pied garde ses trois points d’appui et les deux groupes d’orteils se lèvent séparément", () => {
+    const bones = (clip: MotionClip, phase: string) => skin(held(clip, phase)).parts;
+    const height = (parts: ReturnType<typeof skin>["parts"], id: string) => {
+      const tip = parts.find((p) => p.id === id)!.spheres.at(-1)!;
+      return tip.c.y - tip.r;
+    };
+    const toes = GESTURES["toe-yoga"]!;
+    const big = bones(toes, "big-toe"),
+      four = bones(toes, "four-toes");
+    expect(height(big, "toeR-0")).toBeGreaterThan(6);
+    expect(height(four, "toeR-0")).toBeCloseTo(0);
+    for (let i = 1; i <= 4; i++) {
+      expect(height(big, `toeR-${i}`)).toBeCloseTo(0);
+      expect(height(four, `toeR-${i}`)).toBeGreaterThan(2);
+    }
+    const tripod = GESTURES["foot-tripod"]!;
+    const start = bones(tripod, "place"),
+      active = bones(tripod, "shorten");
+    for (const id of ["heelR", "forefootR"])
+      expect(active.find((p) => p.id === id)).toEqual(start.find((p) => p.id === id));
+    expect(active.find((p) => p.id === "archR")!.spheres[1]!.c.y).toBeGreaterThan(
+      start.find((p) => p.id === "archR")!.spheres[1]!.c.y + 3,
+    );
+  });
+  it("distingue les ancrages intérieur et extérieur et garde le talon au même endroit", () => {
+    for (const [name, direction] of [
+      ["band-eversion", 1],
+      ["band-inversion", -1],
+    ] as const) {
+      const c = GESTURES[name]!,
+        a = held(c, "center"),
+        b = held(c, "turn");
+      expect(distance(a.legs.R.heel, b.legs.R.heel)).toBeLessThan(0.01);
+      expect(Math.sign(b.legs.R.ball.z - a.legs.R.ball.z)).toEqual(direction);
+      const post = c.props(0, a)[0]!.shape;
+      expect(post.kind === "rect" && Math.sign(post.y - a.legs.R.ball.z)).toEqual(-direction);
+    }
+  });
+  it("appuie le pied droit sur la marche et garde le bassin haut sur les patins", () => {
+    for (const key of ["lateral-step-down", "hip-hike-step"]) {
+      const c = GESTURES[key]!;
+      for (const p of c.phases.filter((p) => p.hold)) {
+        const leg = c.pose((p.from + p.to) / 2).legs.R;
+        expect(p.planted).toContain("R");
+        expect(leg.ball.y).toBeCloseTo(28);
+      }
+    }
+    const c = GESTURES["hamstring-slider"]!,
+      start = held(c, "bridge"),
+      end = held(c, "extend");
+    expect(end.pelvis.y).toBeCloseTo(start.pelvis.y, 4);
+    expect(end.head.x).toBeCloseTo(start.head.x, 4);
+    for (const side of SIDES) {
+      expect(end.legs[side].heel.x - start.legs[side].heel.x).toBeGreaterThan(50);
+      expect(end.legs[side].heel.y).toBeCloseTo(start.legs[side].heel.y, 4);
+    }
+  });
+  it("fait un seul quart de tour et garde en rack le nombre d’engins prescrit", () => {
+    const turn = GESTURES["quarter-turn-stick"]!;
+    expect(turn.phases.filter((p) => p.hold && p.id.startsWith("land-"))).toHaveLength(2);
+    expect(held(turn, "land-1").controls.pelvisYaw - held(turn, "land-0").controls.pelvisYaw).toBeCloseTo(90);
+    for (const [name, count] of [
+      ["kb-front-rack-squat", 2],
+      ["kb-rack-march", 1],
+    ] as const) {
+      const c = GESTURES[name]!,
+        b = held(c, "rack");
+      expect(c.props(0, b).filter((p) => p.shape.kind === "disc")).toHaveLength(count);
+    }
   });
 });

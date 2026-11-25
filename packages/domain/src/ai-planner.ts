@@ -15,7 +15,7 @@ import {
   type SequenceNode,
 } from "@tartan/contracts";
 import { validSessionStructure } from "./session-sequence";
-import { plannerEquipmentAvailable } from "./planner-equipment";
+import { plannerEquipmentAvailable, plannerRequiredEquipment } from "./planner-equipment";
 import { PERSONAL_QUOTAS, type PlanKey } from "./plans";
 
 export const PLANNER_MAX_AUDIO_BYTES = 3 * 1024 * 1024;
@@ -142,7 +142,10 @@ export type PlannerValidationContext = {
   mode?: "format" | "propose";
   brief?: PlannerBrief;
   period: { from: string; to: string };
-  exercises: ReadonlyMap<string, { id: string; classification?: ExerciseClassification | null }>;
+  exercises: ReadonlyMap<
+    string,
+    { id: string; catalogKey?: string | null; classification?: ExerciseClassification | null }
+  >;
   targetTokens: ReadonlySet<string>;
   // Seulement les consignes et réponses relues ; jamais de notes privées ou santé structurée.
   reviewedInstructions: readonly string[];
@@ -222,7 +225,10 @@ export function validatePlannerInterpretation(
           if (
             !exercise ||
             (context.mode === "propose" &&
-              !plannerEquipmentAvailable(exercise.classification, context.brief?.equipment ?? []))
+              !plannerEquipmentAvailable(
+                { equipment: plannerRequiredEquipment(exercise.catalogKey, exercise.classification?.equipment) },
+                context.brief?.equipment ?? [],
+              ))
           )
             issues.add("exercise");
         }

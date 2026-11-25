@@ -424,6 +424,9 @@ test("remplacer par une fiche hors de la proposition, puis ajuster sans perdre u
     await page.getByRole("textbox", { name: t.adjustLabel, exact: true }).fill("Passe à quatre séries.");
     await expectAccessible(page);
     await page.getByRole("button", { name: t.adjustSend, exact: true }).click();
+    await expect(page.getByRole("heading", { name: m.aiPlanner.adjustmentReview })).toBeVisible();
+    await expect(page.getByText(/4 × 12/).first()).toBeVisible();
+    await page.getByRole("button", { name: m.aiPlanner.applyAdjustment }).click();
     await expect(page.getByText(t.adjustCount(1, 5), { exact: true })).toBeVisible({ timeout: 30_000 });
     // Quatre séries, comme demandé ; la fiche choisie et les douze répétitions sont restées.
     await expect(card(page, later.name)).toContainText("4 × 12");
@@ -710,6 +713,35 @@ test("le planificateur s'ouvre là où une séance se crée, avec le jour et le 
     await expect(
       page.getByRole("link", { name: w.onboarding.guide.steps.create.planner, exact: true }),
     ).toHaveAttribute("href", "/planificateur");
+  } finally {
+    await a.sql.end();
+  }
+});
+
+test("une proposition retouchée se reprend dans un autre onglet et peut quitter l’historique", async ({ page }) => {
+  const a = await setup(page);
+  try {
+    await request(page, SQUAT);
+    await prepare(page);
+    await page.getByText(t.editSchedule, { exact: true }).first().click();
+    await page.getByLabel(m.builder.title, { exact: true }).fill("Appuis sur la courbe");
+    await expect(page.getByText(m.aiPlanner.savedReview, { exact: true })).toBeVisible();
+    const other = await page.context().newPage();
+    await other.emulateMedia({ reducedMotion: "reduce" });
+    await other.goto("/planificateur/propositions?filtre=pending");
+    await everyWidth(other);
+    await other
+      .getByRole("link", { name: new RegExp(m.aiPlanner.historyActions.proposal) })
+      .first()
+      .click();
+    await expect(other.getByRole("heading", { name: "Appuis sur la courbe" })).toBeVisible();
+    await createDraft(other);
+    await other.goto("/planificateur/propositions?filtre=created");
+    await other.getByText(m.aiPlanner.moreProposalActions, { exact: true }).first().click();
+    await other.getByRole("button", { name: m.aiPlanner.removeProposal }).click();
+    await other.getByRole("dialog").getByRole("button", { name: m.aiPlanner.removeProposal }).click();
+    await expect(other.getByText(t.proposals.empty)).toBeVisible();
+    expect(await sessionsOf(a)).toHaveLength(1);
   } finally {
     await a.sql.end();
   }

@@ -10,8 +10,9 @@ const NETWORK_TIMEOUT_MS = 4000;
 // Chaque entrée est une vraie page : `tests/service-worker.test.ts` le vérifie.
 const OFFLINE_PATHS = /^\/(accueil|aujourdhui|calendrier|annonces|progres|mes-videos|suivi|videos|seance\/|seances\/)/;
 
-// Seulement des fichiers qui existent : les guides d'exercice sont dessinés dans la page, sans fichier à garder.
+// Les gestes sont dessinés dans la page. Les illustrations publiées et leurs vignettes ont une adresse versionnée.
 const isStatic = (url) =>
+  /^\/exercise-photos\/[a-z0-9-]+-v[1-9][0-9]*(?:-thumb)?\.webp$/.test(url.pathname) ||
   url.pathname.startsWith("/_next/static/") || /^\/(icon-|apple-touch|brand\/)/.test(url.pathname);
 
 // Une réponse redirigée ne peut pas servir une navigation : on la recopie.
@@ -20,7 +21,12 @@ const storable = async (response) =>
     ? new Response(await response.clone().blob(), { status: response.status, headers: response.headers })
     : response.clone();
 
-const assetsIn = (text) => [...new Set(text.match(/\/_next\/static\/[^"'\\\s)]+/g) ?? [])];
+const assetsIn = (text) => [
+  ...new Set([
+    ...(text.match(/\/exercise-photos\/[a-z0-9-]+-v[1-9][0-9]*(?:-thumb)?\.webp/g) ?? []),
+    ...(text.match(/\/_next\/static\/[^"'\\\s)]+/g) ?? []),
+  ]),
+];
 
 const cacheAssets = async (text) => {
   const cache = await caches.open(STATIC_CACHE);

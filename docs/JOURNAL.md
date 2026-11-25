@@ -2,6 +2,90 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, candidat de livraison des stores
+
+Ce candidat réunit les lots du terrain, les 22 images d’atelier, la correction du dépôt Maven et le logo des deux stores. Les exports de recette iOS et Android contiennent les 22 images attendues, contrôlées par empreinte. Les binaires de bêta précédents contiennent les 18 premières. Le budget de production et la taille éditoriale sont extrapolés dans la procédure des illustrations.
+
+## 2026-11-25, Codex, retour en deuxième session
+
+Le test d’accueil coach lançait une deuxième navigation pendant la redirection de connexion, avec deux interruptions observées en CI. Le coach et l’athlète utilisent désormais la destination demandée dès la connexion. Les assertions de l’écran, de la visite guidée et de l’accueil déjà vu sont conservées.
+
+## 2026-11-25, Codex, illustrations des sauts et des appuis
+
+Quatre nouvelles images et leurs vignettes rejoignent l’atelier. Pour le saut en hauteur, le franchissement a été repris à partir de la phase correspondante de l’animation, avec le bassin au-dessus de la barre et la tête du côté du tapis. Les images attendent leur validation dans l’atelier avant affichage aux athlètes.
+
+## 2026-11-25, Codex, animations des 60 fiches de stade
+
+Les 31 gestes restants rejoignent les éducatifs de saut. Le gros plan de pied distingue les cinq orteils, les patins se déplacent sous les talons et le halo décrit les deux sens. La recette contrôle le tripode, les ancrages, la hauteur de la marche, le quart de tour et le nombre de kettlebells. Les 233 clés versionnées ont un geste. L’atelier conserve les décisions de relecture séparées pour le texte, l’animation et l’image.
+
+## 2026-11-25, Codex, gestes de saut en hauteur
+
+Les dix nouvelles fiches de hauteur ont une animation. La vue de dessus montre les marques et l’entrée en courbe. Les ciseaux passent la jambe libre puis la jambe d’appel et finissent sur le tapis. Les 3 343 tests du moteur de gestes passent. La relecture sportive reste à faire dans l’atelier.
+
+## 2026-11-25, Codex, isolation de la recette du catalogue
+
+La recette de l’atelier retire sa fiche de stade et ses avis à la fin du scénario. La consultation vérifie chacune des clés historiques même après l’ajout de nouvelles fiches. Les deux scénarios successifs passent sur ordinateur et téléphone.
+
+## 2026-11-25, Codex, appuis du triple saut
+
+Les huit nouvelles fiches de triple saut ont un geste. La foulée vers le sable se termine sur deux pieds, le double cloche reste sur la même jambe et le triple marché garde toujours un appui. Les 3 202 tests du paquet de gestes passent, dont le contrôle des successions de pieds, des réceptions et des repères. La relecture sportive reste à faire.
+
+## 2026-11-25, Codex, gestes de barre et fiches hors ligne
+
+L’épaulé et l’arraché distinguent départ sur plots, pause au genou et réception. Les talons-fesses passent entre des portes de plots. Les 3 090 contrôles du moteur de gestes et les huit tests du service worker passent. La PWA conserve aussi les vignettes versionnées des séances préparées hors ligne. La relecture technique de chaque clip reste ouverte. La commande `catalog:images` prépare une série de PNG ou la reprise d’une seule clé, génère les vignettes et conserve les versions déjà embarquées. L’atelier permet aussi de rattacher ou de retirer un guide relu sur une fiche commune historique, en gardant ses références. Ce parcours passe sur Playwright ordinateur et mobile, avec contrôle axe à 390, 768 et 1440 px.
+
+## 2026-11-25, Codex, série des exercices au sol
+
+Six fiches dont le texte était déjà relu ont reçu une illustration candidate. Le dead bug a été repris séparément pour garder la tête au sol. L’atelier présente désormais 18 images sur les 233 clés. Chaque validation reste individuelle.
+
+## 2026-11-25, Codex, gestes de la planche pilote
+
+Les huit nouveaux gestes pilotes ont chacun leurs appuis et leurs phases. Le port de kettlebell et la marche sur plots gardent un pied au sol. Pour la cheville, l’ancrage est fixe et l’avant-pied mobile. La troisième validation publie la fiche de stade avec sa clé stable. Rouvrir son texte la retire des exercices que l’IA peut prescrire automatiquement. La relecture sportive appartient au fondateur.
+
+## 2026-11-25, Codex, consignes de comptage du stade
+
+Les 60 nouvelles fiches donnent chacune un repère observable et une convention de comptage propre au geste. Le guide et les consignes courtes gardent les mêmes deux phases techniques. Une réception à deux pieds, une liaison de triple et une paire de kettlebells ont désormais des explications dédiées. Les 515 tests du domaine passent sur le lot catalogue.
+
+## 2026-11-25, Codex, édition stade en relecture
+
+Les 60 nouvelles fiches disposent de clés de catalogue stables dans `exercise-catalog/stadium.ts`. La console des exercices permet de relire leurs textes. Les tests vérifient les 233 clés et noms distincts, les contrats et les statuts de relecture. Les visuels et la validation par le fondateur sont à faire avant la diffusion de cette édition.
+
+## 2026-11-25, Codex, Illustrations, série pilote et atelier de relecture
+
+Douze silhouettes détaillées ont une image et une vignette WebP versionnées, 272 Kio sur disque au total, environ 5,2 Mio pour 233 au même poids. Le coût monétaire par reprise reste à chiffrer. Texte, image et geste ont des validations séparées. Aucune validation humaine simulée. Deux tests de service et les parcours Playwright ordinateur et téléphone ont passé la validation puis la réouverture d’une image. Inventaire agrégé en lecture seule le 25 novembre : 197 fiches communes visibles, dont les 173 clés versionnées et 24 sans clé ni guide. Ces 24 figurent séparément dans l’atelier. Le pilote et les 60 nouvelles fiches attendent leur relecture sportive. Les 221 autres illustrations restent à produire.
+
+## 2026-11-25, Codex, Encouragements du stade
+
+Deux préférences de compte règlent le ton de l’accueil et celui de la séance. Le catalogue local contient 30 mantras et 12 retours par ton. Le calcul tient compte des séries de toutes les occurrences du même mouvement dans un circuit. Vérifications du domaine, types, lint et design effectuées. La recette hors connexion et les lecteurs d’écran sur téléphone restent à faire.
+
+## 2026-11-25, Codex, accueil athlète sur le simulateur iOS
+
+La hiérarchie Maestro place « Découvrir Tartan » derrière la barre des onglets après l’ajout de « Créer ma séance ». Le test centre le bouton et attend l’arrêt du défilement, puis exige l’ouverture des panneaux après le toucher. Le contrôle de la fermeture enregistrée en base et la seconde connexion sont conservés.
+
+## 2026-11-25, Codex, Planifier pour soi depuis le club
+
+Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
+
+## 2026-11-25, Codex, destinataire du scénario natif
+
+Sur Android, sélectionner le texte du groupe pouvait décocher son bouton déjà actif. La consigne cite le groupe et la recette sait répondre à la question de destinataire avant de contrôler la création du brouillon.
+
+## 2026-11-25, Codex, saisie du planificateur sur téléphone
+
+Le champ de dictée précède le choix de période. Les parcours centrent le champ avant la saisie et vérifient que l’envoi est disponible. L’espace Android de recette reçoit les mêmes droits au planificateur que celui du simulateur iOS.
+
+## 2026-11-25, Codex, contrôle des créneaux du planificateur
+
+La revue de semaine compare aussi les durées des séances du calendrier pour avertir d’un chevauchement. Le banc historique de 80 consignes qui isole le prestataire transmet désormais le véritable statut de relecture des exercices fictifs. Les attendus du corpus restent figés. Les raccourcis de matériel, la sélection des fiches et la revue de semaine reconnaissent aussi la corde à sauter sur le web et le natif.
+
+## 2026-11-25, Codex, Reprendre une proposition IA
+
+La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
+
+## 2026-11-25, Codex, Planificateur, revue des ajustements et semaine
+
+La demande propose séance ou sept jours, disciplines et disponibilités. Le coach peut comparer son ajustement, verrouiller des blocs et accepter ou annuler depuis un second appareil. Le calendrier garde les jours libres et les séances accessibles. La sélection partielle des jours est transactionnelle et rejouable, les clients installés peuvent toujours confirmer toute la proposition. Les 48 tests des propositions et 26 parcours Playwright avec prestataire simulé sont passés. La mesure sur consignes inédites et la dictée au stade restent ouvertes.
+
 ## 2026-11-25, Codex, reprise de la recette native
 
 Sur les captures de CI, le constructeur attendait encore la réponse de publication, et le parcours personnel touchait le modèle pendant le défilement. Le test attend la fin de l’animation et laisse la sauvegarde se terminer avant de relire le résultat du serveur. Le délai global du simulateur inclut les rejeux. Deux réponses HTTP 429 consécutives sur la même dépendance ont confirmé que le délai de reprise seul ne suffit pas. Une seconde compilation peut passer par le miroir public de Maven Central hébergé par Google Cloud.
@@ -22,9 +106,17 @@ Une interruption du service Apple conserve l’envoi Android disponible pour une
 
 Le store Blob privé du lancement a été créé en région fra1 et connecté à la production avec le préfixe BETA_APK. Le téléchargement contrôlé utilise la variable dédiée posée par Vercel. Les nouvelles invitations restent suspendues par défaut.
 
+## 2026-11-25, Codex, production de la console
+
+La PR 192 a été fusionnée avec les contrôles requis réussis. Vérification du commit, de la santé et de la protection de la route effectuée sur `app.tartan.coach`. Les nouveaux envois restent suspendus pendant la recette.
+
 ## 2026-11-25, Codex, Console privée des testeurs
 
 La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.
+
+## 2026-11-25, Codex, identité des stores
+
+La bannière Play reprend les tracés du mot Tartan et sa ligne d’arrivée. Le test d’icône contrôle le format, la transparence et le poids du fichier Play. Les 29 tests de marque passent. Le rendu Apple du build 18, ramené à 512 px, a un écart moyen de 0,18 sur 255 par canal avec le PNG iOS de référence.
 
 Modèle :
 

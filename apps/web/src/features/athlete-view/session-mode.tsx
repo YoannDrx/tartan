@@ -1,8 +1,8 @@
 "use client";
 
 import type { AthleteSessionDetail, ExerciseMediaSnapshot, ResolvedItem } from "@tartan/contracts";
-import { formatDuration, formatPlannedSet, prescribedSetCount } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { exerciseTransition, formatDuration, formatPlannedSet, prescribedSetCount } from "@tartan/domain";
+import { encouragement, type EncouragementTone, m } from "@tartan/i18n";
 import { ArrowRight, Check, Timer, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -47,10 +47,12 @@ export const SessionMode = ({
   session,
   organizationId,
   healthConsent,
+  tone,
 }: {
   session: AthleteSessionDetail;
   organizationId: string;
   healthConsent: boolean;
+  tone: EncouragementTone;
 }) => {
   const router = useRouter();
   const items = useMemo(() => session.blocks.flatMap((b) => b.items), [session.blocks]);
@@ -62,6 +64,8 @@ export const SessionMode = ({
   const [restEnd, setRestEnd] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [announce, setAnnounce] = useState("");
+  const [cue, setCue] = useState("");
+  const seen = useRef(new Set<string>());
   const heading = useRef<HTMLHeadingElement>(null);
   const audio = useRef<AudioContext | null>(null);
   const restLeft = restEnd === null ? null : Math.max(0, Math.ceil((restEnd - now) / 1000));
@@ -270,11 +274,30 @@ export const SessionMode = ({
                     type="button"
                     aria-pressed={done}
                     // Une série détaillée se nomme par son texte visible : numéro, détail, échauffement.
-                    aria-label={planned ? undefined : done ? m.sessionMode.setDone(i + 1) : m.sessionMode.setTodo(i + 1)}
+                    aria-label={
+                      planned ? undefined : done ? m.sessionMode.setDone(i + 1) : m.sessionMode.setTodo(i + 1)
+                    }
                     onClick={() => {
                       unlockSound();
                       setChecked({ ...checked, [key]: !done });
                       if (done) return;
+                      const event = exerciseTransition(
+                        items,
+                        item,
+                        (ref, n) => (ref === item.ref && n === i) || Boolean(checked[ref + "#" + n]),
+                      );
+                      if (event && tone !== "off") {
+                        const key = storageKey + "." + (item.sourceRef ?? item.ref) + "." + event;
+                        let already = seen.current.has(key);
+                        try {
+                          already ||= sessionStorage.getItem(key) === "1";
+                          sessionStorage.setItem(key, "1");
+                        } catch {
+                          /* mémoire de la séance */
+                        }
+                        seen.current.add(key);
+                        if (!already) setCue(encouragement(tone, event, key) ?? "");
+                      }
                       const lastSet = doneCount + 1 >= setCount;
                       const seconds = lastSet
                         ? (item.restAfterLastSetS ?? item.prescription.rest_s)
@@ -344,13 +367,16 @@ export const SessionMode = ({
           </div>
         ) : null}
 
+        {tone !== "off" && cue && <p role="status">{cue}</p>}
         <p className="sr-only" aria-live="polite">
           {announce}
         </p>
         {!last && items[index + 1] ? (
           <p className="text-soft">
             {m.sessionMode.upNext(
-              [items[index + 1]!.name, ...(items[index + 1]!.rounds ?? []).map((r) => `${r.round}/${r.rounds}`)].join(" · "),
+              [items[index + 1]!.name, ...(items[index + 1]!.rounds ?? []).map((r) => `${r.round}/${r.rounds}`)].join(
+                " · ",
+              ),
             )}
           </p>
         ) : null}
@@ -359,6 +385,7 @@ export const SessionMode = ({
             <>
               <h2 className="t-h2">{m.validation.title}</h2>
               <QuickValidate
+                tone={tone}
                 session={session}
                 organizationId={organizationId}
                 healthConsent={healthConsent}
@@ -378,12 +405,7 @@ export const SessionMode = ({
               {m.sessionMode.previous}
             </Button>
             {!last ? (
-              <Button
-                size="lg"
-                variant="darkPrimary"
-                className="flex-[2]"
-                onClick={() => go(index + 1)}
-              >
+              <Button size="lg" variant="darkPrimary" className="flex-[2]" onClick={() => go(index + 1)}>
                 {m.builder.sequence.next}
                 <ArrowRight aria-hidden className="size-5" />
               </Button>
