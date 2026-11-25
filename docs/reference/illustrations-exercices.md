@@ -13,8 +13,8 @@ L’import prépare le WebP de fiche à 488 px et sa vignette à 168 px, retire 
 
 Relire la nouvelle version dans `/admin/exercices#atelier` au format téléphone. Le texte, l’image et le geste disposent chacun de leur validation. Une nouvelle version de l’image doit recevoir sa propre validation avant affichage aux athlètes.
 
-## Estimer la série avant production
+## Série produite le 25 novembre 2026
 
-Au 25 novembre 2026, les 22 fiches préparées occupent 390 138 octets avec leurs vignettes web, dont 321 042 octets pour les images de fiche embarquées sur chaque plateforme native. Au même poids moyen, les 233 fiches représenteraient environ 3,94 Mio sur le web et 3,24 Mio dans chaque application native.
+Les 233 fiches versionnées sont illustrées. Les 24 fiches vidéo historiques sont identifiées par les UUID stables de la migration de bibliothèque commune. Leur couverture figure dans `apps/web/src/server/legacy-catalog-covers.ts` et suit sa propre décision de relecture. Pour une routine, l’image montre sa préparation ou un mouvement effectivement décrit. Les vidéos d’origine restent accessibles.
 
-Pour les quatre dernières fiches, six générations ont été nécessaires. Le franchissement en hauteur a demandé deux reprises. Si ce taux se maintient, les 211 fiches restantes représenteraient environ 317 générations. Cette extrapolation provient d’une petite série. La facture du générateur intégré ne donne pas de prix par image dans l’atelier. Pour convertir la projection en budget, multiplier 317 par le coût effectif d’une génération, puis ajouter le temps de relecture sportive. Les images ne paraissent dans la bibliothèque des athlètes qu’après validation dans l’atelier.
+Les 254 images de fiche distinctes occupent 4 326 160 octets. Avec les vignettes, le poids est de 5 276 234 octets. Les budgets de génération du pilote reposaient sur six générations pour quatre visuels. Le générateur intégré ne fournit pas de coût monétaire par image. Dans la série suivante, cinq images ont été reprises au contrôle visuel. Le fondateur a validé les douze images du pilote, puis toutes les familles et les 24 couvertures historiques. Le sélecteur de média présente le geste animé Tartan en premier, l’image fixe ensuite, puis la vidéo lorsqu’elle existe.

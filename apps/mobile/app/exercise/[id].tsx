@@ -4,7 +4,8 @@ import { instagramUrl, parseYouTubeUrl } from "@tartan/domain";
 import { m, exerciseClassificationLabel } from "@tartan/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { View } from "react-native";
+import { Image, View } from "react-native";
+import { pilotImages } from "../../src/features/pilot-images";
 import { parseMedia } from "../../src/features/media";
 import { VideoRow } from "../../src/features/video-bits";
 import { MovementGuideDisclosure } from "../../src/features/exercise-guide";
@@ -348,6 +349,15 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
         </Card>
       </View>
 
+      {exercise?.cover && !exercise.guide?.illustration.photo && pilotImages[exercise.cover.path] && (
+        <Image
+          accessible
+          accessibilityLabel={exercise.cover.alt}
+          source={pilotImages[exercise.cover.path]}
+          resizeMode="contain"
+          style={{ width: "100%", aspectRatio: 1 }}
+        />
+      )}
       {exercise?.guide ? <MovementGuideDisclosure guide={exercise.guide} /> : null}
       {exercise ? <LinkedVideos orgId={orgId} exerciseId={exercise.id} /> : null}
     </StackScreen>

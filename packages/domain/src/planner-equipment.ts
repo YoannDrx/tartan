@@ -8,6 +8,7 @@ const aliases: Record<string, string[]> = {
   dumbbells: ["dumbbell", "haltere", "halteres"],
   kettlebells: ["kettlebell"],
   jump_rope: ["corde", "corde à sauter", "jump rope", "skipping rope"],
+  sliders: ["patin", "patins", "patins glissants", "disques glissants", "sliding discs"],
   bands: ["band", "elastique", "elastiques", "bandes elastiques"],
   medicine_ball: ["medicine ball", "medecine ball", "medecine balls"],
   boxes: ["box", "caisson", "caissons"],
@@ -28,14 +29,21 @@ const equipmentKeys = new Map(
   Object.entries(aliases).flatMap(([key, names]) => [key, ...names].map((name) => [normalize(name), key] as const)),
 );
 
-// Les anciennes applications connaissent le matériel « autre ». La clé stable précise les quatre fiches de corde.
-const ropeGuides = new Set(["easy-jump-rope", "rope-boxer-step", "rope-skier", "rope-running-step"]);
+// La classification des anciens clients range ces accessoires dans « autre ».
+const specificEquipment: ReadonlyMap<string, "jump_rope" | "sliders"> = new Map([
+  ["easy-jump-rope", "jump_rope"],
+  ["rope-boxer-step", "jump_rope"],
+  ["rope-skier", "jump_rope"],
+  ["rope-running-step", "jump_rope"],
+  ["hamstring-slider", "sliders"],
+]);
+export const plannerCatalogEquipment = (key?: string | null) => (key ? specificEquipment.get(key) : undefined);
 export function plannerRequiredEquipment(
   key: string | null | undefined,
   equipment: NonNullable<ExerciseClassification["equipment"]> | null | undefined,
 ) {
   if (!equipment) return null;
-  return equipment.map((e) => (e === "other" && key && ropeGuides.has(key) ? ("jump_rope" as const) : e));
+  return equipment.map((e) => (e === "other" ? (plannerCatalogEquipment(key) ?? e) : e));
 }
 
 /** Unknown classification is not evidence that an exercise requires no equipment. */

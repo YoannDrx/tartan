@@ -206,9 +206,19 @@ describe("réponse du modèle, vérifiée", () => {
 describe("confiance décidée par règle, à partir de la relation dite par le modèle", () => {
   const verdict = (candidates: { key: string; relation: "same_name" | "same_known" | "variant" | "neighbor" }[]) =>
     plannerMatchVerdict({ matches: [{ id: "m1", candidates, suggestion: null }] }).matches[0]!;
-  const suggestion = { name: "Superman", category: "strength" as const, movement: "trunk" as const, loadKind: "bodyweight" as const };
+  const suggestion = {
+    name: "Superman",
+    category: "strength" as const,
+    movement: "trunk" as const,
+    loadKind: "bodyweight" as const,
+  };
   it("le nom, un alias ou leur traduction directe portent l'équivalence : sure", () => {
-    expect(verdict([{ key: "f1", relation: "same_name" }, { key: "f2", relation: "neighbor" }])).toEqual({
+    expect(
+      verdict([
+        { key: "f1", relation: "same_name" },
+        { key: "f2", relation: "neighbor" },
+      ]),
+    ).toEqual({
       id: "m1",
       confidence: "sure",
       key: "f1",
@@ -220,7 +230,12 @@ describe("confiance décidée par règle, à partir de la relation dite par le m
     expect(verdict([{ key: "f3", relation: "same_known" }])).toMatchObject({ confidence: "probable", key: "f3" });
   });
   it("le même geste à une précision de matériel, d'agrès ou de position près : probable, pas absent", () => {
-    expect(verdict([{ key: "f4", relation: "variant" }, { key: "f5", relation: "neighbor" }])).toMatchObject({
+    expect(
+      verdict([
+        { key: "f4", relation: "variant" },
+        { key: "f5", relation: "neighbor" },
+      ]),
+    ).toMatchObject({
       confidence: "probable",
       key: "f4",
       others: ["f5"],
@@ -228,12 +243,22 @@ describe("confiance décidée par règle, à partir de la relation dite par le m
     });
   });
   it("deux fiches données pour le même mouvement : probable, l'autre proposée", () => {
-    expect(verdict([{ key: "f1", relation: "same_name" }, { key: "f2", relation: "same_name" }])).toMatchObject({
+    expect(
+      verdict([
+        { key: "f1", relation: "same_name" },
+        { key: "f2", relation: "same_name" },
+      ]),
+    ).toMatchObject({
       confidence: "probable",
       key: "f1",
       others: ["f2"],
     });
-    expect(verdict([{ key: "f1", relation: "same_name" }, { key: "f6", relation: "same_known" }])).toMatchObject({
+    expect(
+      verdict([
+        { key: "f1", relation: "same_name" },
+        { key: "f6", relation: "same_known" },
+      ]),
+    ).toMatchObject({
       confidence: "probable",
       key: "f1",
       others: ["f6"],
@@ -270,4 +295,15 @@ describe("confiance décidée par règle, à partir de la relation dite par le m
     expect(rules.remaining).toEqual([]);
     expect(rules.matches[0]).toMatchObject({ confidence: "exact", source: "name" });
   });
+});
+
+it("laisse un appui glissant en suggestion tant que la demande ne le décrit pas", () => {
+  const keys = new Map([["f1", "exercise_1"]]);
+  const equipment = new Map([["f1", ["sliders"]]]);
+  const generation = { matches: [{ id: "m1", confidence: "sure" as const, key: "f1", others: [], suggestion: null }] };
+  const resolve = (said: string) => plannerModelMatches([{ id: "m1", said }], generation, keys, equipment)[0];
+  for (const term of ["flexion des genoux", "flexions sur ballon", "flexion sans patins"]) {
+    expect(resolve(term)).toMatchObject({ confidence: "absent", exerciseToken: null, alternatives: ["exercise_1"] });
+  }
+  expect(resolve("ramener les talons en glissant")).toMatchObject({ confidence: "sure", exerciseToken: "exercise_1" });
 });

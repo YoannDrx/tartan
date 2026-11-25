@@ -95,7 +95,23 @@ export const createBuilderDraftStore = (backend: KeyValueStore, revisionId: () =
   const write = async (key: string, value: BuilderDraft, expectedRevision: string | null) => {
     const current = await read(key);
     if ((current?.revision ?? null) !== expectedRevision) throw new BuilderStorageConflict();
-    const next = { revision: revisionId(), expiresAt: now() + BUILDER_DRAFT_TTL, value: builderDraft.parse(value) };
+    // Le constructeur hors ligne cherche les exercices et affiche leur placement dans la séance.
+    // La fiche complète et le mode séance disposent de leurs propres guides.
+    const exercises = value.context.exercises.map((exercise) => {
+      const { guide, ...summary } = exercise;
+      if (!guide) return exercise;
+      return {
+        ...summary,
+        family: summary.family ?? guide.family,
+        motionKey: summary.motionKey ?? guide.catalogKey,
+        cover: summary.cover ?? guide.illustration.photo,
+      };
+    });
+    const next = {
+      revision: revisionId(),
+      expiresAt: now() + BUILDER_DRAFT_TTL,
+      value: builderDraft.parse({ ...value, context: { ...value.context, exercises } }),
+    };
     await chunks.write(key, toAsciiJson(next));
     return next;
   };
@@ -113,13 +129,15 @@ export const createBuilderDraftStore = (backend: KeyValueStore, revisionId: () =
     // dans le verrou partagé, y compris avant un arrêt ou une nouvelle lecture.
     writer: (key: string, initialRevision: string | null) => {
       let revision = initialRevision;
+      const commit = async (value: BuilderDraft) => {
+        const saved = await write(key, value, revision);
+        revision = saved.revision;
+        return saved;
+      };
       return {
-        write: (value: BuilderDraft) =>
-          serial(key, async () => {
-            const saved = await write(key, value, revision);
-            revision = saved.revision;
-            return saved;
-          }),
+        write: (value: BuilderDraft) => serial(key, () => commit(value)),
+        autosave: (value: BuilderDraft, current: () => boolean) =>
+          serial(key, async () => (current() ? commit(value) : null)),
         remove: () =>
           serial(key, async () => {
             await remove(key, revision);

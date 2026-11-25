@@ -1,6 +1,7 @@
 "use client";
 
 import type { CatalogVideo, ExerciseGuide } from "@tartan/contracts";
+import { guideMediaModes } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
@@ -53,24 +54,42 @@ const CatalogVideoPlayer = ({ guide, videos }: { guide: ExerciseGuide; videos: C
 // Une fiche commune qui a sa vidéo : le geste animé d'abord, la vidéo au choix. Sans geste animé, la vidéo seule.
 export const GuideMedia = ({ guide, motion }: { guide: ExerciseGuide; motion: boolean }) => {
   const videos = guide.illustration.videos ?? [];
-  const [mode, setMode] = useState<"motion" | "video">(motion ? "motion" : "video");
-  if (!motion) return <CatalogVideoPlayer guide={guide} videos={videos} />;
+  const photo = guide.illustration.photo;
+  const [failedPhoto, setFailedPhoto] = useState<string>();
+  const modes = guideMediaModes(guide, motion, Boolean(photo && failedPhoto !== photo.path));
+  const [selected, setMode] = useState(modes[0]);
+  const mode = selected && modes.includes(selected) ? selected : modes[0];
   return (
     <div className="flex min-w-0 flex-col gap-3" data-guide-media={mode}>
-      <div role="group" aria-label={t.choice} className="flex gap-1">
-        {(["motion", "video"] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={mode === option}
-            onClick={() => setMode(option)}
-            className={cn(chip(mode === option), "font-semibold")}
-          >
-            {t[option]}
-          </button>
-        ))}
-      </div>
-      {mode === "motion" ? <GuideMotion guide={guide} /> : <CatalogVideoPlayer guide={guide} videos={videos} />}
+      {modes.length > 1 && (
+        <div role="group" aria-label={t.choice} className="flex flex-wrap gap-1">
+          {modes.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={mode === option}
+              onClick={() => setMode(option)}
+              className={cn(chip(mode === option), "font-semibold")}
+            >
+              {t[option]}
+            </button>
+          ))}
+        </div>
+      )}
+      {mode === "motion" && <GuideMotion guide={guide} />}
+      {mode === "photo" && photo && (
+        <img
+          src={photo.path}
+          alt={photo.alt}
+          width={488}
+          height={488}
+          loading="lazy"
+          onError={() => setFailedPhoto(photo.path)}
+          className="h-auto max-w-full rounded-card"
+        />
+      )}
+      {mode === "video" && <CatalogVideoPlayer guide={guide} videos={videos} />}
+      {!mode && <p role="status">{m.exerciseGuide.illustrationUnavailable}</p>}
     </div>
   );
 };

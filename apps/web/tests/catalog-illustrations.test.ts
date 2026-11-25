@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
 import { imagePath, catalogImages } from "@/server/catalog-illustrations";
+import { legacyCovers, legacyCoverStamp } from "@/server/legacy-catalog-covers";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getActorFrom } from "@/lib/session";
 import { recordStepUp } from "@/server/admin-step-up.service";
@@ -11,7 +13,7 @@ import { linkLegacyGuide, reviewEditorial, stamp, withApprovedImage } from "@/se
 const catalog = [...EXERCISE_CATALOG, ...STADIUM_EDITION];
 describe("Illustrations du catalogue", () => {
   it("associe chaque couple de fichiers WebP à une seule fiche et à la bonne édition", () => {
-    expect(catalogImages.length).toBeGreaterThanOrEqual(12);
+    expect(catalogImages).toHaveLength(catalog.length);
     expect(new Set(catalogImages.map((p) => p.key)).size).toBe(catalogImages.length);
     for (const pilot of catalogImages) {
       expect(catalog.filter((e) => e.catalogKey === pilot.key).map((e) => e.catalogVersion)).toEqual([
@@ -21,6 +23,15 @@ describe("Illustrations du catalogue", () => {
         const bytes = readFileSync(new URL("../public" + imagePath(pilot, thumb), import.meta.url));
         expect(bytes.toString("ascii", 8, 12)).toBe("WEBP");
       }
+    }
+  });
+  it("conserve une couverture versionnée par fiche historique, y compris quand deux fiches partagent une image", () => {
+    expect(legacyCovers.size).toBe(24);
+    expect(new Set([...legacyCovers.values()].map(legacyCoverStamp)).size).toBe(24);
+    for (const cover of legacyCovers.values()) {
+      expect(readFileSync(new URL("../public" + cover.path, import.meta.url)).toString("ascii", 8, 12)).toBe("WEBP");
+      expect(cover.alt.trim().length).toBeGreaterThan(10);
+      expect(legacyCoverStamp(cover)).not.toBe(legacyCoverStamp({ ...cover, imageVersion: cover.imageVersion + 1 }));
     }
   });
   it("respecte les validations indépendantes, la version et les textes personnalisés", () => {
@@ -38,16 +49,48 @@ describe("Illustrations du catalogue", () => {
     ])
       expect(withApprovedImage(original, approvals)).toBe(original);
   });
+  it("applique la relecture individuelle des anciens guides sans approuver le texte d’une copie réécrite", () => {
+    const entry = EXERCISE_CATALOG.find((e) => e.guide.technicalReview === "pending")!;
+    const text = stamp(entry.catalogKey, entry.catalogVersion, "text");
+    const motion = stamp(entry.catalogKey, entry.catalogVersion, "motion");
+    const accepted = withApprovedImage(entry.guide, new Set([text, motion]));
+    expect(accepted).toMatchObject({ technicalReview: "approved", illustration: { motion: "approved" } });
+    expect(withApprovedImage(accepted, new Set([`reopened:${text}`, `reopened:${motion}`]))).toMatchObject({
+      technicalReview: "pending",
+      illustration: { motion: "review" },
+    });
+    expect(withApprovedImage({ ...entry.guide, objective: "Un autre exercice" }, new Set([text])).technicalReview).toBe(
+      "pending",
+    );
+  });
+  it("répercute une réouverture sur la copie intacte d’une fiche de stade", () => {
+    const { catalogKey, catalogVersion, guide } = STADIUM_EDITION[0]!;
+    const text = stamp(catalogKey, catalogVersion, "text");
+    const copy = { ...guide, technicalReview: "approved" as const };
+    expect(withApprovedImage(copy, new Set([`reopened:${text}`])).technicalReview).toBe("pending");
+    expect(withApprovedImage({ ...guide, author: "coach" as const }, new Set([text])).technicalReview).toBe("pending");
+  });
   it("rattache et retire un guide validé sans changer la fiche historique ni une fiche de club", async () => {
     const user = await makeUser("Relecture");
     await prisma.platformAdmin.create({ data: { email: user.email } });
     const actor = (await getActorFrom(new Headers({ cookie: await sessionCookie(user.email) })))!;
     await recordStepUp(actor.sessionId!, "passkey");
     const p = catalogImages.find((p) => p.key === "bird-dog")!;
+    const saved = await prisma.platformSetting.findMany({
+      where: { key: { startsWith: "exerciseReview:" + p.key + ":" } },
+    });
     const common = await prisma.exercise.create({ data: { name: "Fiche à rapprocher", category: "strength" } });
     const { organizationId } = await makeOrg();
     const own = await prisma.exercise.create({
       data: { name: "Fiche privée", category: "strength", organizationId },
+    });
+    const existingGuides = await prisma.exercise.findMany({
+      where: {
+        organizationId: null,
+        catalogVersion: p.guideVersion,
+        OR: [{ catalogKey: p.key }, { sourceCatalogKey: p.key }],
+      },
+      select: { id: true, guide: true, updatedAt: true },
     });
     try {
       await expect(linkLegacyGuide(actor, common.id, common.updatedAt, p.key)).rejects.toThrow();
@@ -74,7 +117,13 @@ describe("Illustrations du catalogue", () => {
       });
     } finally {
       await prisma.exercise.deleteMany({ where: { id: { in: [own.id, common.id] } } });
+      await prisma.$transaction(
+        existingGuides.map(({ id, guide, updatedAt }) =>
+          prisma.exercise.update({ where: { id }, data: { guide: guide ?? Prisma.DbNull, updatedAt } }),
+        ),
+      );
       await prisma.platformSetting.deleteMany({ where: { key: { startsWith: "exerciseReview:" + p.key + ":" } } });
+      await prisma.platformSetting.createMany({ data: saved.map((row) => ({ ...row, value: row.value === true })) });
     }
   });
   it("publie une fiche relue une seule fois et retire un texte rouvert du catalogue approuvé pour l’IA", async () => {
@@ -87,20 +136,15 @@ describe("Illustrations du catalogue", () => {
     const decide = (kind: "image" | "motion" | "text", ok: boolean) =>
       reviewEditorial(actor, p.key, p.guideVersion, kind, ok, stamp(p.key, p.guideVersion, kind));
     const find = () => prisma.exercise.findUnique({ where: { catalogKey: p.key } });
+    const first = await find();
+    expect(first?.guide).toMatchObject({ technicalReview: "approved" });
     try {
-      await decide("text", true);
-      await decide("image", true);
-      expect(await find()).toBeNull();
-      await Promise.all([decide("motion", true), decide("motion", true)]);
-      const first = await find();
-      expect(first?.guide).toMatchObject({ technicalReview: "approved" });
       await decide("text", false);
       expect((await find())?.guide).toMatchObject({ technicalReview: "pending" });
-      await decide("text", true);
-      expect((await find())?.id).toBe(first?.id);
+      await Promise.all([decide("text", true), decide("motion", true)]);
+      expect(await find()).toMatchObject({ id: first!.id, guide: { technicalReview: "approved" } });
     } finally {
-      await prisma.exercise.deleteMany({ where: { catalogKey: p.key } });
-      await prisma.platformSetting.deleteMany({ where: { key: { startsWith: "exerciseReview:" + p.key + ":" } } });
+      await decide("text", true);
     }
   });
 });

@@ -103,8 +103,12 @@ function CatalogVideoPlayer({ guide, videos }: { guide: ExerciseGuide; videos: C
 // Le geste d'abord ; une fiche commune qui a sa vidéo la propose à côté (« Geste animé », « Vidéo »).
 function GuideMedia({ guide }: { guide: ExerciseGuide }) {
   const clip = gestureClip(guide.catalogKey);
-  const modes = guideMediaModes(guide, Boolean(clip));
-  const [mode, setMode] = useState(modes[0] ?? "motion");
+  const photo = guide.illustration.photo;
+  const source = photo && pilotImages[photo.path];
+  const [failedPhoto, setFailedPhoto] = useState<string>();
+  const modes = guideMediaModes(guide, Boolean(clip), Boolean(source && failedPhoto !== photo?.path));
+  const [selected, setMode] = useState(modes[0]);
+  const mode = selected && modes.includes(selected) ? selected : modes[0];
   if (modes.length === 0)
     return guide.illustration.status === "ready" ? (
       <GuideIllustration key={guide.illustration.path} guide={guide} />
@@ -116,7 +120,7 @@ function GuideMedia({ guide }: { guide: ExerciseGuide }) {
   return (
     <View style={{ gap: space.sm }}>
       {modes.length > 1 ? (
-        <View accessibilityLabel={media.choice} style={{ flexDirection: "row", gap: space.sm }}>
+        <View accessibilityLabel={media.choice} style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
           {modes.map((option) => (
             <Chip
               key={option}
@@ -131,6 +135,16 @@ function GuideMedia({ guide }: { guide: ExerciseGuide }) {
       ) : null}
       {mode === "motion" && clip ? (
         <GuideMotion guide={guide} />
+      ) : mode === "photo" && photo && source ? (
+        <Image
+          testID="exercise-guide-photo"
+          accessible
+          accessibilityLabel={photo.alt}
+          source={source}
+          resizeMode="contain"
+          onError={() => setFailedPhoto(photo.path)}
+          style={{ width: "100%", aspectRatio: 1 }}
+        />
       ) : (
         <CatalogVideoPlayer guide={guide} videos={guide.illustration.videos ?? []} />
       )}
@@ -216,15 +230,6 @@ export function MovementGuide({
   const authorship = guideAuthorship(guide);
   return (
     <View testID="exercise-guide-concise" accessibilityLabel={m.exerciseGuide.title} style={{ gap: space.lg }}>
-      {guide.illustration.photo && pilotImages[guide.illustration.photo.path] && (
-        <Image
-          accessible
-          accessibilityLabel={guide.illustration.photo.alt}
-          source={pilotImages[guide.illustration.photo.path]}
-          resizeMode="contain"
-          style={{ width: "100%", aspectRatio: 1 }}
-        />
-      )}
       <GuideMedia guide={guide} />
       <T variant="bodyStrong">{text.objective}</T>
       <View style={{ gap: space.xs }}>

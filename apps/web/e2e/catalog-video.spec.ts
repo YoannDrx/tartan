@@ -27,10 +27,7 @@ async function checkLegacyGuide(page: Page, pilot: string) {
   const id = randomUUID();
   const name = "Éducatif historique " + pilot;
   const copy = w.admin.editorial;
-  const before = await sql.query("SELECT id FROM exercises WHERE catalog_key=$1", [pilot]);
   try {
-    // Cette fiche de stade est créée par la troisième validation sur la base jetable.
-    expect(before.rowCount).toBe(0);
     await sql.query("INSERT INTO exercises (id,name,category,updated_at) VALUES ($1,$2,'strength',now())", [id, name]);
     await page.reload();
     const workshop = page.locator("#atelier");
@@ -70,10 +67,6 @@ async function checkLegacyGuide(page: Page, pilot: string) {
   } finally {
     try {
       await sql.query("DELETE FROM exercises WHERE id=$1", [id]);
-      if (before.rowCount === 0) {
-        await sql.query("DELETE FROM exercises WHERE organization_id IS NULL AND catalog_key=$1", [pilot]);
-        await sql.query("DELETE FROM platform_settings WHERE starts_with(key, $1)", [`exerciseReview:${pilot}:`]);
-      }
     } finally {
       await sql.end();
     }
@@ -90,6 +83,43 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await page.goto("/admin/exercices", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: m.admin.nav.exercises, exact: true })).toBeVisible();
   await expect(page.locator(`a[href="/admin/exercices"]`)).toHaveAttribute("aria-current", "true");
+  const list = page.locator("#atelier");
+  const editorial = w.admin.editorial;
+  await list.getByRole("link", { name: editorial.next }).click();
+  await expect(list.getByRole("link", { name: editorial.previous })).toBeVisible();
+  await list.getByLabel(editorial.family).selectOption("strength");
+  await list.getByRole("button", { name: editorial.show }).click();
+  await expect(list.getByLabel(editorial.family)).toHaveValue("strength");
+  await expect(page).toHaveURL(/famille=strength/);
+  if (info.project.name === "desktop") {
+    const name = "Mobilité complète, 30 minutes";
+    const outside = list
+      .locator("details")
+      .filter({ has: page.locator("li").filter({ hasText: name }) })
+      .first();
+    await outside.locator("summary").first().click();
+    const row = outside.locator("li").filter({ hasText: name });
+    await row.getByText(editorial.reviewCover, { exact: true }).click();
+    const cover = row.locator("img");
+    const alt = await cover.getAttribute("alt");
+    expect(alt).toBeTruthy();
+    const approveCover = row.getByRole("button", { name: editorial.image + " · " + editorial.approve, exact: true });
+    const revokeCover = row.getByRole("button", { name: editorial.image + " · " + editorial.reopen, exact: true });
+    await expect(revokeCover).toBeVisible();
+    const detail = await page.context().newPage();
+    try {
+      await detail.goto("/exercices/e803f572-0db8-55a8-b734-a8cadc7e96b0");
+      await expect(detail.getByRole("img", { name: alt!, exact: true })).toBeVisible();
+      await revokeCover.click();
+      await expect(approveCover).toBeVisible();
+      await detail.reload();
+      await expect(detail.getByRole("img", { name: alt!, exact: true })).toHaveCount(0);
+      await approveCover.click();
+      await expect(revokeCover).toBeVisible();
+    } finally {
+      await detail.close();
+    }
+  }
   const pilot = info.project.name === "desktop" ? "curve-pop-up" : "band-dorsiflexion";
   await page.goto("/admin/exercices?fiche=" + pilot);
   const workshop = page.locator("#atelier");
@@ -101,7 +131,8 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
     name: w.admin.editorial.image + " · " + w.admin.editorial.reopen,
     exact: true,
   });
-  if (await reopen.count()) await reopen.click();
+  await expect(approve.or(reopen)).toBeVisible();
+  if (await reopen.isVisible()) await reopen.click();
   await expect(approve).toBeVisible();
   await approve.click();
   await expect(reopen).toBeVisible();
@@ -182,6 +213,9 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   const dialog = page.getByRole("region", { name: m.exerciseGuide.title });
   const choice = dialog.getByRole("group", { name: media.choice });
   await expect(choice.getByRole("button", { name: media.motion, exact: true })).toHaveAttribute("aria-pressed", "true");
+  await choice.getByRole("button", { name: media.photo, exact: true }).click();
+  await expect(dialog.locator('img[src$="/back-squat-v1.webp"]')).toBeVisible();
+  await choice.getByRole("button", { name: media.motion, exact: true }).click();
   await expect(dialog.locator("svg[data-view]").first()).toBeVisible();
   await choice.getByRole("button", { name: media.video, exact: true }).click();
   await expect(choice.getByRole("button", { name: media.video, exact: true })).toHaveAttribute("aria-pressed", "true");

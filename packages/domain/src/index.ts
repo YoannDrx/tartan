@@ -80,3 +80,4 @@ export * from "./avatar";
 export * from "./demo-space";
 export * from "./history-share";
 export * from "./planner-agenda";
+export * from "./exercise-guide-media";

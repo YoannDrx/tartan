@@ -1,3 +1,4 @@
+import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
 import { parsePrescriptionFields, prescriptionFields } from "./form";
 import { expect, it } from "vitest";
 import {
@@ -204,4 +205,49 @@ it("conserve un groupe vide en cours de saisie sans l'autoriser à l'enregistrem
       draft: { ...value.form.draft, title: "Circuit" },
     }).success,
   ).toBe(false);
+});
+
+it("reprend la recherche, la prescription et le geste hors ligne avec un index sans les guides longs", async () => {
+  const { store } = setup();
+  const value = draft();
+  const exercise = EXERCISE_CATALOG.find((entry) => entry.catalogKey === "back-squat")!;
+  const summary = {
+    id: "squat",
+    name: exercise.name,
+    aliases: ["back squat"],
+    tags: exercise.tags,
+    category: exercise.category,
+    cues: exercise.cues,
+    defaultPrescription: exercise.prescription,
+    shared: true,
+    media: null,
+    guide: exercise.guide,
+  };
+  value.context.exercises = [summary];
+  await store.write("a", value, null);
+  const cached = (await store.read("a"))!.value.context.exercises[0]!;
+  expect(cached).toMatchObject({
+    id: summary.id,
+    name: summary.name,
+    aliases: summary.aliases,
+    defaultPrescription: summary.defaultPrescription,
+    motionKey: exercise.catalogKey,
+    family: exercise.guide.family,
+  });
+  expect(cached.guide).toBeUndefined();
+  expect(value.context.exercises[0]?.guide).toBe(exercise.guide);
+});
+
+it("une saisie dépassée en file laisse passer le dernier état et les écritures imposées avant publication", async () => {
+  const { store } = setup();
+  const writer = store.writer("a", null);
+  let generation = 1;
+  const old = writer.autosave(draft(), () => generation === 1);
+  generation++;
+  const recent = writer.autosave({ ...draft(), duration: "35" }, () => generation === 2);
+  const forced = writer.write({ ...draft(), duration: "35", pending: "publish" });
+  expect(await old).toBeNull();
+  expect((await recent)?.value.duration).toBe("35");
+  expect((await forced).value.pending).toBe("publish");
+  expect((await store.read("a"))?.value.pending).toBe("publish");
 });

@@ -34,6 +34,16 @@ export const ExerciseDetail = ({ exercise, variants }: { exercise: ExerciseSumma
   const prescription = formatPrescription(exercise.defaultPrescription);
   return (
     <div className="flex min-w-0 flex-col gap-5">
+      {exercise.cover && !exercise.guide?.illustration.photo && (
+        <img
+          src={exercise.cover.path}
+          alt={exercise.cover.alt}
+          width={488}
+          height={488}
+          loading="lazy"
+          className="h-auto w-full max-w-[488px] rounded-card"
+        />
+      )}
       {exercise.guide ? <MovementGuide guide={exercise.guide} variants={variants} /> : null}
       {media?.kind === "youtube" || media?.kind === "instagram" ? (
         <ExternalVideo media={media} title={exercise.name} />
