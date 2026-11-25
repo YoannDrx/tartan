@@ -1,5 +1,5 @@
 import type { ExerciseGuide } from "@tartan/contracts";
-import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
+import { EXERCISE_CATALOG, STADIUM_EDITION, guideMatchesCatalog } from "@tartan/domain/exercise-catalog";
 import { gestureClip } from "@tartan/mascot/v2/registry";
 import { Prisma } from "@/generated/prisma/client";
 import { invalid } from "@/lib/errors";
@@ -80,7 +80,9 @@ export async function approvedEditorial() {
     where: { key: { startsWith: prefix } },
     select: { key: true, value: true },
   });
-  return new Set(rows.filter((r) => r.value === true).map((r) => r.key));
+  return new Set(
+    rows.flatMap(({ key, value }) => (value === true ? [key] : value === false ? [`reopened:${key}`] : [])),
+  );
 }
 export async function reviewEditorial(
   actor: Actor,
@@ -150,13 +152,24 @@ export function withApprovedImage<G extends ExerciseGuide | null | undefined>(
 ): G {
   if (!guide) return guide;
   const pilot = byKey.get(guide.catalogKey);
-  if (
-    guide.author !== "coach" &&
-    pilot?.guideVersion === guide.version &&
-    STADIUM_EDITION.some((e) => e.catalogKey === pilot.key)
-  ) {
-    const motion = reviewed.has(stamp(pilot.key, guide.version, "motion")) ? "approved" : "review";
+  if (guide.author !== "coach" && pilot?.guideVersion === guide.version) {
+    const motionKey = stamp(pilot.key, guide.version, "motion");
+    const textKey = stamp(pilot.key, guide.version, "text");
+    const stadium = STADIUM_EDITION.some((e) => e.catalogKey === pilot.key);
+    const motion = reviewed.has(motionKey)
+      ? "approved"
+      : stadium || reviewed.has(`reopened:${motionKey}`)
+        ? "review"
+        : guide.illustration.motion;
     if (guide.illustration.motion !== motion) guide = { ...guide, illustration: { ...guide.illustration, motion } };
+    if (guideMatchesCatalog(guide)) {
+      const text = reviewed.has(textKey)
+        ? "approved"
+        : reviewed.has(`reopened:${textKey}`)
+          ? "pending"
+          : guide.technicalReview;
+      if (guide.technicalReview !== text) guide = { ...guide, technicalReview: text };
+    }
   }
   if (
     guide.author === "coach" ||

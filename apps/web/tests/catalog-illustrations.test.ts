@@ -48,6 +48,20 @@ describe("Illustrations du catalogue", () => {
     ])
       expect(withApprovedImage(original, approvals)).toBe(original);
   });
+  it("applique la relecture individuelle des anciens guides sans approuver le texte d’une copie réécrite", () => {
+    const entry = EXERCISE_CATALOG.find((e) => e.guide.technicalReview === "pending")!;
+    const text = stamp(entry.catalogKey, entry.catalogVersion, "text");
+    const motion = stamp(entry.catalogKey, entry.catalogVersion, "motion");
+    const accepted = withApprovedImage(entry.guide, new Set([text, motion]));
+    expect(accepted).toMatchObject({ technicalReview: "approved", illustration: { motion: "approved" } });
+    expect(withApprovedImage(accepted, new Set([`reopened:${text}`, `reopened:${motion}`]))).toMatchObject({
+      technicalReview: "pending",
+      illustration: { motion: "review" },
+    });
+    expect(withApprovedImage({ ...entry.guide, objective: "Un autre exercice" }, new Set([text])).technicalReview).toBe(
+      "pending",
+    );
+  });
   it("rattache et retire un guide validé sans changer la fiche historique ni une fiche de club", async () => {
     const user = await makeUser("Relecture");
     await prisma.platformAdmin.create({ data: { email: user.email } });
