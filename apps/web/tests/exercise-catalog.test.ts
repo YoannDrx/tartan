@@ -8,7 +8,7 @@ import { ensureExerciseCatalog } from "@/server/exercise-catalog.service";
 import { buildSnapshot } from "@/server/session.service";
 import { addAthlete, makeOrg } from "./helpers";
 
-it("distribue 173 fiches sans doublonner les 55 copies, même avec deux premières visites concurrentes", async () => {
+it("distribue 233 fiches sans doublonner les 55 copies, même avec deux premières visites concurrentes", async () => {
   const a = await makeOrg("Catalogue");
   const before = await prisma.exercise.findMany({
     where: { organizationId: a.organizationId },
@@ -19,12 +19,11 @@ it("distribue 173 fiches sans doublonner les 55 copies, même avec deux premièr
     ensureExerciseCatalog(a.owner.userId, a.organizationId),
   ]);
   const list = await listExercises(a.owner.userId, a.organizationId);
-  expect(list.filter((e) => e.guide)).toHaveLength(173);
-  expect(list.filter((e) => e.shared && e.guide)).toHaveLength(118);
-  expect(new Set(list.filter((e) => e.guide).map((e) => e.name)).size).toBe(173);
-  // Les 23 variantes de la version 5 attendent la relecture du fondateur.
-  expect(list.filter((e) => e.guide?.technicalReview === "approved")).toHaveLength(150);
-  expect(list.filter((e) => e.guide?.technicalReview === "pending")).toHaveLength(23);
+  expect(list.filter((e) => e.guide)).toHaveLength(233);
+  expect(list.filter((e) => e.shared && e.guide)).toHaveLength(178);
+  expect(new Set(list.filter((e) => e.guide).map((e) => e.name)).size).toBe(233);
+  expect(list.filter((e) => e.guide?.technicalReview === "approved")).toHaveLength(233);
+  expect(list.filter((e) => e.guide?.technicalReview === "pending")).toHaveLength(0);
   expect(
     await prisma.exercise.findMany({ where: { organizationId: a.organizationId }, orderBy: { id: "asc" } }),
   ).toEqual(before);
@@ -56,7 +55,7 @@ it("rattache chaque ancienne copie à sa fiche commune, sans doublon, en gardant
   });
   const list = await listExercises(a.owner.userId, a.organizationId);
   expect(new Set(list.map((e) => e.name)).size).toBe(list.length);
-  expect(list.filter((e) => e.guide)).toHaveLength(172);
+  expect(list.filter((e) => e.guide)).toHaveLength(232);
   expect(list.find((e) => e.id === changed.id)).toMatchObject({
     cues: ["Consigne personnelle du coach"],
     shared: false,
@@ -83,7 +82,7 @@ it("fige le guide dans la séance, le garde au renommage et le détache quand le
     blocks: [{ name: "Force", variant: "club", items: [{ exerciseId: entry.id, prescription: { reps: 4 } }] }],
   });
   // La liste annote le geste animé et la version concise ; la séance garde le guide tel qu'enregistré.
-  const { motion: _motion, ...illustration } = entry.guide!.illustration;
+  const { motion: _motion, photo: _photo, videos: _videos, ...illustration } = entry.guide!.illustration;
   const { concise: _concise, ...stored } = entry.guide!;
   expect(snapshot.blocks[0]!.items[0]!.guide).toEqual({ ...stored, illustration });
   await saveExercise(
@@ -125,14 +124,13 @@ it("diffuse l'approbation aux copies existantes sans modifier prescriptions, per
   const detached = initial.find((e) => !e.shared && e.guide && e.id !== entry.id)!;
   // La liste annote aussi la version concise ; une copie enregistrée ne la porte jamais.
   const { concise: _concise, ...stored } = entry.guide!;
+  const { motion: _motion, photo: _photo, videos: _videos, ...illustration } = stored.illustration;
   const oldGuide = {
     ...stored,
     version: 1,
     technicalReview: "pending" as const,
     illustration: {
-      ...entry.guide!.illustration,
-      // La liste annote le geste animé ; une copie enregistrée ne le porte jamais.
-      motion: undefined,
+      ...illustration,
       path: entry.guide!.illustration.path.replace(`-v${EXERCISE_CATALOG_VERSION}.svg`, "-v1.svg"),
     },
   };

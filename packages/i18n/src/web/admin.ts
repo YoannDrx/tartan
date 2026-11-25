@@ -96,7 +96,7 @@ export const admin = {
   },
   // Les vidéos des fiches communes du catalogue, déposées par le fondateur.
   stadiumEdition: {
-    title: (count: number) => `Édition stade · ${count} fiches à relire`,
+    title: (count: number) => `Édition stade · ${count} fiches`,
     count: "Comptage",
     load: "Charge et matériel",
     aliases: "Autres noms",

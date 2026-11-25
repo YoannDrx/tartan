@@ -27,10 +27,7 @@ async function checkLegacyGuide(page: Page, pilot: string) {
   const id = randomUUID();
   const name = "Éducatif historique " + pilot;
   const copy = w.admin.editorial;
-  const before = await sql.query("SELECT id FROM exercises WHERE catalog_key=$1", [pilot]);
   try {
-    // Cette fiche de stade est créée par la troisième validation sur la base jetable.
-    expect(before.rowCount).toBe(0);
     await sql.query("INSERT INTO exercises (id,name,category,updated_at) VALUES ($1,$2,'strength',now())", [id, name]);
     await page.reload();
     const workshop = page.locator("#atelier");
@@ -70,10 +67,6 @@ async function checkLegacyGuide(page: Page, pilot: string) {
   } finally {
     try {
       await sql.query("DELETE FROM exercises WHERE id=$1", [id]);
-      if (before.rowCount === 0) {
-        await sql.query("DELETE FROM exercises WHERE organization_id IS NULL AND catalog_key=$1", [pilot]);
-        await sql.query("DELETE FROM platform_settings WHERE starts_with(key, $1)", [`exerciseReview:${pilot}:`]);
-      }
     } finally {
       await sql.end();
     }

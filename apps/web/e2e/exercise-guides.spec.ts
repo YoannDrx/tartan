@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
+import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import type { ExerciseSummary } from "@tartan/contracts";
@@ -28,10 +28,11 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   const me = await (await page.request.get("/api/v1/me")).json();
   const root = `/api/v1/orgs/${me.spaces[0].organizationId}`;
   const library: ExerciseSummary[] = await (await page.request.get(`${root}/exercises`)).json();
-  const historicalKeys = new Set(EXERCISE_CATALOG.map((entry) => entry.catalogKey));
-  const historical = library.flatMap(({ guide }) => (guide && historicalKeys.has(guide.catalogKey) ? [guide] : []));
-  expect(historical.map((guide) => guide.catalogKey).sort()).toEqual([...historicalKeys].sort());
-  expect(historical.filter((guide) => guide.technicalReview === "approved")).toHaveLength(150);
+  const expected = [...EXERCISE_CATALOG, ...STADIUM_EDITION].map((entry) => entry.catalogKey).sort();
+  const guides = library.flatMap(({ guide }) => (guide ? [guide] : []));
+  expect(guides.map((guide) => guide.catalogKey).sort()).toEqual(expected);
+  expect(guides.filter((guide) => guide.technicalReview === "approved")).toHaveLength(233);
+  expect(guides.filter((guide) => guide.illustration.photo)).toHaveLength(233);
   const snatch = library.find((e) => e.name === "Arraché")!;
   const motion = m.exerciseGuide.motion;
   const g = w.exercises.guide;

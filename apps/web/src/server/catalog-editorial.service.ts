@@ -117,7 +117,22 @@ export async function reviewEditorial(
         data: { guide: { ...entry.guide, technicalReview: approved ? "approved" : "pending" } },
       });
     }
-    if (!STADIUM_EDITION.some((e) => e.catalogKey === key)) return;
+    if (!STADIUM_EDITION.some((e) => e.catalogKey === key)) {
+      if (kind === "text") {
+        const previous = { ...entry.guide, technicalReview: approved ? "pending" : "approved" };
+        await tx.exercise.updateMany({
+          where: {
+            catalogKey: key,
+            catalogVersion: version,
+            organizationId: null,
+            deletedAt: null,
+            guide: { equals: previous },
+          },
+          data: { guide: { ...entry.guide, technicalReview: approved ? "approved" : "pending" } },
+        });
+      }
+      return;
+    }
     if (!approved) {
       if (kind === "text")
         await tx.exercise.updateMany({

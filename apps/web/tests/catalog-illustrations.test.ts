@@ -68,6 +68,9 @@ describe("Illustrations du catalogue", () => {
     const actor = (await getActorFrom(new Headers({ cookie: await sessionCookie(user.email) })))!;
     await recordStepUp(actor.sessionId!, "passkey");
     const p = catalogImages.find((p) => p.key === "bird-dog")!;
+    const saved = await prisma.platformSetting.findMany({
+      where: { key: { startsWith: "exerciseReview:" + p.key + ":" } },
+    });
     const common = await prisma.exercise.create({ data: { name: "Fiche à rapprocher", category: "strength" } });
     const { organizationId } = await makeOrg();
     const own = await prisma.exercise.create({
@@ -99,6 +102,7 @@ describe("Illustrations du catalogue", () => {
     } finally {
       await prisma.exercise.deleteMany({ where: { id: { in: [own.id, common.id] } } });
       await prisma.platformSetting.deleteMany({ where: { key: { startsWith: "exerciseReview:" + p.key + ":" } } });
+      await prisma.platformSetting.createMany({ data: saved.map((row) => ({ ...row, value: row.value === true })) });
     }
   });
   it("publie une fiche relue une seule fois et retire un texte rouvert du catalogue approuvé pour l’IA", async () => {
@@ -111,20 +115,15 @@ describe("Illustrations du catalogue", () => {
     const decide = (kind: "image" | "motion" | "text", ok: boolean) =>
       reviewEditorial(actor, p.key, p.guideVersion, kind, ok, stamp(p.key, p.guideVersion, kind));
     const find = () => prisma.exercise.findUnique({ where: { catalogKey: p.key } });
+    const first = await find();
+    expect(first?.guide).toMatchObject({ technicalReview: "approved" });
     try {
-      await decide("text", true);
-      await decide("image", true);
-      expect(await find()).toBeNull();
-      await Promise.all([decide("motion", true), decide("motion", true)]);
-      const first = await find();
-      expect(first?.guide).toMatchObject({ technicalReview: "approved" });
       await decide("text", false);
       expect((await find())?.guide).toMatchObject({ technicalReview: "pending" });
-      await decide("text", true);
-      expect((await find())?.id).toBe(first?.id);
+      await Promise.all([decide("text", true), decide("motion", true)]);
+      expect(await find()).toMatchObject({ id: first!.id, guide: { technicalReview: "approved" } });
     } finally {
-      await prisma.exercise.deleteMany({ where: { catalogKey: p.key } });
-      await prisma.platformSetting.deleteMany({ where: { key: { startsWith: "exerciseReview:" + p.key + ":" } } });
+      await decide("text", true);
     }
   });
 });

@@ -4,7 +4,7 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 
 ## 2026-11-25, Codex, illustrations de tout le catalogue commun
 
-Les 211 illustrations supplémentaires rejoignent les 22 déjà préparées. L’éversion, l’inversion, la bascule de cheville, la réception haute de l’arraché et l’enroulement du bassin ont fait l’objet d’une reprise. Les 24 fiches vidéo historiques ont une couverture relisible indépendamment dans l’atelier. Deux migrations enregistrent la validation des douze pilotes puis de toute la planche. Les réouvertures explicites dans l’atelier sont préservées. Le geste animé Tartan reste le média initial, avec accès à l’image fixe et à la vidéo disponible. Les empreintes de runtime correspondent aux builds iOS 19 et Android 9.
+Les 211 illustrations supplémentaires rejoignent les 22 déjà préparées. L’éversion, l’inversion, la bascule de cheville, la réception haute de l’arraché et l’enroulement du bassin ont fait l’objet d’une reprise. Les 24 fiches vidéo historiques ont une couverture relisible indépendamment dans l’atelier. Deux migrations enregistrent la validation des douze pilotes puis de toute la planche. Les réouvertures explicites dans l’atelier sont préservées. Le geste animé Tartan reste le média initial, avec accès à l’image fixe et à la vidéo disponible. Les exports complets et le sélecteur correspondent aux nouveaux candidats iOS 20 et Android 10. Le fondateur a ensuite validé les textes et mouvements des 83 guides restants. La migration de publication utilise l’instantané des contenus relus, garde les identifiants existants et laisse les copies privées intactes.
 
 ## 2026-11-25, Codex, candidat de livraison des stores
 

@@ -58,7 +58,7 @@ export default async function AdminExercisesPage({
         ))}
       </details>
       <CatalogVideoBoard
-        entries={EXERCISE_CATALOG.map((entry) => ({
+        entries={[...EXERCISE_CATALOG, ...STADIUM_EDITION].map((entry) => ({
           key: entry.catalogKey,
           name: entry.name,
           family: entry.guide.family,

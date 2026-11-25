@@ -8,7 +8,7 @@ Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p
 
 Les 233 fiches versionnées ont un geste associé et une illustration fixe avec texte alternatif. L’inventaire de production compte aussi 24 fiches communes historiques issues de la migration de la bibliothèque vidéo. Chacune conserve sa vidéo, son identité et sa prescription. Trois partagent un visuel du catalogue. Les 21 autres ont une illustration dédiée. L’atelier de relecture permet de filtrer par famille et de passer d’une page de douze fiches à la suivante.
 
-Le fondateur a validé les 257 illustrations fixes après consultation de la planche. Sur les guides équipés, le geste animé Tartan s’ouvre en premier. L’athlète peut afficher l’image fixe et revenir au mouvement. Les décisions concernant le texte et l’animation restent individuelles dans l’atelier. Les 254 illustrations et leurs vignettes occupent 5 276 234 octets au total. Les exports bêta Android et iOS contiennent chacun les 254 images de fiche, vérifiées par empreinte.
+Le fondateur a validé les 257 illustrations fixes après consultation de la planche. Sur les guides équipés, le geste animé Tartan s’ouvre en premier. L’athlète peut afficher l’image fixe et revenir au mouvement. Le fondateur a aussi relu et validé les textes et mouvements des 60 nouvelles fiches et des 23 guides de l’édition précédente. La migration inscrit ces 166 décisions par version et publie les fiches communes. Chaque décision peut être rouverte individuellement dans l’atelier. Les 254 illustrations et leurs vignettes occupent 5 276 234 octets au total. Les exports bêta Android et iOS contiennent chacun les 254 images de fiche, vérifiées par empreinte.
 
 ## Illustrations, série pilote et atelier de relecture · 25 novembre 2026
 
