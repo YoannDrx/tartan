@@ -40,6 +40,32 @@ describe("invitations de bêta", () => {
       status: 403,
     });
   });
+  it("envoie le lien APK disponible si Apple tombe en panne, puis reprend uniquement iOS", async () => {
+    const admin = await operator();
+    const email = (await makeUser("Les deux plateformes")).email;
+    Object.assign(env(), {
+      BETA_INVITES_ENABLED: "true",
+      BETA_APK_PATH: "test/app.apk",
+      BETA_APK_READ_WRITE_TOKEN: "fake",
+      BETA_APK_VERSION: "1.1.0",
+    });
+    const now = new Date();
+    const row = await inviteBeta(admin, email, "both", now);
+    remote.mockRejectedValueOnce(new Error("provider unavailable"));
+    await dispatchBeta(now);
+    await flushEmailOutbox(new Date(+now + 1000));
+    expect((await listBeta(admin, now)).find((r) => r.id === row.id)).toMatchObject({
+      ios: "Échec à reprendre",
+      android: "Invitation envoyée",
+    });
+    await dispatchBeta(new Date(+now + 300001));
+    await flushEmailOutbox(new Date(+now + 300001));
+    expect(await prisma.emailOutbox.count({ where: { toEmail: email, kind: "beta_install" } })).toBe(2);
+    expect((await listBeta(admin)).find((r) => r.id === row.id)).toMatchObject({
+      ios: "Invitation envoyée",
+      android: "Invitation envoyée",
+    });
+  });
   it("un double clic conserve le lien, un retrait le coupe et le canal Apple est retiré", async () => {
     const admin = await operator(),
       email = (await makeUser("Testeur")).email;

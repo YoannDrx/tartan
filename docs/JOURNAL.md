@@ -47,6 +47,10 @@ Deux préférences de compte règlent le ton de l’accueil et celui de la séan
 
 Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.
 
+## 2026-11-25, Codex, invitations indépendantes par plateforme
+
+Une interruption du service Apple conserve l’envoi Android disponible pour une même personne. Le prochain traitement reprend iOS et déduplique l’e-mail APK déjà envoyé. Les deux états sont vérifiés en base avec une panne puis un rétablissement simulés.
+
 ## 2026-11-25, Codex, stockage privé des APK
 
 Le store Blob privé du lancement a été créé en région fra1 et connecté à la production avec le préfixe BETA_APK. Le téléchargement contrôlé utilise la variable dédiée posée par Vercel. Les nouvelles invitations restent suspendues par défaut.
