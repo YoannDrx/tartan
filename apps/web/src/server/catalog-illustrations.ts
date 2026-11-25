@@ -107,6 +107,30 @@ export const catalogImages = [
     imageVersion: 1,
     alt: "Une main et le genou opposé portent le corps. Les deux membres libres sont alignés avec le tronc.",
   },
+  {
+    key: "high-jump-short",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "L’athlète franchit la barre dos au tapis. Le bassin passe au-dessus de la barre et la tête est orientée vers le tapis.",
+  },
+  {
+    key: "pogo-jumps",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "Les deux pieds quittent le sol ensemble sous le bassin. Les jambes restent presque tendues.",
+  },
+  {
+    key: "lateral-band-walk",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "De face, les genoux fléchis, l’athlète écarte les pieds. La bande jaune reste tendue juste au-dessus des genoux.",
+  },
+  {
+    key: "alternating-bounds",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "Pendant la suspension, le genou avant monte avec le bras opposé. L’autre jambe se prolonge derrière le bassin.",
+  },
 ] as const;
 
 export const imagePath = (pilot: (typeof catalogImages)[number], thumb = false) =>

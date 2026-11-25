@@ -1,5 +1,6 @@
 import type { ImageSourcePropType } from "react-native";
 export const pilotImages: Record<string, ImageSourcePropType> = {
+  "/exercise-photos/alternating-bounds-v1.webp": require("../../../web/public/exercise-photos/alternating-bounds-v1.webp"),
   "/exercise-photos/band-dorsiflexion-v1.webp": require("../../../web/public/exercise-photos/band-dorsiflexion-v1.webp"),
   "/exercise-photos/bird-dog-v1.webp": require("../../../web/public/exercise-photos/bird-dog-v1.webp"),
   "/exercise-photos/clean-front-rack-v1.webp": require("../../../web/public/exercise-photos/clean-front-rack-v1.webp"),
@@ -9,8 +10,11 @@ export const pilotImages: Record<string, ImageSourcePropType> = {
   "/exercise-photos/easy-jump-rope-v1.webp": require("../../../web/public/exercise-photos/easy-jump-rope-v1.webp"),
   "/exercise-photos/front-plank-v1.webp": require("../../../web/public/exercise-photos/front-plank-v1.webp"),
   "/exercise-photos/glute-bridge-v1.webp": require("../../../web/public/exercise-photos/glute-bridge-v1.webp"),
+  "/exercise-photos/high-jump-short-v1.webp": require("../../../web/public/exercise-photos/high-jump-short-v1.webp"),
   "/exercise-photos/hop-step-stick-v1.webp": require("../../../web/public/exercise-photos/hop-step-stick-v1.webp"),
   "/exercise-photos/kb-suitcase-v1.webp": require("../../../web/public/exercise-photos/kb-suitcase-v1.webp"),
+  "/exercise-photos/lateral-band-walk-v1.webp": require("../../../web/public/exercise-photos/lateral-band-walk-v1.webp"),
+  "/exercise-photos/pogo-jumps-v1.webp": require("../../../web/public/exercise-photos/pogo-jumps-v1.webp"),
   "/exercise-photos/push-up-v1.webp": require("../../../web/public/exercise-photos/push-up-v1.webp"),
   "/exercise-photos/reverse-lunge-v1.webp": require("../../../web/public/exercise-photos/reverse-lunge-v1.webp"),
   "/exercise-photos/side-plank-v1.webp": require("../../../web/public/exercise-photos/side-plank-v1.webp"),
