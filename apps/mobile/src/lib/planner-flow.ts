@@ -1,9 +1,10 @@
+import { m } from "@tartan/i18n";
 import {
   PLANNER_SLOT_EXERCISE_ID,
   clarifyPlannerProposalInput,
   createPlannerProposalInput,
   plannerReviewedDraft,
-  trainingEquipment,
+  plannerEquipment,
   type ExerciseCategory,
   type ExerciseLoadKind,
   type PlannerCapability,
@@ -15,6 +16,7 @@ import {
   type QuickExerciseInput,
 } from "@tartan/contracts";
 import {
+  plannerWeekDays,
   findExerciseByName,
   normalizeExerciseTerm,
   rankPlannerCandidates,
@@ -29,7 +31,7 @@ import {
 // Mêmes règles que l'écran web (`apps/web/src/features/planner`).
 
 export type PlannerLevel = "beginner" | "intermediate" | "advanced";
-export type PlannerEquipment = (typeof trainingEquipment.options)[number];
+export type PlannerEquipment = (typeof plannerEquipment.options)[number];
 export const PLANNER_DURATIONS = [20, 30, 45, 60, 75, 90, 120] as const;
 export const PLANNER_LEVELS: readonly PlannerLevel[] = ["beginner", "intermediate", "advanced"];
 export const PLANNER_TEXT_LIMIT = 12000;
@@ -40,6 +42,9 @@ export type PlannerRequestValue = {
   groupIds: string[];
   athleteIds: string[];
   date: string;
+  week?: boolean;
+  days?: string[];
+  discipline?: string;
   text: string;
   // Précisions facultatives : rien n'est supposé tant que le coach ne les touche pas.
   startTime: string;
@@ -56,6 +61,7 @@ export const plannerRequestFrom = (
   groupIds: selection.groupIds,
   athleteIds: selection.athleteIds,
   date: selection.period.from,
+  ...(selection.period.from !== selection.period.to ? { week: true } : {}),
   text,
   startTime: "",
   durationMin: null,
@@ -107,14 +113,23 @@ export function plannerCreateInput(
     id: options.id,
     requestedAt: options.requestedAt,
     selection: {
-      period: { from: value.date, to: value.date },
+      period: { from: value.date, to: value.week ? (plannerWeekDays(value.date).at(-1) ?? value.date) : value.date },
       groupIds: value.groupIds,
       athleteIds: value.athleteIds,
       exerciseIds: [],
       phaseChoices: [],
       phaseChoicesByDate: options.phaseChoices ? [{ date: value.date, choices: options.phaseChoices }] : [],
     } satisfies PlannerSelection,
-    text: value.text.trim(),
+    text:
+      value.text.trim() &&
+      [
+        ...new Set([
+          value.text.trim(),
+          ...(value.week ? [m.aiPlanner.weeklyInstruction] : []),
+          ...(value.week && value.days?.length ? [m.aiPlanner.daysInstruction([...value.days].sort())] : []),
+          ...(value.discipline ? [m.aiPlanner.disciplineInstruction(value.discipline)] : []),
+        ]),
+      ].join("\n"),
     reviewed: true,
     accepts: PLANNER_NATIVE_ACCEPTS,
     ...(value.startTime ? { startTime: value.startTime } : {}),
@@ -131,6 +146,7 @@ export function plannerClarifyInput(options: {
   expectedVersion: number;
   text: string;
   sessions?: PlannerReviewedDraft[] | null;
+  adjustmentReview?: { keep: { session: number; block: number }[] };
 }) {
   return clarifyPlannerProposalInput.safeParse({
     operationId: options.operationId,
@@ -138,6 +154,7 @@ export function plannerClarifyInput(options: {
     text: options.text,
     reviewed: true,
     ...(options.sessions?.length ? { sessions: options.sessions } : {}),
+    ...(options.adjustmentReview ? { adjustmentReview: options.adjustmentReview } : {}),
   });
 }
 

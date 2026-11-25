@@ -18,7 +18,7 @@ const MAT = { from: 6, to: 300, top: 64 };
 const TAKEOFF = -46;
 
 // Une foulée d'élan : le pied `side` posé en `x`, le bassin un peu en arrière (le contact) ou au-dessus (l'appui).
-const stride = (side: "R" | "L", x: number, phase: "touch" | "push", low = 0): ControlPatch => {
+export const approachStride = (side: "R" | "L", x: number, phase: "touch" | "push", low = 0): ControlPatch => {
   const other = side === "R" ? "L" : "R";
   const pelvis = phase === "touch" ? x - 30 : x + 22;
   return {
@@ -62,7 +62,7 @@ const withLegs = (patch: ControlPatch, legs: Partial<Record<"R" | "L", [number, 
 };
 const plant = withLegs(
   {
-    ...stride("L", TAKEOFF, "touch", 10),
+    ...approachStride("L", TAKEOFF, "touch", 10),
     pelvisX: TAKEOFF - 38,
     pelvisPitch: -6,
     pelvisYaw: 34,
@@ -178,8 +178,8 @@ const highJumpOf = (key: string, strides: number) => {
     const other = side === "R" ? "L" : "R";
     const last = index === contacts.length - 1;
     const low = last ? 12 : 0;
-    const touch = stride(side, x, "touch", low);
-    const push = stride(side, x, "push", low);
+    const touch = approachStride(side, x, "touch", low);
+    const push = approachStride(side, x, "push", low);
     if (index > 0) keys.push(...strideFlight(previous, touch, `approach-${index}`));
     keys.push(
       touchKey(`touch-${index}`, touch, other, {

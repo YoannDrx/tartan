@@ -1,5 +1,5 @@
 import type { ExerciseFamily, ExerciseGuide } from "@tartan/contracts";
-import { exerciseClip } from "@tartan/mascot/exercises";
+import { gestureClip } from "@tartan/mascot/v2/registry";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "./admin.service";
@@ -56,7 +56,7 @@ export const setMotionFamilyApproval = async (
 // Le geste animé se lit au moment de l'affichage, d'après la clé du catalogue : une séance déjà publiée,
 // dont le guide est figé, reçoit aussi les gestes arrivés depuis.
 export const withMotion = <G extends ExerciseGuide | null | undefined>(guide: G, approved: readonly string[]): G => {
-  const clip = guide ? exerciseClip(guide.catalogKey) : null;
+  const clip = guide ? gestureClip(guide.catalogKey) : null;
   return guide && clip
     ? ({
         ...guide,

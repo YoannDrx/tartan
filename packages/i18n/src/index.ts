@@ -56,3 +56,4 @@ export function exerciseClassificationLabel(kind: "movements" | "equipment", key
       : { ...fr.trainingProfile.equipment, ...fr.exerciseClassification.extraEquipment };
   return labels[key] ?? fr.exerciseClassification.unknown;
 }
+export * from "./encouragements";

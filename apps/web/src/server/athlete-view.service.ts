@@ -43,6 +43,7 @@ import { audit, requireAthleteAccess, requireOrgMember, requireVisibleAthlete } 
 import { consentForAthletes } from "./consent.service";
 import { displayName, namesFor } from "./me.service";
 import { withConcise } from "./exercise-catalog.service";
+import { approvedEditorial, withApprovedImage } from "./catalog-editorial.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { catalogVideos, withCatalogVideos } from "./catalog-media.service";
 import { notify } from "./notify.service";
@@ -411,7 +412,11 @@ const readAthleteSession = async (
           )
         : session.snapshot),
   );
-  const [coaches, motionFamilies] = await Promise.all([namesFor([session.createdBy]), approvedMotionFamilies()]);
+  const [coaches, motionFamilies, reviewed] = await Promise.all([
+    namesFor([session.createdBy]),
+    approvedMotionFamilies(),
+    approvedEditorial(),
+  ]);
   const card = toCard(
     session,
     snapshot,
@@ -481,7 +486,10 @@ const readAthleteSession = async (
           name: item.name,
           category: item.category,
           cues: item.cues,
-          guide: withCatalogVideos(withConcise(withMotion(item.guide, motionFamilies)), catalogVideoMap),
+          guide: withApprovedImage(
+            withCatalogVideos(withConcise(withMotion(item.guide, motionFamilies)), catalogVideoMap),
+            reviewed,
+          ),
           media: item.media,
           prescription,
           strengthLoadKind: item.strengthLoadKind,

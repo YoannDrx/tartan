@@ -463,6 +463,9 @@ jobs:
             curl -sf -b "$jar" http://localhost:3000/api/v1/me > /dev/null
             rm -f "$jar"
           done
+      - name: Planificateur ouvert dans l'espace de démonstration
+        run: |
+          psql "$DATABASE_URL" -c "update organizations set plan = 'pilot', ai_planner_enabled = true, progression_enabled = true where owner_id = (select id from \"user\" where email = 'coach@demo.tartan.coach')"
       - name: App Android pour l'émulateur
         working-directory: apps/mobile
         env:

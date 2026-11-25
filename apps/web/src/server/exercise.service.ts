@@ -50,6 +50,7 @@ import {
   ownListedExerciseIds,
   readableListExerciseIds,
 } from "./exercise-list.service";
+import { approvedEditorial, withApprovedImage } from "./catalog-editorial.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
 import { catalogVideos, withCatalogVideos } from "./catalog-media.service";
@@ -119,6 +120,7 @@ const lightSummary = (e: ExerciseRow): ExerciseSummary => {
 const exerciseSummary = async (
   e: ExerciseRow,
   families: readonly string[],
+  reviewed: ReadonlySet<string>,
   videos: ReadonlyMap<string, CatalogVideo[]>,
 ): Promise<ExerciseSummary> => {
   const media = mediaSnapshot(e.media[0]);
@@ -130,7 +132,10 @@ const exerciseSummary = async (
   return {
     ...lightSummary(e),
     media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
-    guide: withCatalogVideos(withConcise(withMotion(readExerciseGuide(e.guide), families)), videos),
+    guide: withApprovedImage(
+      withCatalogVideos(withConcise(withMotion(readExerciseGuide(e.guide), families)), videos),
+      reviewed,
+    ),
   };
 };
 
@@ -159,8 +164,12 @@ export const listExercises = async (userId: string, organizationId: string): Pro
   await requireOrgMember(userId, organizationId, "editExercises");
   await ensureExerciseCatalog(userId, organizationId);
   const rows = await libraryRows(organizationId);
-  const [families, videos] = await Promise.all([approvedMotionFamilies(), catalogVideos(rows.map(catalogKeyOf))]);
-  return Promise.all(rows.map((row) => exerciseSummary(row, families, videos)));
+  const [families, reviewed, videos] = await Promise.all([
+    approvedMotionFamilies(),
+    approvedEditorial(),
+    catalogVideos(rows.map(catalogKeyOf)),
+  ]);
+  return Promise.all(rows.map((row) => exerciseSummary(row, families, reviewed, videos)));
 };
 
 /** La bibliothèque sans les guides : la page `/exercices` filtre et pagine ces lignes, chaque fiche a son adresse. */
@@ -324,8 +333,12 @@ export const getExercise = async (
     include: mediaInclude,
   });
   if (!row) throw notFound();
-  const [families, videos] = await Promise.all([approvedMotionFamilies(), catalogVideos([catalogKeyOf(row)])]);
-  return exerciseSummary(row, families, videos);
+  const [families, reviewed, videos] = await Promise.all([
+    approvedMotionFamilies(),
+    approvedEditorial(),
+    catalogVideos([catalogKeyOf(row)]),
+  ]);
+  return exerciseSummary(row, families, reviewed, videos);
 };
 
 // La fiche d'une variante dans cet espace : sa copie si l'espace en a une, sinon la fiche commune.

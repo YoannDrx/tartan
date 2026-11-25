@@ -1,3 +1,4 @@
+import { encouragement, type EncouragementTone } from "@tartan/i18n";
 import { celebrationFromResponse } from "@tartan/domain";
 import { ConfirmedRecords } from "./confirmed-records";
 import type { SessionCelebration, BodyArea, BodySide, PainInput, SessionLogInput } from "@tartan/contracts";
@@ -81,6 +82,7 @@ type Props = {
   status: Status;
   // Vrai juste après l'enregistrement ; faux quand on revient modifier une séance déjà validée.
   justRecorded: boolean;
+  tone?: EncouragementTone;
   celebration?: SessionCelebration | null;
   existing?: ExistingLog | null;
   healthConsent: boolean;
@@ -94,6 +96,7 @@ export const ValidationSheet = ({
   target,
   status: initialStatus,
   justRecorded,
+  tone,
   celebration,
   existing,
   healthConsent,
@@ -249,6 +252,9 @@ export const ValidationSheet = ({
         <Button disabled={sending} testID="validation-finish" label={m.validation.finish} onPress={finish} />
       }
     >
+      {justRecorded && tone && tone !== "off" && (
+        <T>{encouragement(tone, status === "partial" ? "partial" : "done", target.sessionId)}</T>
+      )}
       {sendError ? (
         <T tone="danger" accessibilityRole="alert">
           {sendError}

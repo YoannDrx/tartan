@@ -21,6 +21,65 @@ const inspect = async (page: Page) => {
   }
 };
 
+async function checkLegacyGuide(page: Page, pilot: string) {
+  const sql = new Client({ connectionString: DB });
+  await sql.connect();
+  const id = randomUUID();
+  const name = "Éducatif historique " + pilot;
+  const copy = w.admin.editorial;
+  const before = await sql.query("SELECT id FROM exercises WHERE catalog_key=$1", [pilot]);
+  try {
+    // Cette fiche de stade est créée par la troisième validation sur la base jetable.
+    expect(before.rowCount).toBe(0);
+    await sql.query("INSERT INTO exercises (id,name,category,updated_at) VALUES ($1,$2,'strength',now())", [id, name]);
+    await page.reload();
+    const workshop = page.locator("#atelier");
+    await expect(workshop.getByRole("heading", { name: copy.title })).toBeVisible();
+    for (const label of [copy.text, copy.image, copy.motion]) {
+      await expect(workshop.getByRole("button", { name: new RegExp("^" + label + " · ") })).toBeVisible();
+      const approve = workshop.getByRole("button", { name: label + " · " + copy.approve, exact: true });
+      if (await approve.count()) await approve.click();
+      await expect(workshop.getByRole("button", { name: label + " · " + copy.reopen, exact: true })).toBeVisible();
+    }
+    const outside = workshop
+      .locator("details")
+      .filter({ has: page.locator("li").filter({ hasText: name }) })
+      .first();
+    if ((await outside.getAttribute("open")) === null) await outside.locator("summary").first().click();
+    const row = outside.locator("li").filter({ hasText: name });
+    await row.getByLabel(copy.legacyGuide).selectOption(pilot);
+    await row.getByRole("button", { name: copy.linkGuide }).click();
+    await expect
+      .poll(
+        async () =>
+          (await sql.query("SELECT source_catalog_key FROM exercises WHERE id=$1", [id])).rows[0]?.source_catalog_key,
+      )
+      .toBe(pilot);
+    await page.reload();
+    if ((await outside.getAttribute("open")) === null) await outside.locator("summary").first().click();
+    await expect(row.getByLabel(copy.legacyGuide)).toHaveValue(pilot);
+    await inspect(page);
+    await row.getByLabel(copy.legacyGuide).selectOption("");
+    await row.getByRole("button", { name: copy.linkGuide }).click();
+    await expect
+      .poll(
+        async () =>
+          (await sql.query("SELECT source_catalog_key FROM exercises WHERE id=$1", [id])).rows[0]?.source_catalog_key,
+      )
+      .toBeNull();
+  } finally {
+    try {
+      await sql.query("DELETE FROM exercises WHERE id=$1", [id]);
+      if (before.rowCount === 0) {
+        await sql.query("DELETE FROM exercises WHERE organization_id IS NULL AND catalog_key=$1", [pilot]);
+        await sql.query("DELETE FROM platform_settings WHERE starts_with(key, $1)", [`exerciseReview:${pilot}:`]);
+      }
+    } finally {
+      await sql.end();
+    }
+  }
+}
+
 // La vidéo d'une fiche commune : le fondateur la dépose depuis la console, puis toute fiche du catalogue propose le
 // geste animé ou la vidéo.
 test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose à côté du geste animé", async ({
@@ -31,6 +90,26 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await page.goto("/admin/exercices", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: m.admin.nav.exercises, exact: true })).toBeVisible();
   await expect(page.locator(`a[href="/admin/exercices"]`)).toHaveAttribute("aria-current", "true");
+  const pilot = info.project.name === "desktop" ? "curve-pop-up" : "band-dorsiflexion";
+  await page.goto("/admin/exercices?fiche=" + pilot);
+  const workshop = page.locator("#atelier");
+  const approve = workshop.getByRole("button", {
+    name: w.admin.editorial.image + " · " + w.admin.editorial.approve,
+    exact: true,
+  });
+  const reopen = workshop.getByRole("button", {
+    name: w.admin.editorial.image + " · " + w.admin.editorial.reopen,
+    exact: true,
+  });
+  if (await reopen.count()) await reopen.click();
+  await expect(approve).toBeVisible();
+  await approve.click();
+  await expect(reopen).toBeVisible();
+  await page.reload();
+  await expect(reopen).toBeVisible();
+  await reopen.click();
+  await expect(approve).toBeVisible();
+  await checkLegacyGuide(page, pilot);
   await page.getByRole("searchbox", { name: t.search }).fill("squat arriere");
   const card = page.locator(`[data-catalog-key="${KEY}"]`);
   await expect(card.getByRole("heading", { name: NAME, exact: true })).toBeVisible();
@@ -95,7 +174,10 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByLabel(m.exercises.search, { exact: true }).fill(NAME);
   // La fiche a sa propre adresse : le lien de la bibliothèque porte le nom puis la famille.
-  await page.getByRole("link", { name: new RegExp(`^${NAME} `) }).first().click();
+  await page
+    .getByRole("link", { name: new RegExp(`^${NAME} `) })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/exercices\/[0-9a-f-]+$/);
   const dialog = page.getByRole("region", { name: m.exerciseGuide.title });
   const choice = dialog.getByRole("group", { name: media.choice });

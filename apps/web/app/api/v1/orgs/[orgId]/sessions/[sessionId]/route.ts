@@ -28,6 +28,7 @@ export const DELETE = authRoute
             expectedVersion: query.expectedVersion,
             expectedLogCount: query.expectedLogCount,
           },
+      query.draftOnly === "true",
     );
     return { ok: true };
   });

@@ -1,5 +1,28 @@
 // Atelier d'administration : relecture des gestes animés.
 export const admin = {
+  editorial: {
+    title: "Atelier des illustrations",
+    publication:
+      "Une nouvelle fiche entre dans le catalogue commun dès que son texte, son image et son geste ont été validés.",
+    unversioned: (n: number) => `Fiches communes visibles à rapprocher du catalogue (${n})`,
+    legacyHelp:
+      "Choisis un guide uniquement si le geste, le matériel et les appuis sont identiques. Les vidéos, le nom et les séances de la fiche historique sont conservés.",
+    legacyGuide: "Guide correspondant",
+    noLegacyGuide: "Guide propre à préparer",
+    linkGuide: "Enregistrer le rapprochement",
+    needsReview: "Les guides apparaissent après validation du texte, de l’image et du geste.",
+    coverage: (approved: number, total: number) => `${approved} images relues sur ${total} fiches versionnées`,
+    text: "Texte",
+    image: "Image",
+    motion: "Geste animé",
+    approve: "Valider",
+    reopen: "Rouvrir",
+    missing: "À produire",
+    pending: "À relire",
+    approved: "Relu",
+    backlog: "Fiches sans illustration",
+  },
+
   testers: {
     title: "Testeurs",
     email: "Adresse e-mail",
@@ -63,6 +86,15 @@ export const admin = {
     reopenNew: (family: string) => `Retirer la validation des gestes du nouveau moteur : ${family}`,
   },
   // Les vidéos des fiches communes du catalogue, déposées par le fondateur.
+  stadiumEdition: {
+    title: (count: number) => `Édition stade · ${count} fiches à relire`,
+    count: "Comptage",
+    load: "Charge et matériel",
+    aliases: "Autres noms",
+    mistakes: "À observer",
+    easier: "Simplifier",
+    harder: "Progresser",
+  },
   catalogVideos: {
     lead: "Une vidéo par fiche commune et par vue, profil ou face. Une fois prête, la fiche propose le geste animé ou la vidéo, à tous les espaces. Un nouvel envoi remplace l'ancien.",
     search: "Chercher une fiche",

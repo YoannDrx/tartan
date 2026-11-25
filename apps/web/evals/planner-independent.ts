@@ -108,6 +108,8 @@ export function independentContext(
       aliases: e.aliases ?? [],
       classification: e.classification,
       strengthLoadKind: e.strengthLoadKind,
+      approved: e.guide.technicalReview === "approved",
+      catalogKey: e.catalogKey,
     })),
     instructions: [test.text],
   };
@@ -166,8 +168,7 @@ export function scoreIndependentCase(test: IndependentCase, value: unknown, corp
   }
   if (
     actual.sessions.some(
-      (s) =>
-        JSON.stringify([...s.targetTokens].sort()) !== JSON.stringify([...corpus.selectedTargets].sort()),
+      (s) => JSON.stringify([...s.targetTokens].sort()) !== JSON.stringify([...corpus.selectedTargets].sort()),
     )
   )
     differences.push("targets");

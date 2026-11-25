@@ -88,6 +88,8 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
     locale: user.profile?.locale ?? "fr",
     spaces: await listSpaces(userId),
     preferences: {
+      homeTone: readTone(user.profile?.homeTone),
+      sessionTone: readTone(user.profile?.sessionTone),
       aiConsent: Boolean(user.profile?.aiConsentAt),
       calendarView: parseCalendarView(user.profile?.calendarView),
       calendarViewUpdatedAt: user.profile?.calendarViewUpdatedAt?.toISOString() ?? null,
@@ -105,6 +107,8 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
   };
 };
 
+const readTone = (value: string | null | undefined) => (value === "off" || value === "energetic" ? value : "calm");
+
 const parseCalendarView = (value: string | null | undefined): CalendarView | null => {
   const parsed = calendarView.safeParse(value);
   return parsed.success ? parsed.data : null;
@@ -117,6 +121,10 @@ export const getCalendarView = async (userId: string): Promise<CalendarView | nu
 
 // Dernier choix gagnant : un appareil revenu du hors-ligne n'écrase pas un choix plus récent.
 export const updatePreferences = async (userId: string, input: PreferencesInput): Promise<void> => {
+  if (input.homeTone !== undefined || input.sessionTone !== undefined) {
+    const data = { homeTone: input.homeTone, sessionTone: input.sessionTone };
+    await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, ...data }, update: data });
+  }
   if (input.email) {
     if (input.email.digest !== undefined) await setEmailPreference(userId, "digest", input.email.digest);
     if (input.email.notifications !== undefined)

@@ -112,17 +112,41 @@ export const skin = (body: Solved): Skin => {
         { c: leg.ankle, r: shin.ankle },
       ],
     });
-    parts.push({
-      id: `shoe${side}`,
-      paint: "shoe",
-      spheres: [
-        { c: leg.ankle, r: shoe.ankle },
-        { c: along(leg.heel, leg.frame, shoe.heel + 0.3, shoe.heel, 0), r: shoe.heel },
-        { c: along(leg.ball, leg.fore, 0, shoe.ball, shoe.half), r: shoe.ball },
-        { c: along(leg.ball, leg.fore, 0, shoe.ball, -shoe.half), r: shoe.ball },
-        { c: along(leg.toe, leg.fore, -shoe.toe - 0.2, shoe.toe, 0), r: shoe.toe },
-      ],
-    });
+    if (side === "R" && body.controls.barefootR) {
+      const ball = leg.ball;
+      const sphere = (x: number, up: number, z: number, r: number): Sphere => ({
+        c: along(ball, leg.flat, x, up, z),
+        r,
+      });
+      const spherePart = (id: string, spheres: Sphere[]) => parts.push({ id, paint: "skin", spheres });
+      const arch = body.controls.archLift;
+      spherePart("heelR", [sphere(-34, 6.5, 0, 6.5), sphere(-24, 9, 0, 7)]);
+      spherePart("archR", [sphere(-25, 8, 0, 6.5), sphere(-14 - arch / 3, 6 + arch, -1, 5.5), sphere(-6, 5, 1, 5)]);
+      spherePart("forefootR", [sphere(-7, 5, -3, 4.7), sphere(0, 4.2, -5, 4.2), sphere(-1, 3.6, 5, 3.6)]);
+      // Le premier métatarsien est du côté médial ; les quatre petits orteils partent en éventail.
+      for (let toe = 0; toe < 5; toe++) {
+        const lift = toe === 0 ? body.controls.halluxLift : body.controls.lesserToesLift;
+        const r = toe === 0 ? 2.65 : 1.8 - (toe - 1) * 0.16;
+        const reach = 11 - toe * 1.25,
+          z = -6 + toe * 3.35;
+        spherePart(`toeR-${toe}`, [
+          sphere(1, r + 0.1, z, r),
+          sphere(1 + reach * Math.cos(lift), r + reach * Math.sin(lift), z + toe * 0.25, r),
+        ]);
+      }
+    } else {
+      parts.push({
+        id: `shoe${side}`,
+        paint: "shoe",
+        spheres: [
+          { c: leg.ankle, r: shoe.ankle },
+          { c: along(leg.heel, leg.frame, shoe.heel + 0.3, shoe.heel, 0), r: shoe.heel },
+          { c: along(leg.ball, leg.fore, 0, shoe.ball, shoe.half), r: shoe.ball },
+          { c: along(leg.ball, leg.fore, 0, shoe.ball, -shoe.half), r: shoe.ball },
+          { c: along(leg.toe, leg.fore, -shoe.toe - 0.2, shoe.toe, 0), r: shoe.toe },
+        ],
+      });
+    }
 
     const arm = body.arms[side];
     limb(`upperArm${side}`, "skin", arm.shoulder, arm.elbow, GIRTH.upperArm);

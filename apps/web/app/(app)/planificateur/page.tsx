@@ -1,3 +1,4 @@
+import { m } from "@tartan/i18n";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isoDate, trainingEquipment, uuid } from "@tartan/contracts";
@@ -44,16 +45,16 @@ export default async function PlannerPage({
   let initial = null;
   if (params.proposition) {
     try {
-      initial = await orNotFound(() => getPlannerProposal(actor.userId, organizationId, params.proposition!));
+      initial = await getPlannerProposal(actor.userId, organizationId, params.proposition!);
     } catch (error) {
-      if (!(error instanceof AppError) || error.status !== 410) throw error;
+      if (!(error instanceof AppError) || ![403, 404, 410].includes(error.status)) throw error;
       return (
         <div className="flex flex-col gap-4">
           <PageHeader title={t.title} />
-          <p>{t.expiredRequest}</p>
+          <p>{error.status === 410 ? t.expiredRequest : m.common.notFound}</p>
           <div>
             <Button asChild>
-              <Link href="/planificateur">{t.newProposal}</Link>
+              <Link href="/planificateur/propositions">{t.recent}</Link>
             </Button>
           </div>
         </div>
@@ -69,7 +70,7 @@ export default async function PlannerPage({
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
       <PageHeader
         title={t.title}
-        detail={t.lead}
+        detail={personal ? m.aiPlanner.personalRecipient : t.lead}
         actions={
           <Button asChild variant="secondary">
             <Link href="/planificateur/propositions" prefetch={false}>

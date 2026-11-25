@@ -25,6 +25,8 @@ export type KeyDraft = {
   face?: Face;
   // Les pieds en l'air à cette clé. Les autres sont en appui : ils ne bougent pas tant qu'ils le restent.
   air?: readonly Side[];
+  // Appuis sur patins mobiles pendant la transition vers cette clé. La tenue suivante les immobilise.
+  slide?: readonly Side[];
   // Une traversée qui mérite sa place dans la frise des positions. Une tenue y figure toujours.
   still?: boolean;
   // La ligne du guide de la fiche que cette position illustre : 0 pour l'installation, puis chaque étape.
@@ -151,7 +153,11 @@ export const gesture = (draft: GestureDraft): MotionClip => {
     const cut = span.kind === "move" && !!key.move.cut;
     const planted = cut
       ? []
-      : SIDES.filter((side) => grounded(span.key, side) && (span.kind === "hold" || grounded(before, side)));
+      : SIDES.filter(
+          (side) =>
+            grounded(span.key, side) &&
+            (span.kind === "hold" || (grounded(before, side) && !key.slide?.includes(side))),
+        );
     // Un pied en appui est au même endroit aux deux bouts de la transition : sinon la description est fausse.
     if (span.kind === "move")
       for (const side of planted)
