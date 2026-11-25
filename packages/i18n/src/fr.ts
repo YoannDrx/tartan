@@ -765,6 +765,9 @@ export const fr = {
     recentNewer: "Demandes suivantes",
     recentOpen: (from: string, to: string, status: string) => `Du ${from} au ${to} · ${status}`,
     recentCreated: (date: string) => `Demande envoyée le ${date}`,
+    moreProposalActions: "Autres actions",
+    duplicateProposal: "Dupliquer la proposition",
+    duplicateDraft: "Dupliquer le brouillon",
     historyActions: {
       processing: "Voir l’avancement",
       clarification: "Répondre",

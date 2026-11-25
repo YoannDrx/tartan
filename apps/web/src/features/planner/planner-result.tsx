@@ -19,6 +19,7 @@ import {
 import { historyDate, m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TrackLine } from "@/components/track";
 import { Button } from "@/components/ui/button";
@@ -108,6 +109,23 @@ export function PlannerResult({
   onRestart: () => void;
   onError: (message: string) => void;
 }) {
+  const router = useRouter();
+  const duplicateIds = useRef(new Map<string, string>());
+  const copyDraft = async (id: string, version: number) => {
+    if (busy) return;
+    setBusy(true);
+    const key = id + version,
+      op = duplicateIds.current.get(key) ?? crypto.randomUUID();
+    duplicateIds.current.set(key, op);
+    try {
+      const copied = await api.duplicatePlannerDraft(orgId, id, op, version);
+      router.push(`/seances/${copied.id}`);
+    } catch (cause) {
+      onError(messageOf(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
   const [reply, setReply] = useState("");
   const mic = usePlannerDictation(orgId, (text) => setReply((current) => [current, text].filter(Boolean).join(" ")));
   const [linked, setLinked] = useState(proposal.linkedSessions);
@@ -391,6 +409,11 @@ export function PlannerResult({
                   {item?.state === "published" ? m.aiPlanner.openPublished(name) : t.openDraft(name)}
                 </Link>
               </Button>
+              {item?.state === "draft" && (
+                <Button variant="secondary" disabled={busy} onClick={() => void copyDraft(item.id, item.version)}>
+                  {m.aiPlanner.duplicateDraft}
+                </Button>
+              )}
               {item?.state === "draft" ? (
                 <Dialog
                   title={m.aiPlanner.removeDraft}

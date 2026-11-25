@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { z } from "zod";
 import {
   resolvePlannerExerciseInput,
+  duplicatePlannerProposalInput,
   type ResolvePlannerExerciseInput,
   clarifyPlannerProposalInput,
   createPlannerProposalInput,
@@ -206,6 +207,80 @@ export function plannerLegacySlots(value: PlannerRichInterpretation, accepts: Re
   };
 }
 
+const actionsByState = {
+  processing: ["progress"],
+  clarification: ["answer", "remove"],
+  proposal: ["edit", "duplicate", "remove"],
+  failed: ["retry", "remove"],
+  committed: ["sessions", "remove"],
+} as const;
+const actionsFor = (state: string) => actionsByState[plannerProposalResponse.shape.state.parse(state)];
+export async function duplicatePlannerProposal(
+  userId: string,
+  organizationId: string,
+  sourceId: string,
+  raw: z.infer<typeof duplicatePlannerProposalInput>,
+  now = new Date(),
+) {
+  const input = duplicatePlannerProposalInput.parse(raw);
+  return prisma.$transaction(async (tx) => {
+    await lock(tx, organizationId);
+    const access = await accessFor(userId, organizationId, tx),
+      source = await owned(userId, organizationId, sourceId, now, tx);
+    const selection = plannerSelection.parse(source.selection),
+      bindings = plannerBindings.parse(source.bindings);
+    await recheckPlannerBindings(tx, access, selection, bindings);
+    const hash = plannerFingerprint({ sourceId, ...input });
+    const existing = await tx.aiPlannerProposal.findUnique({
+      where: { id: input.id },
+      select: { creationFingerprint: true, actorId: true, organizationId: true },
+    });
+    if (existing) {
+      if (
+        existing.creationFingerprint !== hash ||
+        existing.actorId !== userId ||
+        existing.organizationId !== organizationId
+      )
+        throw conflict();
+      return { id: input.id };
+    }
+    if (source.version !== input.expectedVersion || (await effectiveState(source, now, tx)) !== "proposal")
+      throw conflict();
+    const saved = z
+      .object({ version: z.number(), sessions: savePlannerReviewInput.shape.sessions })
+      .safeParse(source.savedReview);
+    const sessions =
+      saved.success && saved.data.version === source.version
+        ? savePlannerReviewInput.shape.sessions.parse(
+            JSON.parse(JSON.stringify(saved.data.sessions), (key, value: unknown) =>
+              (key === "ref" || key === "itemRef") && typeof value === "string" && value.startsWith(`ai-${sourceId}-`)
+                ? value.replace(sourceId, input.id)
+                : value,
+            ),
+          )
+        : undefined;
+    await tx.aiPlannerProposal.create({
+      data: {
+        id: input.id,
+        actorId: userId,
+        organizationId,
+        creationFingerprint: hash,
+        state: "proposal",
+        activeOperationId: input.id,
+        selection,
+        bindings: bindings as Prisma.InputJsonValue,
+        messages: messagesSchema.parse(source.messages),
+        interpretation: plannerRichInterpretation.parse(source.interpretation),
+        clarificationCount: source.clarificationCount,
+        adjustmentCount: source.adjustmentCount,
+        createdAt: now,
+        expiresAt: source.expiresAt,
+        ...(sessions ? { savedReview: { version: 1, sessions } } : {}),
+      },
+    });
+    return { id: input.id };
+  });
+}
 export async function getPlannerProposal(userId: string, organizationId: string, id: string, now = new Date()) {
   const access = await accessFor(userId, organizationId);
   const row = await owned(userId, organizationId, id, now);
@@ -213,11 +288,13 @@ export async function getPlannerProposal(userId: string, organizationId: string,
     bindings = plannerBindings.parse(row.bindings);
   await assertPlannerTargets(prisma, access, selection);
   const rich = row.interpretation ? plannerRichInterpretation.parse(row.interpretation) : null;
+  const state = await effectiveState(row, now);
   return plannerProposalResponse.parse({
+    actions: actionsFor(state),
     failure: await lastFailure(row),
     id: row.id,
     version: row.version,
-    state: await effectiveState(row, now),
+    state,
     clarificationCount: row.clarificationCount,
     adjustmentCount: row.adjustmentCount,
     expiresAt: row.expiresAt.toISOString(),
@@ -322,6 +399,7 @@ export async function listPlannerProposals(
     items.push({
       id: row.id,
       state: row.state,
+      actions: actionsFor(row.state),
       version: row.version,
       period: selection.period,
       createdAt: row.createdAt.toISOString(),
@@ -1219,7 +1297,8 @@ export async function previewPlannerLoads(
       await lock(tx, organizationId);
       const access = await accessFor(userId, organizationId, tx),
         row = await owned(userId, organizationId, proposalId, now, tx);
-      if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal") throw conflict();
+      if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal")
+        throw conflict();
       const selection = plannerSelection.parse(row.selection),
         bindings = plannerBindings.parse(row.bindings);
       await recheckPlannerBindings(tx, access, selection, bindings);
@@ -1299,7 +1378,8 @@ export async function confirmPlannerProposal(
           sessions: z.array(z.object({ id: z.uuid(), version: z.number().int().positive() })).parse(row.draftIds),
         };
       }
-      if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal") throw conflict();
+      if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal")
+        throw conflict();
       await recheckPlannerBindings(tx, access, selection, bindings);
       const stored = plannerRichInterpretation.parse(row.interpretation);
       // Le brouillon ne se crée qu'une fois chaque emplacement tranché : fiche choisie, fiche créée, ou retiré.

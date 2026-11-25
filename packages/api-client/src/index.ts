@@ -197,6 +197,11 @@ export const createApiClient = (options: ApiClientOptions) => {
         undefined,
         signal,
       ),
+    duplicatePlannerProposal: (orgId: string, sourceId: string, id: string, expectedVersion: number) =>
+      request("POST", `/orgs/${orgId}/planner/proposals/${sourceId}/duplicate`, z.object({ id: z.uuid() }), {
+        id,
+        expectedVersion,
+      }),
     removePlannerProposal: (orgId: string, proposalId: string, expectedVersion: number) =>
       request("DELETE", `/orgs/${orgId}/planner/proposals/${proposalId}`, okResponse, undefined, {
         expectedVersion: String(expectedVersion),
@@ -464,6 +469,11 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/refresh-loads`, prescriptionRefreshPreview),
     refreshPublishedLoads: (orgId: string, sessionId: string, body: ConfirmPrescriptionRefresh) =>
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/refresh-loads`, sessionSaveResult, body),
+    duplicatePlannerDraft: (orgId: string, sessionId: string, operationId: string, expectedVersion: number) =>
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/duplicate-draft`, z.object({ id: z.uuid() }), {
+        operationId,
+        expectedVersion,
+      }),
     deleteSession: (orgId: string, sessionId: string, confirmation: DeleteSessionInput, draftOnly = false) =>
       request("DELETE", `/orgs/${orgId}/sessions/${sessionId}`, okResponse, undefined, {
         expectedVersion: String(confirmation.expectedVersion),

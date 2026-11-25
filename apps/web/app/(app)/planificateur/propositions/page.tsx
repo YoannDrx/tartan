@@ -68,8 +68,9 @@ export default async function PlannerProposalsPage({
                 <p className="t-caption font-normal text-soft">
                   {t.proposals.sent(new Date(p.createdAt).toLocaleString("fr-FR", { timeZone: usage.timeZone }))}
                 </p>
-                {p.state !== "processing" && p.version !== undefined ? (
+                {p.actions?.includes("remove") && p.version !== undefined ? (
                   <RemoveProposal
+                    canDuplicate={p.actions.includes("duplicate")}
                     orgId={organizationId}
                     id={p.id}
                     version={p.version}

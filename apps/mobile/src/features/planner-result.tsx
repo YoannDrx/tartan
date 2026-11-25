@@ -79,6 +79,22 @@ export function NativePlannerResult({
 }) {
   const router = useRouter();
   const client = useQueryClient();
+  const duplicateIds = useRef(new Map<string, string>());
+  const copyDraft = async (id: string, version: number) => {
+    if (busy) return;
+    setBusy(true);
+    const key = id + version,
+      op = duplicateIds.current.get(key) ?? randomUUID();
+    duplicateIds.current.set(key, op);
+    try {
+      const copied = await api.duplicatePlannerDraft(orgId, id, op, version);
+      router.push(`/session-builder/${copied.id}`);
+    } catch (cause) {
+      onError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
   const [reply, setReply] = useState("");
   const mic = usePlannerDictation(orgId, (text) => setReply((current) => [current, text].filter(Boolean).join(" ")));
   const [linked, setLinked] = useState(proposal.linkedSessions);
@@ -427,6 +443,14 @@ export function NativePlannerResult({
                   label={item?.state === "published" ? m.aiPlanner.openPublished(name) : t.openDraft(name)}
                   onPress={() => router.push(`/session-builder/${session.id}`)}
                 />
+                {item?.state === "draft" && (
+                  <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onPress={() => void copyDraft(item.id, item.version)}
+                    label={m.aiPlanner.duplicateDraft}
+                  />
+                )}
                 {item?.state === "draft" ? (
                   <Button
                     variant="ghost"

@@ -734,6 +734,7 @@ test("une proposition retouchée se reprend dans un autre onglet et peut quitter
     await expect(other.getByRole("heading", { name: "Appuis sur la courbe" })).toBeVisible();
     await createDraft(other);
     await other.goto("/planificateur/propositions?filtre=created");
+    await other.getByText(m.aiPlanner.moreProposalActions, { exact: true }).first().click();
     await other.getByRole("button", { name: m.aiPlanner.removeProposal }).click();
     await other.getByRole("dialog").getByRole("button", { name: m.aiPlanner.removeProposal }).click();
     await expect(other.getByText(t.proposals.empty)).toBeVisible();
