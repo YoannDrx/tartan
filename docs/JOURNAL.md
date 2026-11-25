@@ -10,6 +10,10 @@ Une interruption du service Apple conserve l’envoi Android disponible pour une
 
 Le store Blob privé du lancement a été créé en région fra1 et connecté à la production avec le préfixe BETA_APK. Le téléchargement contrôlé utilise la variable dédiée posée par Vercel. Les nouvelles invitations restent suspendues par défaut.
 
+## 2026-11-25, Codex, production de la console
+
+La PR 192 a été fusionnée avec les contrôles requis réussis. Vérification du commit, de la santé et de la protection de la route effectuée sur `app.tartan.coach`. Les nouveaux envois restent suspendus pendant la recette.
+
 ## 2026-11-25, Codex, Console privée des testeurs
 
 La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.
