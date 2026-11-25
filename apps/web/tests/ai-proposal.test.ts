@@ -15,8 +15,12 @@ import {
   resolvePlannerExercise,
   createPlannerProposal,
   clarifyPlannerProposal,
+  decidePlannerAdjustment,
   getPlannerProposal,
   listPlannerProposals,
+  duplicatePlannerProposal,
+  savePlannerReview,
+  removePlannerProposal,
   purgePlannerProposals,
   preparePlannerDrafts,
   confirmPlannerProposal,
@@ -224,6 +228,26 @@ it("transmet le matériel et la convention sans données privées et relit les a
   );
   expect(p.interpret.mock.calls[1]![0].exercises[0]).toMatchObject({ classification: null, strengthLoadKind: null });
 });
+it("duplique les retouches privées une seule fois, sans appel IA ni brouillon", async () => {
+  const a = await setup(),
+    p = provider(),
+    initial = await a.create(p);
+  const args = [a.owner.userId, a.organizationId, a.input.id] as const;
+  const review = await preparePlannerDrafts(...args, initial.version, now);
+  review.sessions[0]!.draft.title = "Séance à reprendre";
+  const saved = await savePlannerReview(...args, { expectedVersion: initial.version, sessions: review.sessions }, now);
+  const input = { expectedVersion: saved.version, id: randomUUID() };
+  const [copy, replay] = await Promise.all([
+    duplicatePlannerProposal(...args, input, now),
+    duplicatePlannerProposal(...args, input, now),
+  ]);
+  expect(copy).toEqual(replay);
+  const detached = await preparePlannerDrafts(a.owner.userId, a.organizationId, copy.id, 1, now);
+  expect(detached.sessions[0]!.draft.title).toBe("Séance à reprendre");
+  expect(detached.sessions[0]!.draft.blocks[0]!.items[0]?.ref).toContain(copy.id);
+  expect(p.interpret).toHaveBeenCalledTimes(1);
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+});
 it("retrouve les propositions privées par pages stables, sans texte, quota ni appel IA supplémentaire", async () => {
   const a = await setup(),
     p = provider();
@@ -240,6 +264,9 @@ it("retrouve les propositions privées par pages stables, sans texte, quota ni a
       messages: [a.input.text],
       interpretation: row.interpretation!,
       draftIds: undefined,
+      weekConfirmations: undefined,
+      adjustmentPreview: undefined,
+      savedReview: undefined,
     })),
   });
   const expiredId = additionalIds[0]!;
@@ -256,7 +283,9 @@ it("retrouve les propositions privées par pages stables, sans texte, quota ni a
   expect(ids).not.toContain(expiredId);
   expect(ids).not.toContain(foreignId);
   expect(second.nextCursor).toBeNull();
-  expect(Object.keys(first.items[0]!).sort()).toEqual(["id", "state", "period", "createdAt", "expiresAt"].sort());
+  expect(Object.keys(first.items[0]!).sort()).toEqual(
+    ["id", "state", "actions", "version", "period", "createdAt", "expiresAt"].sort(),
+  );
   expect(JSON.stringify(first)).not.toContain(a.input.text);
   await expect(
     listPlannerProposals(a.owner.userId, a.organizationId, { before: foreignId }, now),
@@ -268,6 +297,38 @@ it("retrouve les propositions privées par pages stables, sans texte, quota ni a
   expect(p.interpret).toHaveBeenCalledTimes(1);
   expect(await prisma.aiPlannerOperation.count({ where: { organizationId: a.organizationId } })).toBe(1);
   expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+});
+
+it("reprend les retouches sur une autre lecture, protège les conflits et conserve les séances après retrait", async () => {
+  const a = await setup(),
+    p = provider();
+  const proposal = await a.create(p);
+  const args = [a.owner.userId, a.organizationId, proposal.id] as const;
+  const initial = await preparePlannerDrafts(...args, proposal.version, now);
+  initial.sessions[0]!.draft.title = "Force du jeudi";
+  const saved = await savePlannerReview(
+    ...args,
+    { expectedVersion: proposal.version, sessions: initial.sessions },
+    now,
+  );
+  expect((await preparePlannerDrafts(...args, saved.version, now)).sessions[0]!.draft.title).toBe("Force du jeudi");
+  await expect(
+    savePlannerReview(...args, { expectedVersion: proposal.version, sessions: initial.sessions }, now),
+  ).rejects.toMatchObject({ status: 409 });
+  await expect(removePlannerProposal(...args, proposal.version, now)).rejects.toMatchObject({ status: 409 });
+  const created = await confirmPlannerProposal(
+    ...args,
+    { expectedVersion: saved.version, confirmed: true, sessions: initial.sessions },
+    now,
+  );
+  const committed = await getPlannerProposal(...args, now);
+  expect((await listPlannerProposals(args[0], args[1], { filter: "created" }, now)).items.map((i) => i.id)).toContain(
+    proposal.id,
+  );
+  await removePlannerProposal(...args, committed.version, now);
+  expect(await prisma.scheduledSession.count({ where: { id: created.sessions[0]!.id } })).toBe(1);
+  await expect(getPlannerProposal(...args, now)).rejects.toMatchObject({ status: 404 });
+  expect(p.interpret).toHaveBeenCalledTimes(1);
 });
 
 it("masque la liste après retrait du groupe, du rôle, du flag ou de l'offre", async () => {
@@ -315,10 +376,10 @@ it("ne lance qu’une génération pour deux demandes simultanées", async () =>
     finish = resolve;
   });
   const p = wholeProvider(async (context: PlannerProviderContext) => {
-      began();
-      await blocked;
-      return proposal(context);
-    });
+    began();
+    await blocked;
+    return proposal(context);
+  });
   const first = a.create(p);
   await started;
   try {
@@ -376,8 +437,8 @@ it.each([
 ] as const)("une panne %s rend un message lisible, garde sa cause et ne décompte rien", async (code, status) => {
   const a = await setup();
   const failing = wholeProvider(async () => {
-      throw new PlannerProviderError(code);
-    });
+    throw new PlannerProviderError(code);
+  });
   await expect(a.create(failing)).rejects.toMatchObject({
     status,
     code: `planner_${code}`,
@@ -399,8 +460,8 @@ it.each([
 it("une panne inattendue reste une réponse inexploitable, sans détail technique", async () => {
   const a = await setup();
   const failing = wholeProvider(async () => {
-      throw new Error("sensitive internal detail");
-    });
+    throw new Error("sensitive internal detail");
+  });
   const error = await a.create(failing).catch((cause: unknown) => cause);
   expect(error).toMatchObject({ code: "planner_invalid_output" });
   expect(JSON.stringify(error)).not.toContain("sensitive");
@@ -409,8 +470,8 @@ it("un échec de clarification garde le résultat précédent, sans perdre un é
   const a = await setup();
   const initial = await a.create(provider(clarification));
   const failing = wholeProvider(async () => {
-      throw new Error("private provider failure");
-    });
+    throw new Error("private provider failure");
+  });
   const answer = {
     operationId: randomUUID(),
     expectedVersion: initial.version,
@@ -453,12 +514,12 @@ it("refuse un autre auteur, un autre espace et une cible révoquée sans révél
 it("une modification d’exercice pendant la génération refuse le résultat et restitue le quota", async () => {
   const a = await setup();
   const p = wholeProvider(async (context: PlannerProviderContext) => {
-      await prisma.exercise.update({
-        where: { id: a.exercise.id },
-        data: { name: "Variante modifiée", updatedAt: new Date("2030-06-01T12:01:00Z") },
-      });
-      return proposal(context);
+    await prisma.exercise.update({
+      where: { id: a.exercise.id },
+      data: { name: "Variante modifiée", updatedAt: new Date("2030-06-01T12:01:00Z") },
     });
+    return proposal(context);
+  });
   await expect(a.create(p)).rejects.toMatchObject({ status: 409, code: "planner_context_changed" });
   expect((await getPlannerProposal(a.owner.userId, a.organizationId, a.input.id, now)).state).toBe("failed");
   expect(
@@ -680,6 +741,42 @@ it("un contexte de phase ambigu exige un choix et aucune note privée ne part au
   expect(draft.publishedAt).toBeNull();
 });
 
+it("crée une semaine en deux fois et retrouve la première confirmation après la seconde", async () => {
+  const a = await setup();
+  const p = provider((context) => {
+    const r = proposal(context);
+    return { ...r, sessions: [r.sessions[0]!, { ...r.sessions[0]!, date: "2030-06-04" }] };
+  });
+  const initial = await a.create(p);
+  const args = [a.owner.userId, a.organizationId, a.input.id] as const;
+  const review = await preparePlannerDrafts(...args, initial.version, now);
+  const first = {
+    expectedVersion: initial.version,
+    sessions: review.sessions,
+    confirmed: true as const,
+    selectedIndices: [1],
+  };
+  const chosen = await confirmPlannerProposal(...args, first, now);
+  expect(chosen.partial).toBe(true);
+  const refreshed = await getPlannerProposal(...args, now);
+  expect(refreshed).toMatchObject({ state: "proposal", createdSessionIndices: [1], draftIds: null });
+  expect(refreshed.linkedSessions?.[0]).toMatchObject({ id: chosen.sessions[0]!.id, state: "draft" });
+  expect(await confirmPlannerProposal(...args, { ...first, expectedVersion: refreshed.version }, now)).toEqual(chosen);
+  const remaining = await preparePlannerDrafts(...args, refreshed.version, now);
+  remaining.sessions[0]!.draft.title = "Jour restant";
+  const final = await confirmPlannerProposal(
+    ...args,
+    { expectedVersion: refreshed.version, sessions: remaining.sessions, confirmed: true, selectedIndices: [0] },
+    now,
+  );
+  expect(final.partial).toBe(false);
+  expect(await confirmPlannerProposal(...args, first, now)).toEqual(chosen);
+  expect((await getPlannerProposal(...args, now)).draftIds?.map((r) => r.id)).toEqual([
+    final.sessions[0]!.id,
+    chosen.sessions[0]!.id,
+  ]);
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(2);
+});
 it("une semaine conserve un choix par date quand un cycle de groupe se termine en cours de période", async () => {
   const a = await setup();
   await prisma.organization.update({ where: { id: a.organizationId }, data: { phasesEnabled: true } });
@@ -1217,6 +1314,71 @@ it("conserve les occurrences du circuit dans les charges et accepte une adaptati
   );
   expect(result.sessions).toHaveLength(1);
 });
+it.each([true, false])(
+  "soumet les nouvelles doses à une décision versionnée entre appareils, appliquer %s",
+  async (apply) => {
+    const a = await setup(),
+      args = [a.owner.userId, a.organizationId, a.input.id] as const;
+    const initial = await a.create(provider());
+    const modified = provider((ctx) => {
+      const value = proposal(ctx);
+      value.sessions[0]!.blocks[0]!.items[0]!.prescription.reps = 11;
+      return value;
+    });
+    const pending = await clarifyPlannerProposal(
+      ...args,
+      {
+        expectedVersion: initial.version,
+        operationId: randomUUID(),
+        text: "Onze répétitions",
+        reviewed: true,
+        adjustmentReview: { keep: [] },
+      },
+      { provider: modified, clock },
+    );
+    const fresh = await getPlannerProposal(...args, now);
+    expect(fresh.adjustmentPreview?.[0]?.after.join(" ")).toContain("11 rép.");
+    expect(fresh.interpretation?.sessions[0]?.blocks[0]?.items[0]?.prescription.reps).toBe(4);
+    const review = await preparePlannerDrafts(...args, pending.version, now);
+    await expect(
+      confirmPlannerProposal(
+        ...args,
+        { expectedVersion: pending.version, confirmed: true, sessions: review.sessions },
+        now,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    const chosen = await decidePlannerAdjustment(...args, { expectedVersion: pending.version, apply }, now);
+    expect(chosen.adjustmentPreview).toBeUndefined();
+    expect(chosen.interpretation?.sessions[0]?.blocks[0]?.items[0]?.prescription.reps).toBe(apply ? 11 : 4);
+    await expect(
+      decidePlannerAdjustment(...args, { expectedVersion: pending.version, apply: !apply }, now),
+    ).rejects.toMatchObject({ status: 409 });
+  },
+);
+it("conserve le bloc protégé quand le prestataire le modifie", async () => {
+  const a = await setup(),
+    args = [a.owner.userId, a.organizationId, a.input.id] as const,
+    initial = await a.create(provider());
+  const modified = provider((ctx) => {
+    const value = proposal(ctx);
+    value.sessions[0]!.blocks[0]!.items[0]!.prescription.reps = 17;
+    return value;
+  });
+  const pending = await clarifyPlannerProposal(
+    ...args,
+    {
+      expectedVersion: initial.version,
+      operationId: randomUUID(),
+      text: "Garde ce bloc",
+      reviewed: true,
+      adjustmentReview: { keep: [{ session: 0, block: 0 }] },
+    },
+    { provider: modified, clock },
+  );
+  expect(pending.adjustmentPreview).toEqual([]);
+  const applied = await decidePlannerAdjustment(...args, { expectedVersion: pending.version, apply: true }, now);
+  expect(applied.interpretation?.sessions[0]?.blocks[0]?.items[0]?.prescription.reps).toBe(4);
+});
 it("ajuste une proposition sans quota supplémentaire, avec la consigne du coach en tête", async () => {
   const a = await setup(),
     p = provider();
@@ -1469,7 +1631,12 @@ it("diffuse un événement par étape, le résumé puis le plan, puis la proposi
   const events = (await response.text())
     .split("\n\n")
     .filter(Boolean)
-    .map((chunk) => plannerStreamEvent.parse({ event: /^event: (.+)$/m.exec(chunk)![1], data: JSON.parse(/^data: (.+)$/m.exec(chunk)![1]!) }));
+    .map((chunk) =>
+      plannerStreamEvent.parse({
+        event: /^event: (.+)$/m.exec(chunk)![1],
+        data: JSON.parse(/^data: (.+)$/m.exec(chunk)![1]!),
+      }),
+    );
   // Les quatre étapes dans l'ordre, puis le résultat.
   const order = events.map((e) => e.event).filter((event, index, all) => all.indexOf(event) === index);
   expect(order).toEqual(["understanding", "matching", "composing", "checking", "result"]);

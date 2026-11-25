@@ -258,7 +258,7 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
                   href={`/planificateur?date=${usesMonth ? today : week}${params.groupe ? `&groupe=${encodeURIComponent(params.groupe)}` : ""}`}
                   prefetch={false}
                 >
-                  {m.aiPlanner.title}
+                  {ctx.personal ? m.aiPlanner.personalCreate : m.aiPlanner.title}
                 </Link>
               </Button>
             ) : null}

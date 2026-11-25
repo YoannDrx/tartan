@@ -52,6 +52,8 @@ export type CalendarView = z.infer<typeof calendarView>;
 
 // Écriture partielle : un champ absent ne change rien. La date permet de rejouer un choix fait hors ligne.
 export const preferencesInput = z.object({
+  homeTone: z.enum(["calm", "energetic", "off"]).optional(),
+  sessionTone: z.enum(["calm", "energetic", "off"]).optional(),
   aiConsent: z.boolean().optional(),
   calendarView: calendarView.optional(),
   calendarViewUpdatedAt: z.string().datetime().optional(),

@@ -174,3 +174,11 @@ it("un ancien client peut encore supprimer une séance inchangée", async () => 
   expect(await prisma.scheduledSession.count({ where: { id: a.edit.id } })).toBe(0);
   expect(await prisma.notification.count({ where: { userId: a.athlete.userId, type: "session_cancelled" } })).toBe(1);
 });
+
+it("une suppression de brouillon refuse la séance publiée même avec sa version courante", async () => {
+  const a = await setup();
+  await expect(deleteSession(a.owner.userId, a.organizationId, a.edit.id, a.confirmation, true)).rejects.toMatchObject({
+    status: 409,
+  });
+  expect(await prisma.scheduledSession.count({ where: { id: a.edit.id } })).toBe(1);
+});

@@ -77,6 +77,7 @@ export const plannerProviderContext = z
             category: exerciseCategory,
             aliases: z.array(z.string().min(1).max(200)).max(20),
             classification: exerciseClassification.strict().nullable().optional(),
+            catalogKey: z.string().max(120).nullable().optional(),
             strengthLoadKind: snapshotItem.shape.strengthLoadKind,
             // Enrichissement pour l'étape « Composer » : lu sur le guide de la fiche.
             family: exerciseFamily.nullable().optional(),
