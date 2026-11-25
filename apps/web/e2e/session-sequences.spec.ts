@@ -131,7 +131,9 @@ test("l'athlète suit A/B/A/B et lance la récupération sans créer de série f
   const { page: athlete, context } = await joinAsAthlete(browser, await groupLink(page), "Lina");
   try {
     const builder = await (await page.request.get(`${root}/session-builder`)).json();
-    const exercises = builder.exercises.slice(0, 2);
+    // L’accessibilité du lecteur vidéo tiers est indépendante du parcours de circuit.
+    const exercises = builder.exercises.filter((exercise: { media: unknown }) => !exercise.media).slice(0, 2);
+    expect(exercises).toHaveLength(2);
     const note = "Pose le pied sous le bassin avant de repartir.";
     const widths = info.project.name === "desktop" ? [768, 1440] : [390];
     const response = await page.request.post(`${root}/sessions`, {
