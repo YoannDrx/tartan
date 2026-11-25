@@ -40,13 +40,20 @@ it("publie le swing relu et conserve les réouvertures, personnalisations et cop
       ('exerciseReview:kettlebell-swing:v5:text:v5','false'),
       ('exerciseReview:kettlebell-swing:v5:motion:v2','true'),
       ('exerciseReview:kettlebell-swing:v5:image:v1','true')`);
-    expect((await db.query(migration)).rowCount).toBe(0);
+    const apply = async () => {
+      await db.query("UPDATE exercises SET updated_at = NULL");
+      await db.query(migration);
+      return (await db.query("SELECT id FROM exercises WHERE updated_at IS NOT NULL ORDER BY id")).rows.map(
+        (r) => r.id,
+      );
+    };
+    expect(await apply()).toEqual([]);
     await db.query(
       "UPDATE platform_settings SET value = 'true' WHERE key = 'exerciseReview:kettlebell-swing:v5:text:v5'",
     );
     await db.query("DELETE FROM platform_settings WHERE key = 'exerciseReview:goblet-squat:v5:text:v5'");
-    expect((await db.query(migration)).rowCount).toBe(2);
-    expect((await db.query(migration)).rowCount).toBe(0);
+    expect(await apply()).toEqual(["goblet", "swing"]);
+    expect(await apply()).toEqual([]);
     const { rows } = await db.query("SELECT id, guide FROM exercises ORDER BY id");
     expect(Object.fromEntries(rows.map(({ id, guide }) => [id, guide]))).toEqual({
       goblet: { ...goblet, technicalReview: "approved" },

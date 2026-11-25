@@ -1,5 +1,8 @@
 -- Ces deux fiches de l’édition 5 utilisaient la convention de charge générique avant la relecture.
 -- La copie du guide permet de reconnaître intégralement la fiche commune historique.
+BEGIN;
+SELECT pg_advisory_xact_lock(176843, 150);
+
 WITH canonical(catalog_key, guide) AS (
   VALUES
     ('goblet-squat', $guide${
@@ -108,3 +111,4 @@ WHERE x.catalog_key = canonical.catalog_key
         AND value = 'true'::jsonb
     ) = 3)
   );
+COMMIT;
