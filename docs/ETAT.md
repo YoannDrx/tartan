@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## QR code d’invitation · 25 novembre 2026
+
+Le QR code du groupe s’adapte au cadre de l’inscription et des réglages. Le lien a été décodé sur les captures du parcours web à 390, 768 et 1440 px. Le scan entre deux téléphones reste à éprouver.
+
 ## Illustrations, série pilote et atelier de relecture · 25 novembre 2026
 
 Douze silhouettes détaillées ont une image et une vignette WebP versionnées, 272 Kio sur disque au total, environ 5,2 Mio pour 233 au même poids. Le coût monétaire par reprise reste à chiffrer. La dernière série de quatre fiches a demandé six générations, soit environ 317 générations à prévoir pour les 211 restantes si ce taux se maintient. Texte, image et geste ont des validations séparées. Aucune validation humaine simulée. Deux tests de service et les parcours Playwright ordinateur et téléphone ont passé la validation puis la réouverture d’une image. Inventaire agrégé en lecture seule le 25 novembre : 197 fiches communes visibles, dont les 173 clés versionnées et 24 sans clé ni guide. Ces 24 figurent séparément dans l’atelier. Le pilote et les 60 nouvelles fiches attendent leur relecture sportive. Six images de renforcement au sol complètent le pilote. Quatre fiches supplémentaires illustrent le franchissement en hauteur, les rebonds pieds joints, la marche latérale avec bande et les foulées bondissantes. L’atelier compte 22 images sur 233, dont 211 restent à produire. Les 60 nouvelles fiches ont chacune une animation. Les 233 clés du catalogue versionné ont un geste, y compris les gros plans d’orteils, les ancrages des bandes, les patins glissants et les pas de corde. La [procédure de préparation](reference/illustrations-exercices.md) couvre une série et la reprise d’une seule image.

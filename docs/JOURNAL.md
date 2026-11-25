@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Codex, QR code du groupe · 25 novembre 2026
+
+Le SVG de 320 px était rogné dans le cadre de 240 px. Le composant partagé utilise le viewBox du QR et une marge de quatre modules. Le parcours vérifie les dimensions du SVG et du cadre aux trois largeurs.
+
 ## 2026-11-25, Codex, candidat de livraison des stores
 
 Ce candidat réunit les lots du terrain, les 22 images d’atelier, la correction du dépôt Maven et le logo des deux stores. Les exports de recette iOS et Android contiennent les 22 images attendues, contrôlées par empreinte. Les binaires de bêta précédents contiennent les 18 premières. Le budget de production et la taille éditoriale sont extrapolés dans la procédure des illustrations.
