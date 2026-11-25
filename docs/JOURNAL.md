@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, gestes de barre et fiches hors ligne
+
+L’épaulé et l’arraché distinguent départ sur plots, pause au genou et réception. Les talons-fesses passent entre des portes de plots. Les 3 090 contrôles du moteur de gestes et les huit tests du service worker passent. La PWA conserve aussi les vignettes versionnées des séances préparées hors ligne. La relecture technique de chaque clip reste ouverte.
+
 ## 2026-11-25, Codex, série des exercices au sol
 
 Six fiches dont le texte était déjà relu ont reçu une illustration candidate. Le dead bug a été repris séparément pour garder la tête au sol. L’atelier présente désormais 18 images sur les 233 clés. Chaque validation reste individuelle.
