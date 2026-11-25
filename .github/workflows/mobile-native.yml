@@ -88,7 +88,7 @@ jobs:
       - name: Compilation
         working-directory: apps/mobile/android
         # Une seule architecture : assez pour prouver que le natif compile, sans dépasser le temps alloué.
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+        run: bash ../scripts/assemble-android-ci.sh arm64-v8a
 
   # Les parcours natifs (T09) : l'app de développement, compilée pour le simulateur iOS, contre un serveur web local
   # et la graine de démonstration. Aucun secret : la base, le serveur et les comptes n'existent que dans ce job.
@@ -98,7 +98,7 @@ jobs:
     runs-on: macos-15
     # Compilation (environ 18 min), parcours (environ 55 min), rejeux et suppression de compte : 90 minutes ne
     # suffisaient plus (PR 166, job annulé à 92 minutes, toutes étapes vertes).
-    timeout-minutes: 120
+    timeout-minutes: 150
     env:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
@@ -463,6 +463,9 @@ jobs:
             curl -sf -b "$jar" http://localhost:3000/api/v1/me > /dev/null
             rm -f "$jar"
           done
+      - name: Planificateur ouvert dans l'espace de démonstration
+        run: |
+          psql "$DATABASE_URL" -c "update organizations set plan = 'pilot', ai_planner_enabled = true, progression_enabled = true where owner_id = (select id from \"user\" where email = 'coach@demo.tartan.coach')"
       - name: App Android pour l'émulateur
         working-directory: apps/mobile
         env:
@@ -474,7 +477,7 @@ jobs:
           pnpm exec expo prebuild --platform android --no-install
           cd android
           # Une seule architecture, celle de l'émulateur ; la version Release embarque le JavaScript.
-          ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
+          bash ../scripts/assemble-android-ci.sh x86_64
       - name: Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash

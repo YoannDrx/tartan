@@ -115,9 +115,7 @@ export const plannerProviderInterpretation = plannerInterpretation.extend({
           .array(
             plannerSession.shape.blocks.element.extend({
               sequence: sessionSequence.nullable(),
-              items: z
-                .array(plannerItem.extend({ ref: plannerItem.shape.ref.unwrap() }))
-                .max(60),
+              items: z.array(plannerItem.extend({ ref: plannerItem.shape.ref.unwrap() })).max(60),
             }),
           )
           .min(1)
@@ -324,11 +322,12 @@ export type PlannerBrief = z.infer<typeof plannerBrief>;
 // Additif (22 novembre 2026) : les précisions facultatives du champ unique. Chacune est un indice, retenu
 // seulement quand la demande ne dit rien elle-même. Aucune n'est requise ; elles remplacent le `brief` complet
 // des clients d'avant, qui reste accepté.
+export const plannerEquipment = z.enum([...trainingEquipment.options, "jump_rope"]);
 export const plannerRequestHints = z
   .object({
     durationMin: z.number().int().min(5).max(300).optional(),
     level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
-    equipment: z.array(trainingEquipment).max(16).optional(),
+    equipment: z.array(plannerEquipment).max(plannerEquipment.options.length).optional(),
   })
   .strict();
 export type PlannerRequestHintsInput = z.infer<typeof plannerRequestHints>;
@@ -391,6 +390,16 @@ export const createPlannerProposalInput = z
   })
   .strict();
 export type CreatePlannerProposalInput = z.infer<typeof createPlannerProposalInput>;
+export const decidePlannerAdjustmentInput = z
+  .object({ expectedVersion: z.number().int().positive(), apply: z.boolean() })
+  .strict();
+export const adjustmentReviewRequest = z
+  .object({
+    keep: z
+      .array(z.object({ session: z.number().int().min(0).max(13), block: z.number().int().min(0).max(11) }))
+      .max(168),
+  })
+  .strict();
 export const clarifyPlannerProposalInput = z
   .object({
     operationId: uuid,
@@ -398,6 +407,7 @@ export const clarifyPlannerProposalInput = z
     text: z.string().trim().min(1).max(12000),
     reviewed: z.literal(true),
     // « Ajuster » seulement : la séance à l'écran, que l'ajustement modifie.
+    adjustmentReview: adjustmentReviewRequest.optional(),
     sessions: plannerScreenSessions,
   })
   .strict();
@@ -407,17 +417,23 @@ export const confirmPlannerProposalInput = z
   .object({
     expectedVersion: z.number().int().positive(),
     confirmed: z.literal(true),
+    selectedIndices: z.array(z.number().int().min(0).max(13)).min(1).max(14).optional(),
     sessions: z.array(plannerReviewedDraft).min(1).max(14),
   })
   .strict();
 export type ConfirmPlannerProposalInput = z.infer<typeof confirmPlannerProposalInput>;
 
+export const savePlannerReviewInput = confirmPlannerProposalInput.omit({ confirmed: true, selectedIndices: true });
+export const removePlannerProposalQuery = z.object({ expectedVersion: z.coerce.number().int().positive() }).strict();
 export const preparePlannerDraftsInput = z.object({ expectedVersion: z.number().int().positive() }).strict();
 const plannerCreatedSessions = z
   .array(z.object({ id: uuid, version: z.number().int().positive() }))
   .min(1)
   .max(14);
-export const plannerConfirmationResult = z.object({ sessions: plannerCreatedSessions });
+export const plannerConfirmationResult = z.object({
+  sessions: plannerCreatedSessions,
+  partial: z.boolean().optional(),
+});
 // Réponse de relecture seulement : l'expansion locale des noms peut dépasser
 // les limites d'écriture. Le coach corrige le texte entier, jamais tronqué.
 // Confirmation et aperçu de charges conservent plannerReviewedDraft strict.
@@ -471,7 +487,10 @@ export const plannerDraftsResponse = z.object({
           itemRef: z.string().nullable(),
           detail: z.string().nullable(),
           // Additif : les autres fiches possibles d'un rapprochement incertain.
-          alternatives: z.array(z.object({ exerciseId: uuid, name: z.string() })).max(3).optional(),
+          alternatives: z
+            .array(z.object({ exerciseId: uuid, name: z.string() }))
+            .max(3)
+            .optional(),
           // Additif : le terme que le coach a dit pour cet exercice, quand le point porte sur sa fiche.
           said: z.string().max(120).optional(),
         }),
@@ -544,7 +563,12 @@ export const plannerUnderstandingView = z.object({
   corrections: z.array(z.object({ said: z.string().max(200), kept: z.string().max(200) })).max(10),
 });
 export type PlannerUnderstandingView = z.infer<typeof plannerUnderstandingView>;
+export const duplicatePlannerProposalInput = z
+  .object({ id: uuid, expectedVersion: z.number().int().positive() })
+  .strict();
+const plannerActions = z.array(z.enum(["progress", "answer", "edit", "retry", "sessions", "duplicate", "remove"]));
 export const plannerProposalResponse = z.object({
+  actions: plannerActions.optional(),
   // Additif : la cause du dernier échec, lisible après un rechargement. Les anciens clients l'ignorent.
   failure: z
     .object({ code: plannerFailureCode, message: z.string(), step: plannerStepName.nullable().optional() })
@@ -553,7 +577,10 @@ export const plannerProposalResponse = z.object({
   // Additif : ce que le planificateur a compris de la demande.
   understanding: plannerUnderstandingView.nullable().optional(),
   // Additif, clients `slots` seulement : les emplacements encore à compléter avant de créer le brouillon.
-  slots: z.array(plannerSlotView.omit({ itemRef: true })).max(60).optional(),
+  slots: z
+    .array(plannerSlotView.omit({ itemRef: true }))
+    .max(60)
+    .optional(),
   id: uuid,
   version: z.number().int().positive(),
   state: z.enum(["processing", "clarification", "proposal", "failed", "committed"]),
@@ -571,6 +598,34 @@ export const plannerProposalResponse = z.object({
   ),
   exerciseResolutions: z.array(z.object({ questionId: z.string(), exerciseId: uuid, name: z.string() })).optional(),
   phaseReviews: z.array(z.object({ date: isoDate, review: sessionPhaseReview })),
+  calendar: z
+    .array(
+      z.object({
+        id: uuid,
+        date: isoDate,
+        title: z.string(),
+        startTime: clockTime.nullable(),
+        durationMin: z.number().int().positive().nullish(),
+      }),
+    )
+    .optional(),
+  availableEquipment: z.array(z.string()).optional(),
+  adjustmentPreview: z.array(z.object({ before: z.array(z.string()), after: z.array(z.string()) })).optional(),
+  createdSessionIndices: z.array(z.number().int().nonnegative()).optional(),
+  linkedSessions: z
+    .array(
+      z.discriminatedUnion("state", [
+        z.object({ id: uuid, state: z.literal("unavailable") }),
+        z.object({
+          id: uuid,
+          state: z.enum(["published", "draft"]),
+          date: isoDate,
+          title: z.string(),
+          version: z.number().int().positive(),
+        }),
+      ]),
+    )
+    .optional(),
   draftIds: plannerCreatedSessions.nullable(),
 });
 export type PlannerProposalResponse = z.infer<typeof plannerProposalResponse>;
@@ -635,7 +690,9 @@ export const plannerAliasList = z.object({
 });
 export type PlannerAliasList = z.infer<typeof plannerAliasList>;
 export const plannerAliasRemoved = z.object({ removed: z.literal(true) });
-export const plannerProposalListQuery = z.object({ before: uuid.optional() }).strict();
+export const plannerProposalListQuery = z
+  .object({ before: uuid.optional(), filter: z.enum(["all", "pending", "created"]).optional() })
+  .strict();
 export type PlannerProposalListQuery = z.infer<typeof plannerProposalListQuery>;
 export const plannerProposalList = z.object({
   items: z
@@ -643,6 +700,8 @@ export const plannerProposalList = z.object({
       z.object({
         id: uuid,
         state: plannerProposalResponse.shape.state,
+        actions: plannerActions.optional(),
+        version: z.number().int().positive().optional(),
         period: plannerSelection.shape.period,
         createdAt: z.iso.datetime(),
         expiresAt: z.iso.datetime(),

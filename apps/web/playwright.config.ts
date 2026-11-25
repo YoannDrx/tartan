@@ -21,13 +21,13 @@ export default defineConfig({
   projects: [
     {
       name: "desktop",
-      testIgnore: /terrain/,
+      testIgnore: "**/terrain.spec.ts",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
-    { name: "mobile", testIgnore: /terrain/, use: { ...devices["Pixel 7"] } },
+    { name: "mobile", testIgnore: "**/terrain.spec.ts", use: { ...devices["Pixel 7"] } },
     // Au bord de la piste, sur téléphone : le coach aussi, et le moteur de l'iPhone.
-    { name: "terrain", testMatch: /terrain/, use: { ...devices["Pixel 7"] } },
-    { name: "terrain-webkit", testMatch: /terrain/, use: { ...devices["iPhone 13"] } },
+    { name: "terrain", testMatch: "**/terrain.spec.ts", use: { ...devices["Pixel 7"] } },
+    { name: "terrain-webkit", testMatch: "**/terrain.spec.ts", use: { ...devices["iPhone 13"] } },
   ],
   webServer: process.env.CAPTURE_BASE_URL
     ? undefined

@@ -78,7 +78,7 @@ export function selectPlannerCandidates<T extends PlannerProposable>(
   const usable = exercises.filter(
     (exercise) =>
       (exercise.approved || exercise.own) &&
-      plannerEquipmentAvailable({ movement: null, equipment: (exercise.equipment ?? null) as never }, criteria.equipment),
+      plannerEquipmentAvailable({ movement: null, equipment: exercise.equipment ?? null }, criteria.equipment),
   );
   const ceiling = criteria.level ? LEVELS.indexOf(criteria.level) : LEVELS.length - 1;
   const atLevel = usable.filter((exercise) => !exercise.level || LEVELS.indexOf(exercise.level) <= ceiling);

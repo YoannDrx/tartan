@@ -1,8 +1,10 @@
 import { m } from "@tartan/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { View } from "react-native";
+import { randomUUID } from "expo-crypto";
+import { useRef, useState } from "react";
+import { Alert, View } from "react-native";
+import { errorMessage } from "../src/lib/errors";
 import { api } from "../src/lib/api";
 import { useActiveSpace } from "../src/lib/queries";
 import { Button, T } from "../src/ui/primitives";
@@ -15,11 +17,15 @@ const dateLabel = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateSt
 
 function ProposalList({ orgId, userId }: { orgId: string; userId: string }) {
   const [cursors, setCursors] = useState<string[]>([]);
+  const [filter, setFilter] = useState<"all" | "pending" | "created">("all");
+  const [failure, setFailure] = useState("");
+  const [menu, setMenu] = useState<string | null>(null);
+  const copies = useRef(new Map<string, string>());
   const before = cursors.at(-1);
   const router = useRouter();
   const proposals = useQuery({
-    queryKey: ["planner-proposals", orgId, userId, before ?? "first"],
-    queryFn: ({ signal }) => api.plannerProposals(orgId, { before }, signal),
+    queryKey: ["planner-proposals", orgId, userId, filter, before ?? "first"],
+    queryFn: ({ signal }) => api.plannerProposals(orgId, { before, filter }, signal),
     // Contenu privé uniquement en mémoire ; chaque ouverture recontrôle l'accès.
     gcTime: 0,
     staleTime: 0,
@@ -34,6 +40,21 @@ function ProposalList({ orgId, userId }: { orgId: string; userId: string }) {
       <T variant="small" tone="muted">
         {t.recentRetention}
       </T>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
+        {(["pending", "created", "all"] as const).map((value) => (
+          <Button
+            key={value}
+            label={t.historyFilters[value]}
+            variant={filter === value ? "primary" : "secondary"}
+            onPress={() => {
+              setCursors([]);
+              setFilter(value);
+              setFailure("");
+            }}
+          />
+        ))}
+      </View>
+      {failure ? <T accessibilityLiveRegion="polite">{failure}</T> : null}
       {proposals.isPending ? (
         <LoadingState inline />
       ) : proposals.isError ? (
@@ -50,13 +71,80 @@ function ProposalList({ orgId, userId }: { orgId: string; userId: string }) {
             <View key={proposal.id} style={{ gap: space.sm }}>
               <Button
                 variant="secondary"
-                label={t.recentOpen(
-                  dateLabel(proposal.period.from),
-                  dateLabel(proposal.period.to),
-                  t.recentStates[proposal.state],
-                )}
+                label={
+                  t.historyActions[proposal.state] +
+                  " · " +
+                  t.recentOpen(
+                    dateLabel(proposal.period.from),
+                    dateLabel(proposal.period.to),
+                    t.recentStates[proposal.state],
+                  )
+                }
                 onPress={() => router.replace({ pathname: "/planner", params: { proposalId: proposal.id } })}
               />
+              {proposal.version !== undefined &&
+                (proposal.actions?.includes("remove") ?? proposal.state !== "processing") && (
+                  <Button
+                    variant="ghost"
+                    label={t.moreProposalActions}
+                    onPress={() => setMenu(menu === proposal.id ? null : proposal.id)}
+                  />
+                )}
+              {menu === proposal.id && proposal.actions?.includes("duplicate") && (
+                <Button
+                  variant="secondary"
+                  label={t.duplicateProposal}
+                  onPress={async () => {
+                    const version = proposal.version;
+                    if (version === undefined) return;
+                    const key = proposal.id + version;
+                    const copyId = copies.current.get(key) ?? randomUUID();
+                    copies.current.set(key, copyId);
+                    try {
+                      const copy = await api.duplicatePlannerProposal(orgId, proposal.id, copyId, version);
+                      router.replace({ pathname: "/planner", params: { proposalId: copy.id } });
+                    } catch (error) {
+                      setFailure(errorMessage(error));
+                    }
+                  }}
+                />
+              )}
+              {menu === proposal.id && proposal.version !== undefined && proposal.state !== "processing" ? (
+                <Button
+                  variant="ghost"
+                  label={t.removeProposal}
+                  onPress={() => {
+                    const version = proposal.version;
+                    if (version === undefined) return;
+                    Alert.alert(
+                      t.removeProposal,
+                      t.removeProposalDetail(
+                        t.recentOpen(
+                          dateLabel(proposal.period.from),
+                          dateLabel(proposal.period.to),
+                          t.recentStates[proposal.state],
+                        ),
+                      ),
+                      [
+                        { text: m.common.cancel, style: "cancel" },
+                        {
+                          text: t.removeProposal,
+                          style: "destructive",
+                          onPress: async () => {
+                            try {
+                              await api.removePlannerProposal(orgId, proposal.id, version);
+                              setFailure("");
+                              await proposals.refetch();
+                            } catch (error) {
+                              setFailure(errorMessage(error));
+                            }
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                />
+              ) : null}
               <T variant="small" tone="muted">
                 {t.recentCreated(new Date(proposal.createdAt).toLocaleString("fr-FR"))}
               </T>
