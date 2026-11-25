@@ -1,3 +1,4 @@
+import { dispatchBeta } from "@/server/beta-testers.service";
 import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { log } from "@/lib/logger";
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
   }
   const dispatched = await dispatchPending();
+  await dispatchBeta();
   const outbox = await flushEmailOutbox();
   const health = await notificationDeliveryHealth();
   if (health.undeliveredLast24h) log.warn("notifications_undelivered_24h", { count: health.undeliveredLast24h });
