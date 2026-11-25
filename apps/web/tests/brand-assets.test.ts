@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
 // Tout fichier de logo vient de `scripts/build-logo.mjs` : ce test refuse un fichier manquant ou à la mauvaise
@@ -50,6 +51,13 @@ const SVGS: [file: string, viewBox: string][] = [
 describe("fichiers du logo", () => {
   it.each(PNGS)("%s : %i × %i", (file, width, height, alpha) => {
     expect(png(file)).toEqual({ width, height, alpha });
+  });
+
+  it("laisse Google Play appliquer son masque sur un fond entièrement opaque", async () => {
+    const file = path.join(root, mobile, "play-store-512.png");
+    const { channels } = await sharp(file).stats();
+    expect(channels[3]?.min).toBe(255);
+    expect(readFileSync(file).length).toBeLessThanOrEqual(1024 * 1024);
   });
 
   it.each(SVGS)("%s garde son cadre", (file, viewBox) => {
