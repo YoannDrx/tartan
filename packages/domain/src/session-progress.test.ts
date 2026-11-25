@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { SnapshotItem } from "@tartan/contracts";
-import { executionProgress, executionRestSeconds, executionSetProgress, resizeSetProgress } from "./session-progress";
+import {
+  exerciseTransition,
+  executionProgress,
+  executionRestSeconds,
+  executionSetProgress,
+  resizeSetProgress,
+} from "./session-progress";
 
 const exercise = (ref: string, sets = 2): SnapshotItem => ({
   ref,
@@ -60,4 +66,15 @@ describe("progression des occurrences exécutées", () => {
       ],
     });
   });
+});
+
+it("attend la dernière série de la dernière occurrence du circuit", () => {
+  const base = { ...exercise("squat"), sourceRef: "squat", prescription: { sets: 2 } };
+  const sequence = [
+    { ...base, ref: "premier" },
+    { ...base, ref: "dernier" },
+  ];
+  expect(exerciseTransition(sequence, sequence[0]!, (r) => r === "premier")).toBeNull();
+  expect(exerciseTransition(sequence, sequence[1]!, (r, i) => r === "premier" || i === 0)).toBe("last");
+  expect(exerciseTransition(sequence, sequence[1]!, () => true)).toBe("exercise");
 });

@@ -1,4 +1,4 @@
-import { celebrationFromResponse } from "@tartan/domain";
+import { exerciseTransition, celebrationFromResponse } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
 import type { PlannedSet, ResolvedItem } from "@tartan/contracts";
 import {
@@ -8,7 +8,7 @@ import {
   formatDuration,
   formatPlannedSet,
 } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { encouragement, m } from "@tartan/i18n";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, BackHandler, Pressable, Vibration, View } from "react-native";
@@ -182,6 +182,9 @@ export default function SessionMode() {
     target: ValidationTarget;
     celebration?: SessionCelebration | null;
   } | null>(null);
+  const claimCue = useSessionProgress((s) => s.claimCue);
+  const [cue, setCue] = useState("");
+  const tone = me.data?.preferences?.sessionTone ?? "calm";
   const validating = finished !== null;
   const sending = useRef(false);
   const [saving, setSaving] = useState(false);
@@ -457,13 +460,26 @@ export default function SessionMode() {
                 index={n}
                 done={done}
                 planned={planned?.[n]}
-                onPress={() => toggle(id, item.ref, n, total)}
+                onPress={() => {
+                  toggle(id, item.ref, n, total);
+                  if (done || tone === "off") return;
+                  const event = exerciseTransition(
+                    items,
+                    item,
+                    (ref, set) => (ref === item.ref && set === n) || Boolean(progress[ref]?.[set]),
+                  );
+                  const key = id + "." + (item.sourceRef ?? item.ref) + "." + event;
+                  if (event && claimCue(id, key)) {
+                    setCue(encouragement(tone, event, key) ?? "");
+                  }
+                }}
               />
             ))}
           </View>
         </View>
       ) : null}
 
+      {cue && tone !== "off" ? <T accessibilityLiveRegion="polite">{cue}</T> : null}
       {restSeconds ? <RestTimer key={`${item.ref}-${restSeconds}-rest`} seconds={restSeconds} /> : null}
 
       {finished ? (
@@ -472,6 +488,7 @@ export default function SessionMode() {
           target={finished.target}
           existing={session.log}
           status={finished.status}
+          tone={tone}
           justRecorded
           celebration={finished.celebration}
           healthConsent={today.data?.healthConsent ?? false}

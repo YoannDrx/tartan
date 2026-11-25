@@ -3,7 +3,7 @@ import { useSpaceStore } from "../../src/lib/space-store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { celebrationFromResponse, programItems as programOf } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
-import { capitalize, formatDateLong, m } from "@tartan/i18n";
+import { dailyMantra, capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -145,6 +145,9 @@ export default function Today() {
       {today.isError && !view ? <ErrorState error={today.error} onRetry={() => void today.refetch()} /> : null}
       {view ? (
         <>
+          {me.data?.preferences?.homeTone !== "off" && (
+            <T tone="muted">{dailyMantra(me.data?.preferences?.homeTone)}</T>
+          )}
           {/* Un jour sans séance, l'accueil de l'athlète ouvre l'écran ; un jour de séance, il passe dessous. */}
           <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="top" />
           {notebook?.aiPlannerEnabled || (!notebook && signup.data?.athlete) ? (
