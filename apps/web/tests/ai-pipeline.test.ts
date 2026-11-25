@@ -427,6 +427,38 @@ describe("bibliothèque de 700 fiches", () => {
 });
 
 describe("partie à composer", () => {
+  it.each([
+    { equipment: ["jump_rope" as const], candidates: ["exercise_1"] },
+    { equipment: ["kettlebells" as const], candidates: [] },
+  ])(
+    "respecte le matériel pour la corde et les fiches au matériel inconnu ($equipment)",
+    async ({ equipment, candidates }) => {
+      const unknown = { movement: null, equipment: ["other" as const] };
+      const exercises = [
+        fiche(1, "Corde à sauter", { catalogKey: "easy-jump-rope", classification: unknown }),
+        fiche(2, "Autre exercice", { classification: unknown }),
+      ];
+      const ctx = pipelineContext("Jeudi pour group_1, prépare un circuit cardio.", exercises);
+      const provider = scripted({
+        understand: () =>
+          understanding({
+            intent: "objective",
+            sessions: [
+              understoodSession({
+                date: "2026-11-26",
+                dateSaid: "jeudi",
+                targetTokens: ["group_1"],
+                proposal: { objective: "Cardio", durationMin: 20, level: null, equipment, families: [] },
+              }),
+            ],
+          }),
+      });
+      const request = await understandRequest(ctx, provider, never());
+      const { input } = planComposition(ctx, request, []);
+      expect(input.candidates).toEqual(candidates);
+      if (candidates.length) expect(input.exercises[0]?.equipment).toEqual(["jump_rope"]);
+    },
+  );
   it("20 à 40 fiches candidates, choisies par règles, et jamais de kilos", async () => {
     const many = Array.from({ length: 80 }, (_, i) =>
       fiche(i + 1, `Fiche ${i + 1}`, {

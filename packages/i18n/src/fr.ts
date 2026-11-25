@@ -1235,6 +1235,7 @@ export const fr = {
       barbell: "Barres et disques",
       dumbbells: "Haltères",
       kettlebells: "Kettlebells",
+      jump_rope: "Corde à sauter",
       bands: "Élastiques",
       medicine_ball: "Médecine-balls",
       boxes: "Caissons",

@@ -4,7 +4,7 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 
 ## 2026-11-25, Codex, contrôle des créneaux du planificateur
 
-La revue de semaine compare aussi les durées des séances du calendrier pour avertir d’un chevauchement. Le banc historique de 80 consignes qui isole le prestataire transmet désormais le véritable statut de relecture des exercices fictifs. Les attendus du corpus restent figés.
+La revue de semaine compare aussi les durées des séances du calendrier pour avertir d’un chevauchement. Le banc historique de 80 consignes qui isole le prestataire transmet désormais le véritable statut de relecture des exercices fictifs. Les attendus du corpus restent figés. Les raccourcis de matériel, la sélection des fiches et la revue de semaine reconnaissent aussi la corde à sauter sur le web et le natif.
 
 ## 2026-11-25, Codex, Reprendre une proposition IA
 

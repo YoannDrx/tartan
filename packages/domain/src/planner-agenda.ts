@@ -1,6 +1,6 @@
 import type { ExerciseSummary, PlannerProposalResponse, PlannerReviewedDraft } from "@tartan/contracts";
 import { isoDate } from "@tartan/contracts";
-import { plannerEquipmentAvailable } from "./planner-equipment";
+import { plannerEquipmentAvailable, plannerRequiredEquipment } from "./planner-equipment";
 import { addDays } from "./status";
 
 export function plannerTimesOverlap(
@@ -21,7 +21,7 @@ export function plannerTimesOverlap(
 export function plannerAgenda(
   proposal: PlannerProposalResponse,
   drafts: PlannerReviewedDraft[],
-  exercises: Pick<ExerciseSummary, "id" | "category" | "classification">[],
+  exercises: Pick<ExerciseSummary, "id" | "category" | "classification" | "motionKey">[],
 ) {
   const byId = new Map(exercises.map((e) => [e.id, e]));
   const range = proposal.selection.period;
@@ -33,7 +33,14 @@ export function plannerAgenda(
       .filter((d) => d.date === date)
       .map((d) => {
         const items = d.draft.blocks.flatMap((b) => b.items);
-        const equipment = [...new Set(items.flatMap((i) => byId.get(i.exerciseId)?.classification?.equipment ?? []))];
+        const equipment = [
+          ...new Set(
+            items.flatMap((i) => {
+              const e = byId.get(i.exerciseId);
+              return plannerRequiredEquipment(e?.motionKey, e?.classification?.equipment) ?? [];
+            }),
+          ),
+        ];
         const available = proposal.availableEquipment;
         const jump = items.some(
           (i) =>
