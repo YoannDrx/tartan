@@ -2,6 +2,34 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, animations des 60 fiches de stade
+
+Les 31 gestes restants rejoignent les éducatifs de saut. Le gros plan de pied distingue les cinq orteils, les patins se déplacent sous les talons et le halo décrit les deux sens. La recette contrôle le tripode, les ancrages, la hauteur de la marche, le quart de tour et le nombre de kettlebells. Les 233 clés versionnées ont un geste. L’atelier conserve les décisions de relecture séparées pour le texte, l’animation et l’image.
+
+## 2026-11-25, Codex, gestes de saut en hauteur
+
+Les dix nouvelles fiches de hauteur ont une animation. La vue de dessus montre les marques et l’entrée en courbe. Les ciseaux passent la jambe libre puis la jambe d’appel et finissent sur le tapis. Les 3 343 tests du moteur de gestes passent. La relecture sportive reste à faire dans l’atelier.
+
+## 2026-11-25, Codex, isolation de la recette du catalogue
+
+La recette de l’atelier retire sa fiche de stade et ses avis à la fin du scénario. La consultation vérifie chacune des clés historiques même après l’ajout de nouvelles fiches. Les deux scénarios successifs passent sur ordinateur et téléphone.
+
+## 2026-11-25, Codex, appuis du triple saut
+
+Les huit nouvelles fiches de triple saut ont un geste. La foulée vers le sable se termine sur deux pieds, le double cloche reste sur la même jambe et le triple marché garde toujours un appui. Les 3 202 tests du paquet de gestes passent, dont le contrôle des successions de pieds, des réceptions et des repères. La relecture sportive reste à faire.
+
+## 2026-11-25, Codex, gestes de barre et fiches hors ligne
+
+L’épaulé et l’arraché distinguent départ sur plots, pause au genou et réception. Les talons-fesses passent entre des portes de plots. Les 3 090 contrôles du moteur de gestes et les huit tests du service worker passent. La PWA conserve aussi les vignettes versionnées des séances préparées hors ligne. La relecture technique de chaque clip reste ouverte. La commande `catalog:images` prépare une série de PNG ou la reprise d’une seule clé, génère les vignettes et conserve les versions déjà embarquées. L’atelier permet aussi de rattacher ou de retirer un guide relu sur une fiche commune historique, en gardant ses références. Ce parcours passe sur Playwright ordinateur et mobile, avec contrôle axe à 390, 768 et 1440 px.
+
+## 2026-11-25, Codex, série des exercices au sol
+
+Six fiches dont le texte était déjà relu ont reçu une illustration candidate. Le dead bug a été repris séparément pour garder la tête au sol. L’atelier présente désormais 18 images sur les 233 clés. Chaque validation reste individuelle.
+
+## 2026-11-25, Codex, gestes de la planche pilote
+
+Les huit nouveaux gestes pilotes ont chacun leurs appuis et leurs phases. Le port de kettlebell et la marche sur plots gardent un pied au sol. Pour la cheville, l’ancrage est fixe et l’avant-pied mobile. La troisième validation publie la fiche de stade avec sa clé stable. Rouvrir son texte la retire des exercices que l’IA peut prescrire automatiquement. La relecture sportive appartient au fondateur.
+
 ## 2026-11-25, Codex, consignes de comptage du stade
 
 Les 60 nouvelles fiches donnent chacune un repère observable et une convention de comptage propre au geste. Le guide et les consignes courtes gardent les mêmes deux phases techniques. Une réception à deux pieds, une liaison de triple et une paire de kettlebells ont désormais des explications dédiées. Les 515 tests du domaine passent sur le lot catalogue.
@@ -9,6 +37,10 @@ Les 60 nouvelles fiches donnent chacune un repère observable et une convention 
 ## 2026-11-25, Codex, édition stade en relecture
 
 Les 60 nouvelles fiches disposent de clés de catalogue stables dans `exercise-catalog/stadium.ts`. La console des exercices permet de relire leurs textes. Les tests vérifient les 233 clés et noms distincts, les contrats et les statuts de relecture. Les visuels et la validation par le fondateur sont à faire avant la diffusion de cette édition.
+
+## 2026-11-25, Codex, Illustrations, série pilote et atelier de relecture
+
+Douze silhouettes détaillées ont une image et une vignette WebP versionnées, 272 Kio sur disque au total, environ 5,2 Mio pour 233 au même poids. Le coût monétaire par reprise reste à chiffrer. Texte, image et geste ont des validations séparées. Aucune validation humaine simulée. Deux tests de service et les parcours Playwright ordinateur et téléphone ont passé la validation puis la réouverture d’une image. Inventaire agrégé en lecture seule le 25 novembre : 197 fiches communes visibles, dont les 173 clés versionnées et 24 sans clé ni guide. Ces 24 figurent séparément dans l’atelier. Le pilote et les 60 nouvelles fiches attendent leur relecture sportive. Les 221 autres illustrations restent à produire.
 
 ## 2026-11-25, Codex, Encouragements du stade
 

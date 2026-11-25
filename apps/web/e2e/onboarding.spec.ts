@@ -200,8 +200,7 @@ test("un coach neuf crée son espace, invite, fait le tour et suit ses premiers 
   const other = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris" });
   try {
     const second = await other.newPage();
-    await signInWithPassword(second, email);
-    await second.goto("/suivi", { waitUntil: "networkidle" });
+    await signInWithPassword(second, email, "/connexion?next=%2Fsuivi");
     await expect(second.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
     await expect(tourDialog(second)).toHaveCount(0);
     await expect(second.getByRole("dialog", { name: o.celebration.title })).toHaveCount(0);
@@ -303,8 +302,7 @@ test("un athlète neuf rejoint, est accueilli sans que rien ne retarde sa séanc
     const other = await phoneContext(browser);
     try {
       const second = await other.newPage();
-      await signInWithPassword(second, email);
-      await second.goto("/aujourdhui", { waitUntil: "networkidle" });
+      await signInWithPassword(second, email, "/connexion?next=%2Faujourdhui");
       await expect(second.getByRole("heading", { name: "Salut Nina" })).toBeVisible();
       await expect(second.getByRole("region", { name: m.athleteWelcome.title("Hauteur Élite") })).toHaveCount(0);
     } finally {

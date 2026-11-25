@@ -4,6 +4,7 @@ import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { PageHeader } from "@/components/states";
 import { CatalogVideoBoard } from "@/features/admin/catalog-video-board";
+import { EditorialBoard } from "@/features/admin/editorial-board";
 import { AdminNav } from "@/features/admin/console-ui";
 import { requireSpace } from "@/features/shell/space";
 import { videoEnabled } from "@/lib/mux";
@@ -13,13 +14,14 @@ export const metadata: Metadata = { title: m.admin.nav.exercises, robots: { inde
 
 // Les vidéos des fiches communes du catalogue. L'accès est celui de toute la console : administrateur, passkey
 // vérifiée (layout) ; le service le revérifie.
-export default async function AdminExercisesPage() {
+export default async function AdminExercisesPage({ searchParams }: { searchParams: Promise<{ fiche?: string }> }) {
   const { actor } = await requireSpace();
   const media = await listCatalogMedia(actor.email);
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.admin.nav.exercises} detail={w.admin.catalogVideos.lead} />
       <AdminNav current="/admin/exercices" />
+      <EditorialBoard selected={(await searchParams).fiche} />
       <details className="rounded-card bg-card p-4 on-card">
         <summary className="min-h-11 cursor-pointer font-semibold">
           {w.admin.stadiumEdition.title(STADIUM_EDITION.length)}

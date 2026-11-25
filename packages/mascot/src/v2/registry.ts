@@ -21,7 +21,9 @@ export type GestureEntry = {
   views: readonly GestureView[];
 };
 
-export const GESTURE_KEYS: readonly string[] = Object.keys(EXERCISE_CLIPS);
+export const GESTURE_KEYS: readonly string[] = Array.from(
+  new Set([...Object.keys(EXERCISE_CLIPS), ...Object.keys(GESTURES)]),
+);
 
 // Un geste au sol (couché, en planche, à quatre pattes) se lit aussi de dessus : le buste est couché et le bassin
 // et la tête bas. Un buste penché debout (un soulevé de terre, un rowing) n'en fait pas un geste au sol.
@@ -52,8 +54,8 @@ export const gestureEntry = (key: string): GestureEntry | null => {
   const known = cache.get(key);
   if (known) return known;
   const old = EXERCISE_CLIPS[key];
-  if (!old) return null;
   const written = GESTURES[key];
+  if (!old && !written) return null;
   // Un geste écrit se lit de profil ; au sol (des pompes), de dessus plutôt que de face. Couché sur un banc (un
   // développé couché, un hip thrust), la tête reste haute : il se lit de face.
   const entry: GestureEntry = written
@@ -65,8 +67,8 @@ export const gestureEntry = (key: string): GestureEntry | null => {
         views: written.views ?? ["side", onTheGround(written) && headNearFloor(written) ? "top" : "front"],
       }
     : (() => {
-        const clip = liftClip(old);
-        return { key, level: "releve" as const, clip, ...viewsOf(old, clip) };
+        const clip = liftClip(old!);
+        return { key, level: "releve" as const, clip, ...viewsOf(old!, clip) };
       })();
   cache.set(key, entry);
   return entry;

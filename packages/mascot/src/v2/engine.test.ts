@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { STADIUM_GESTURES } from "./gestures/stadium";
 import { motionEngine, motionLevel } from "./engine";
 import { guidePositionAt } from "./gesture";
 import { GESTURES } from "./gestures";
@@ -22,24 +23,24 @@ describe("moteur et niveau par fiche", () => {
     }
   });
 
-  it("le compte : les 173 gestes sur le nouveau moteur, d'accord avec le registre", () => {
+  it("le compte : tous les gestes sur le nouveau moteur, d'accord avec le registre", () => {
     const engines = GESTURE_KEYS.map((key) => motionEngine(key));
-    expect(engines.filter((engine) => engine === "v2")).toHaveLength(173);
+    expect(engines.filter((engine) => engine === "v2")).toHaveLength(GESTURE_KEYS.length);
     for (const key of GESTURE_KEYS) expect(motionLevel(key), key).toBe(gestureEntry(key)!.level);
     // Le premier appel relève tout le registre : sur une machine chargée, cela dépasse les cinq secondes par défaut.
   }, 30_000);
 });
 
 describe("positions du guide", () => {
-  it("chaque geste du registre illustre les quatre lignes du guide, dans l'ordre", () => {
+  it("chaque geste du registre illustre chaque ligne du guide, dans l'ordre", () => {
     for (const key of GESTURE_KEYS) {
       const { clip } = gestureEntry(key)!;
       expect(
         clip.positions.map((position) => position.guide),
         key,
-      ).toEqual([0, 1, 2, 3]);
+      ).toEqual(STADIUM_GESTURES.includes(clip) ? [0, 1, 2] : [0, 1, 2, 3]);
       expect(clip.positions[0]!.from, key).toBe(0);
-      expect(clip.positions[3]!.to, key).toBe(1);
+      expect(clip.positions.at(-1)!.to, key).toBe(1);
       for (const [index, position] of clip.positions.entries()) {
         if (index > 0) expect(position.from, key).toBe(clip.positions[index - 1]!.to);
         expect(position.to, key).toBeGreaterThan(position.from);
