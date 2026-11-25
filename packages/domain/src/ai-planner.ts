@@ -119,6 +119,8 @@ export function plannerPrescriptionToSession(
     ...(input.durationS !== null ? { duration_s: input.durationS } : {}),
     ...(input.restS !== null ? { rest_s: input.restS } : {}),
     ...(input.tempo !== null ? { tempo: input.tempo } : {}),
+    ...("strides" in input ? { strides: input.strides } : {}),
+    ...("coneSpacingFt" in input ? { cone_spacing_ft: input.coneSpacingFt } : {}),
     ...(input.contacts !== null ? { ground_contacts: input.contacts } : {}),
     ...(input.notes !== null ? { notes: input.notes } : {}),
     ...(input.intensityTarget !== null ? { intensityTarget: input.intensityTarget } : {}),

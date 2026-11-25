@@ -61,6 +61,7 @@ export async function SessionFollowupContent({
           className={compact ? "flex flex-col gap-6" : "grid items-start gap-6 desktop:grid-cols-[minmax(0,1fr)_380px]"}
         >
           <SessionReturns
+            organizationId={organizationId}
             sessionId={id}
             athletes={session.athletes}
             canEdit={session.canEdit}

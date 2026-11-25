@@ -1,3 +1,6 @@
+import { m } from "@tartan/i18n";
+import { addDays, TRAINING_TIME_ZONE } from "./status";
+
 export const QUIET_START_HOUR = 22;
 export const QUIET_END_HOUR = 7;
 
@@ -27,6 +30,26 @@ export const bypassesQuietHours = (type: NotificationType): boolean => type === 
 const dayLabel = new Intl.DateTimeFormat("fr-FR", { weekday: "long", timeZone: "UTC" });
 export const weekdayFr = (isoDate: string): string => dayLabel.format(new Date(`${isoDate}T12:00:00.000Z`));
 
+const parisDay = new Intl.DateTimeFormat("sv-SE", { timeZone: TRAINING_TIME_ZONE });
+const fullDay = new Intl.DateTimeFormat("fr-FR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+const notificationDay = (date: string | undefined, today: string): string => {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
+  const instant = new Date(`${date}T12:00:00Z`);
+  if (!Number.isFinite(instant.getTime()) || instant.toISOString().slice(0, 10) !== date) return "";
+  if (date === today) return m.notificationDays.today;
+  if (date === addDays(today, 1)) return m.notificationDays.tomorrow;
+  if (date === addDays(today, -1)) return m.notificationDays.yesterday;
+  if (date > today && date < addDays(today, 7)) return weekdayFr(date);
+  return m.notificationDays.dated(fullDay.format(instant));
+};
+
 // Le texte porte le nom du coach, jamais de donnée de santé (écran verrouillé, § 15.2).
 export const renderNotification = (
   type: NotificationType,
@@ -39,22 +62,26 @@ export const renderNotification = (
     group?: string;
     version?: string;
   },
+  now = new Date(),
 ): { title: string; body: string } => {
-  const day = v.date ? weekdayFr(v.date) : "";
+  const today = parisDay.format(now);
+  const day = notificationDay(v.date, today);
+  const labels = m.notificationDays;
+  const past = Boolean(day && v.date && v.date < today);
   const coach = v.coach ?? "Ton coach";
   switch (type) {
     case "session_published":
-      return { title: "Tartan", body: `${coach} t'a envoyé une séance pour ${day}` };
+      return { title: "Tartan", body: labels.published(coach, day) };
     case "session_batch_published":
       return { title: "Tartan", body: `${coach} t'a envoyé ${v.count ?? 0} séances` };
     case "session_eve":
-      return { title: "Tartan", body: "Seras-tu au club demain ?" };
+      return { title: "Tartan", body: labels.attendance(day, past) };
     case "session_autonomous":
-      return { title: "Tartan", body: "Ta séance de demain en autonomie est prête" };
+      return { title: "Tartan", body: labels.autonomous(labels.session(day)) };
     case "session_reminder":
       return { title: "Tartan", body: "Comment s'est passée ta séance ?" };
     case "session_updated":
-      return { title: "Tartan", body: `Ta séance de ${day} a été modifiée` };
+      return { title: "Tartan", body: labels.updated(labels.session(day)) };
     case "video_shared":
       return {
         title: "Tartan",
@@ -75,17 +102,17 @@ export const renderNotification = (
     case "scheduled_publication_blocked":
       return {
         title: "Tartan",
-        body: `La séance programmée pour ${day} attend ta relecture : son auteur n'a plus accès`,
+        body: labels.blocked(day),
       };
     case "session_cancelled":
-      return { title: "Tartan", body: `Ta séance de ${day} est annulée` };
+      return { title: "Tartan", body: labels.cancelled(labels.session(day)) };
     case "member_joined":
       return { title: "Tartan", body: `${v.athlete ?? "Un athlète"} a rejoint ton espace` };
     case "app_update":
       return { title: "Tartan", body: `La version ${v.version ?? "récente"} de Tartan est disponible` };
     // Le motif n'y figure pas : il reste dans le suivi de la séance, pas sur un écran verrouillé.
     case "absence_reported":
-      return { title: "Tartan", body: `${v.athlete ?? "Un athlète"} ne viendra pas ${day}` };
+      return { title: "Tartan", body: labels.absence(v.athlete ?? "Un athlète", day, past) };
     default:
       // Après un retour arrière, une notification d'un type plus récent reste lisible.
       return { title: "Tartan", body: "Nouvelle notification" };

@@ -1,5 +1,8 @@
+import { ActivityPicto } from "@/components/pictos";
+import { categoryColors } from "@/lib/activity-colors";
+import { ExerciseVoice, SessionDebrief } from "@/features/sessions/session-voice";
 import { MovementGuideDisclosure } from "@/features/exercises/exercise-guide";
-import { ChevronLeft, Play } from "lucide-react";
+import { ChevronLeft, Play, Timer } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { capitalize, formatDateLong, m } from "@tartan/i18n";
@@ -19,7 +22,7 @@ import { listComments } from "@/server/comm.service";
 export const metadata: Metadata = { title: m.sessionMode.title };
 
 export default async function SeancePage({ params }: { params: Promise<{ id: string }> }) {
-  const { actor, organizationId } = await requireAthleteSpace();
+  const { actor, organizationId, personal } = await requireAthleteSpace();
   const { id } = await params;
   const session = await orNotFound(() => getAthleteSession(actor.userId, organizationId, id));
   const [today, comments] = await Promise.all([
@@ -28,7 +31,7 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
   ]);
   const validated = session.status === "done" || session.status === "partial";
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <PageHeader
         title={session.title}
         detail={capitalize(formatDateLong(session.date))}
@@ -77,21 +80,69 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
           ) : null}
         </section>
       </Stay>
+      {session.status === "done" && today.healthConsent && !personal ? (
+        <SessionDebrief
+          organizationId={organizationId}
+          sessionId={id}
+          initial={Boolean(session.log?.hasVoiceDebrief)}
+        />
+      ) : null}
       {session.blocks.map((block) => (
-        <section key={block.ref} className="flex flex-col gap-2">
+        <section key={block.ref} className="flex flex-col gap-3">
           <h2 className="t-h2">{block.name}</h2>
-          <ul className="divide-y divide-card-line rounded-card on-card bg-card px-3">
-            {block.items.map((item) => (
-              <li key={item.ref} className="py-2">
-                <p className="font-semibold">{item.name}</p>
-                <p className="t-caption font-normal text-soft">{item.summary}</p>
-                {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
-                  <p className="t-caption text-st-partial">{m.today.loadMissing}</p>
-                ) : null}
-                {item.guide ? <MovementGuideDisclosure guide={item.guide} /> : null}
-                {item.cues.length ? <p className="t-caption mt-1 font-normal">{item.cues.join(". ")}</p> : null}
-              </li>
-            ))}
+          <ul className="flex flex-col gap-3">
+            {block.items.map((item) => {
+              const recovery = item.kind === "recovery";
+              const tint = categoryColors(recovery ? "mobility" : item.category);
+              return (
+                <li
+                  key={item.ref}
+                  className="on-card flex min-w-0 flex-col gap-3 rounded-card border bg-card p-4 tablet:px-5"
+                  style={{ borderColor: tint.background }}
+                >
+                  <div className="flex items-start gap-3">
+                    <span
+                      className="flex size-10 shrink-0 items-center justify-center rounded-button"
+                      style={{ backgroundColor: tint.background, color: tint.text }}
+                    >
+                      {recovery ? (
+                        <Timer aria-hidden className="size-5" />
+                      ) : (
+                        <ActivityPicto kind={item.category} className="size-5" />
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="t-section break-words">{item.name}</h3>
+                      {item.summary ? <p className="text-soft">{item.summary}</p> : null}
+                    </div>
+                  </div>
+                  {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
+                    <p className="text-link">{m.today.loadMissing}</p>
+                  ) : null}
+                  {item.prescription.notes || item.prescription.coachVoiceId || item.cues.length ? (
+                    <div className="flex flex-col gap-2 border-t border-card-line pt-3">
+                      <p className="font-semibold">{m.sessionMode.cues}</p>
+                      {item.prescription.notes ? (
+                        <p className="whitespace-pre-line break-words">{item.prescription.notes}</p>
+                      ) : null}
+                      <ExerciseVoice
+                        organizationId={organizationId}
+                        sessionId={id}
+                        clipId={item.prescription.coachVoiceId}
+                      />
+                      {item.cues.length ? (
+                        <ul className="list-disc space-y-1 pl-5">
+                          {item.cues.map((cue, i) => (
+                            <li key={i}>{cue}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {item.guide ? <MovementGuideDisclosure guide={item.guide} /> : null}
+                </li>
+              );
+            })}
           </ul>
         </section>
       ))}

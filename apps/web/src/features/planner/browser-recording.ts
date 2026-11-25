@@ -6,12 +6,13 @@ type BrowserAudio = {
   getStream: () => Promise<MediaStream>;
   createRecorder: (stream: MediaStream) => MediaRecorder;
 };
-export function browserAudio(): BrowserAudio {
+export function browserAudio(preferMp4 = false): BrowserAudio {
   if (!globalThis.isSecureContext || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined")
     throw new Error("dictation_unsupported");
-  const mimeType = ["audio/webm;codecs=opus", "audio/mp4;codecs=mp4a.40.2", "audio/mp4"].find((type) =>
-    MediaRecorder.isTypeSupported(type),
-  );
+  // AAC est lisible par le lecteur natif iOS quand une consigne voyage entre appareils.
+  const mp4 = ["audio/mp4;codecs=mp4a.40.2", "audio/mp4"];
+  const webm = "audio/webm;codecs=opus";
+  const mimeType = (preferMp4 ? [...mp4, webm] : [webm, ...mp4]).find((type) => MediaRecorder.isTypeSupported(type));
   if (!mimeType) throw new Error("dictation_unsupported");
   return {
     getStream: () =>

@@ -2,7 +2,16 @@ import { exerciseInput, type ExerciseInput, type Prescription } from "@tartan/co
 import { parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 
-export const NUMBER_FIELDS = ["sets", "reps", "distance_m", "duration_s", "rest_s", "ground_contacts"] as const;
+export const NUMBER_FIELDS = [
+  "sets",
+  "reps",
+  "strides",
+  "cone_spacing_ft",
+  "distance_m",
+  "duration_s",
+  "rest_s",
+  "ground_contacts",
+] as const;
 export type NumberField = (typeof NUMBER_FIELDS)[number];
 
 export type ExerciseDraft = {

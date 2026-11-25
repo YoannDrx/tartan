@@ -14,6 +14,8 @@ import { withSetPlan } from "@tartan/domain";
 export const numericFields = [
   "sets",
   "reps",
+  "strides",
+  "cone_spacing_ft",
   "distance_m",
   "duration_s",
   "rest_s",
@@ -29,6 +31,7 @@ export type PrescriptionFields = Record<
 > & {
   loadType: "none" | "kg" | "pct_1rm";
   intensityType: "none" | "rpe" | "rir";
+  coachVoiceId?: string;
   // Série par série (pyramide, échauffement) : absent pour une prescription uniforme.
   setPlan?: PlannedSetFields[];
 };
@@ -44,6 +47,7 @@ export const prescriptionFields = (value: Prescription): PrescriptionFields =>
     intensityValue: value.intensityTarget ? String(value.intensityTarget.value) : "",
     tempo: value.tempo ?? "",
     notes: value.notes ?? "",
+    ...(value.coachVoiceId ? { coachVoiceId: value.coachVoiceId } : {}),
     unit: value.unit ?? "",
     ...(value.setPlan ? { setPlan: value.setPlan.map(plannedSetFields) } : {}),
   }) as PrescriptionFields;
@@ -97,6 +101,7 @@ export const parsePrescriptionFields = (v: PrescriptionFields) => {
       v.intensityType === "none" ? undefined : { type: v.intensityType, value: decimal(v.intensityValue) },
     tempo: v.tempo || undefined,
     notes: v.notes || undefined,
+    coachVoiceId: v.coachVoiceId || undefined,
     unit: v.unit || undefined,
   } as Prescription;
   return prescriptionSchema.safeParse(plan?.length ? withSetPlan(base, plan) : base);
@@ -139,6 +144,8 @@ export const builderErrors = (issues: { path: PropertyKey[] }[]): string => {
     assignments: m.builder.audience,
     sets: m.builder.sets,
     reps: m.builder.reps,
+    strides: m.builder.strides,
+    cone_spacing_ft: m.builder.coneSpacing,
     distance_m: m.builder.distance,
     duration_s: m.builder.durationS,
     rest_s: m.builder.rest,
@@ -172,6 +179,8 @@ export const builderErrors = (issues: { path: PropertyKey[] }[]): string => {
 export const prescriptionFieldsSchema = z.object({
   sets: z.string().max(100),
   reps: z.string().max(100),
+  strides: z.string().max(100).default(""),
+  cone_spacing_ft: z.string().max(100).default(""),
   distance_m: z.string().max(100),
   duration_s: z.string().max(100),
   rest_s: z.string().max(100),
@@ -182,6 +191,7 @@ export const prescriptionFieldsSchema = z.object({
   intensityValue: z.string().max(100),
   tempo: z.string().max(20),
   notes: z.string().max(500),
+  coachVoiceId: z.uuid().optional(),
   unit: z.string().max(30),
   test: z.string().max(60),
   loadType: z.enum(["none", "kg", "pct_1rm"]),

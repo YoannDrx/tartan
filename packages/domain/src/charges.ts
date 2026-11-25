@@ -1,3 +1,4 @@
+import { m } from "@tartan/i18n";
 import type { Prescription, SnapshotItem, StrengthTestKind } from "@tartan/contracts";
 import { formatSetPlan, prescribedSetCount, type SetReference } from "./set-plan";
 
@@ -56,6 +57,8 @@ export const formatPrescription = (
   else if (p.load?.type === "pct_1rm") parts.push(`${p.load.value} % du max`);
   if (p.intensityTarget)
     parts.push(`cible ${p.intensityTarget.type.toUpperCase()} ${formatNumber(p.intensityTarget.value)}`);
+  if (p.strides !== undefined) parts.push(m.units.strides(p.strides));
+  if (p.cone_spacing_ft !== undefined) parts.push(m.units.coneSpacing(p.cone_spacing_ft));
   if (p.ground_contacts) parts.push(`${p.ground_contacts} contacts`);
   if (p.tempo) parts.push(`tempo ${p.tempo}`);
   if (p.rest_s) parts.push(`récup ${formatDuration(p.rest_s)}`);

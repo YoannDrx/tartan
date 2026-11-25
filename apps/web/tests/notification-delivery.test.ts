@@ -109,6 +109,18 @@ describe("préférence d'e-mail", () => {
 });
 
 describe("acheminement persistant", () => {
+  it("recalcule le jour à la livraison après une nuit en attente", async () => {
+    const a = await setup();
+    const morning = new Date("2030-06-11T05:00:00Z");
+    await prisma.notification.update({
+      where: { id: a.notification.id },
+      data: { deliverAfter: morning, payload: { date: "2030-06-11", coach: "Camille" } },
+    });
+    await a.dispatch();
+    expect(mocks.web).not.toHaveBeenCalled();
+    await a.dispatch(morning);
+    expect(JSON.parse(mocks.web.mock.calls[0]![1]).body).toBe("Camille t'a envoyé une séance pour aujourd’hui");
+  });
   it("réessaie un push web 503 sans le marquer envoyé ni envoyer d'e-mail en parallèle", async () => {
     const a = await setup();
     mocks.web.mockRejectedValueOnce({ statusCode: 503 });

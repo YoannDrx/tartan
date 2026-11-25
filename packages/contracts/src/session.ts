@@ -37,6 +37,8 @@ export const prescriptionSchema = z.object({
   unit: z.string().max(30).optional(),
   count: z.number().int().min(0).max(1000).optional(),
   height_cm: z.number().min(0).max(400).optional(),
+  strides: z.number().int().positive().optional(),
+  cone_spacing_ft: z.number().positive().optional(),
   distance_m: z.number().min(0).max(20000).optional(),
   duration_s: z.number().int().min(0).max(14400).optional(),
   rest_s: z.number().int().min(0).max(3600).optional(),
@@ -51,6 +53,7 @@ export const prescriptionSchema = z.object({
   tempo: z.string().max(20).optional(),
   ground_contacts: z.number().int().min(0).max(2000).optional(),
   notes: z.string().max(sessionTextLimits.notes).optional(),
+  coachVoiceId: uuid.optional(),
 });
 export type Prescription = z.infer<typeof prescriptionSchema>;
 

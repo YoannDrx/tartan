@@ -50,6 +50,8 @@ export function plannerPrescriptionFromSession(prescription: Prescription): Plan
     intensityTarget: prescription.intensityTarget ?? null,
     tempo: prescription.tempo ?? null,
     contacts: prescription.ground_contacts ?? null,
+    ...(prescription.strides !== undefined ? { strides: prescription.strides } : {}),
+    ...(prescription.cone_spacing_ft !== undefined ? { coneSpacingFt: prescription.cone_spacing_ft } : {}),
     notes: prescription.notes ?? null,
     setPlan: prescription.setPlan?.length
       ? prescription.setPlan.map((set) => ({

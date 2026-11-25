@@ -118,6 +118,10 @@ describe("charges", () => {
     expect(formatPrescription({ sets: 5, unit: "haies", count: 6, ground_contacts: 30, rest_s: 120 })).toBe(
       "5 × 6 haies · 30 contacts · récup 2 min",
     );
+    expect(formatPrescription({ sets: 3, reps: 2, strides: 8, cone_spacing_ft: 4.5 })).toBe(
+      "3 × 2 rép. · 8 foulées · 4,5 pieds entre deux plots",
+    );
+    expect(formatPrescription({ strides: 1, cone_spacing_ft: 1 })).toBe("1 foulée · 1 pied entre deux plots");
     expect(formatPrescription({ sets: 4, distance_m: 20 })).toBe("4 × 20 m");
   });
 });
@@ -470,13 +474,31 @@ describe("notifications", () => {
     expect(isQuietHours(21)).toBe(false);
   });
   it("signe avec le nom du coach", () => {
-    expect(renderNotification("session_published", { coach: "Thomas", date: "2026-10-29" }).body).toBe(
-      "Thomas t'a envoyé une séance pour jeudi",
-    );
+    expect(
+      renderNotification("session_published", { coach: "Thomas", date: "2026-10-29" }, new Date("2026-10-26T12:00:00Z"))
+        .body,
+    ).toBe("Thomas t'a envoyé une séance pour jeudi");
   });
   it("annonce une absence au coach sans son motif", () => {
-    expect(renderNotification("absence_reported", { athlete: "Léa", date: "2026-10-29" }).body).toBe(
-      "Léa ne viendra pas jeudi",
+    expect(
+      renderNotification("absence_reported", { athlete: "Léa", date: "2026-10-29" }, new Date("2026-10-26T12:00:00Z"))
+        .body,
+    ).toBe("Léa ne viendra pas jeudi");
+  });
+  it("utilise la date de Paris à la lecture ou à la livraison, même au changement d'heure", () => {
+    const payload = { coach: "Camille", date: "2026-03-30" };
+    const before = new Date("2026-03-29T21:59:59Z");
+    const after = new Date("2026-03-29T22:00:00Z");
+    expect(renderNotification("session_published", payload, before).body).toBe(
+      "Camille t'a envoyé une séance pour demain",
+    );
+    expect(renderNotification("session_published", payload, after).body).toBe(
+      "Camille t'a envoyé une séance pour aujourd’hui",
+    );
+    expect(renderNotification("session_cancelled", payload, after).body).toBe("Ta séance d’aujourd’hui est annulée");
+    expect(renderNotification("session_autonomous", {}, after).body).toBe("Ta séance en autonomie est prête");
+    expect(renderNotification("session_updated", payload, new Date("2026-04-08T12:00:00Z")).body).toContain(
+      "lundi 30 mars 2026",
     );
   });
   it("nomme qui envoie ou partage une vidéo", () => {

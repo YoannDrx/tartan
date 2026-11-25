@@ -22,6 +22,7 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  voiceInstructions CoachVoiceInstruction[]
   sessions    Session[]
   accounts    Account[]
   passkeys    Passkey[]
@@ -235,6 +236,7 @@ model Organization {
 
   trainingPhases TrainingPhase[]
   performanceCreations PerformanceCreation[]
+  voiceInstructions CoachVoiceInstruction[]
   members           OrganizationMember[]
   groups            Group[]
   athletes          Athlete[]
@@ -879,6 +881,7 @@ model SessionTemplate {
   updatedAt      DateTime     @updatedAt @map("updated_at")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  voiceInstructions CoachVoiceInstruction[]
   blocks SessionBlock[]
 
   @@index([organizationId])
@@ -938,6 +941,7 @@ model ScheduledSession {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   prescriptions SessionPrescription[]
+  voiceInstructions CoachVoiceInstruction[]
   assignments Assignment[]
   overrides   AthleteOverride[]
   attendance  Attendance[]
@@ -1088,6 +1092,7 @@ model SessionLog {
 
   sets      SetLog[]
   mutations SessionLogMutation[]
+  voiceDebrief SessionVoiceDebrief?
 
   @@unique([scheduledSessionId, athleteId])
   @@index([athleteId])
@@ -2177,4 +2182,28 @@ model BetaTester {
 
   @@index([nextAttemptAt])
   @@map("beta_testers")
+}
+
+model CoachVoiceInstruction {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  createdBy      String @map("created_by") @db.Uuid
+  mimeType       String @map("mime_type")
+  bytes          Bytes
+  createdAt      DateTime @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author         User @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  sessions       ScheduledSession[]
+  templates      SessionTemplate[]
+  @@index([organizationId, createdBy])
+  @@index([createdAt])
+  @@map("coach_voice_instructions")
+}
+
+model SessionVoiceDebrief {
+  sessionLogId String @id @map("session_log_id") @db.Uuid
+  mimeType     String @map("mime_type")
+  bytes        Bytes
+  log          SessionLog @relation(fields: [sessionLogId], references: [id], onDelete: Cascade)
+  @@map("session_voice_debriefs")
 }

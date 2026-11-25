@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## Séance athlète, vocaux et repères de piste · 25 novembre 2026
+
+Dans le constructeur, foulées et pieds entre les plots complètent les séries et les répétitions. L’athlète retrouve les valeurs dans le programme et le mode séance. Ces écrans distinguent les consignes, le travail et les récupérations. Le coach peut joindre une consigne audio à un exercice. L’athlète peut enregistrer un débrief après validation ; le coach l’écoute dans le suivi. La fin de séance renvoie à l’accueil en ligne. Pour les notifications de séance, les jours relatifs sont calculés à l’heure de Paris, au moment de la livraison et à l’ouverture de l’historique. Les tests de service couvrent notamment la livraison différée et l’accès du coach au débrief de son groupe. L’écoute entre deux téléphones reste à éprouver.
+
 ## Publication des deux fiches kettlebell historiques · 25 novembre 2026
 
 La livraison `4142cec5` sert les 508 images et vignettes. La base de production contient les 257 validations d’image et les 166 validations de texte et de mouvement. La comparaison avec les contenus relus a repéré deux anciennes conventions de charge. Le correctif rapproche uniquement les fiches communes historiques identiques, conserve les réouvertures et les versions personnalisées.

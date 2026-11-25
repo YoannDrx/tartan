@@ -131,11 +131,18 @@ const run = async (route: string, call: Call, cookie: string | null) => {
   const headers = new Headers(call.headers);
   if (cookie) headers.set("cookie", cookie);
   if (call.body !== undefined) headers.set("content-type", "application/json");
+  if (call.rawAudio) headers.set("content-type", "audio/mp4");
   const response = (await handler(
     new NextRequest(url, {
       method,
       headers,
-      ...(call.form ? { body: call.form } : call.body !== undefined ? { body: JSON.stringify(call.body) } : {}),
+      ...(call.rawAudio
+        ? { body: call.rawAudio }
+        : call.form
+          ? { body: call.form }
+          : call.body !== undefined
+            ? { body: JSON.stringify(call.body) }
+            : {}),
     }),
     { params: Promise.resolve(params) },
   )) as Response;

@@ -14,7 +14,7 @@ import { m } from "@tartan/i18n";
 import { audit } from "./access";
 import { parentalFlowEnabled } from "./age.service";
 
-export const CONSENT_VERSION = "2026-11-2";
+export const CONSENT_VERSION = "2026-11-3";
 const GUARDIAN_PURPOSE = "guardian";
 
 const writeAccountConsent = async (
@@ -84,6 +84,7 @@ export const recordJoinConsents = async (
 const eraseHealthData = async (athleteId: string, organizationId: string, actorId: string): Promise<void> => {
   await prisma.$transaction(async (tx) => {
     await tx.sessionLog.updateMany({ where: { athleteId }, data: { rpe: null, pain: Prisma.DbNull } });
+    await tx.sessionVoiceDebrief.deleteMany({ where: { log: { athleteId } } });
     await tx.injury.deleteMany({ where: { athleteId } });
     await tx.wellnessCheckin.deleteMany({ where: { athleteId } });
     await tx.notification.deleteMany({
@@ -205,8 +206,11 @@ export const purgeRevokedConsentVideos = async (now: Date = new Date()): Promise
 export type EffectiveConsent = { health: boolean; video: boolean; parentalPending: boolean };
 
 // Consentement réel d'athlètes : le leur, combiné à celui du parent sous 15 ans.
-export const consentForAthletes = async (athleteIds: string[]): Promise<Map<string, EffectiveConsent>> => {
-  const athletes = await prisma.athlete.findMany({
+export const consentForAthletes = async (
+  athleteIds: string[],
+  db: Prisma.TransactionClient = prisma,
+): Promise<Map<string, EffectiveConsent>> => {
+  const athletes = await db.athlete.findMany({
     where: { id: { in: athleteIds } },
     select: {
       id: true,

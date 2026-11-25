@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Codex, consignes et fin de séance · 25 novembre 2026
+
+Les deux nouvelles mesures sont facultatives dans la prescription JSON, y compris pour les anciens brouillons. Le texte des notifications utilise la date de la séance et tient compte d’un envoi différé. L’audio reste dans des tables privées de la migration additive `20261125161000_session_voice`. Les consignes sont rattachées à la séance ou au modèle. Le débrief est lié à une validation terminée et au consentement santé de l’athlète.
+
 ## 2026-11-25, Codex, consigne de charge des kettlebells historiques
 
 Après la fusion des PR 199, 203 et 204, la production comptait 232 guides approuvés sur 233. L’ancien swing et le goblet squat affichaient la convention de charge générique des machines. La migration reconnaît leurs contenus complets et applique le texte relu. Le test sur des tables temporaires couvre le rejeu, le refus de publication, les copies et les éditions ultérieures.

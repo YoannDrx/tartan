@@ -468,6 +468,9 @@ importers:
       '@tartan/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@tartan/i18n':
+        specifier: workspace:*
+        version: link:../i18n
     devDependencies:
       typescript:
         specifier: 5.9.3

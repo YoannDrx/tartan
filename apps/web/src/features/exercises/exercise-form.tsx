@@ -346,6 +346,8 @@ export const ExerciseForm = ({
             [
               ["sets", m.builder.sets],
               ["reps", m.builder.reps],
+              ["strides", m.builder.strides],
+              ["cone_spacing_ft", m.builder.coneSpacing],
               ["distance_m", m.builder.distance],
               ["duration_s", m.builder.durationS],
               ["rest_s", m.builder.rest],
@@ -357,7 +359,8 @@ export const ExerciseForm = ({
                 <Input
                   {...a}
                   type="number"
-                  min={0}
+                  min={key === "strides" ? 1 : 0}
+                  step={key === "cone_spacing_ft" ? "any" : undefined}
                   value={p[key] ?? ""}
                   onChange={(e) => setP({ ...p, [key]: num(e.target.value) })}
                 />
