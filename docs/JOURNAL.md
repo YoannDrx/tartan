@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, série des exercices au sol
+
+Six fiches dont le texte était déjà relu ont reçu une illustration candidate. Le dead bug a été repris séparément pour garder la tête au sol. L’atelier présente désormais 18 images sur les 233 clés. Chaque validation reste individuelle.
+
 ## 2026-11-25, Codex, gestes de la planche pilote
 
 Les huit nouveaux gestes pilotes ont chacun leurs appuis et leurs phases. Le port de kettlebell et la marche sur plots gardent un pied au sol. Pour la cheville, l’ancrage est fixe et l’avant-pied mobile. La troisième validation publie la fiche de stade avec sa clé stable. Rouvrir son texte la retire des exercices que l’IA peut prescrire automatiquement. La relecture sportive appartient au fondateur.

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
-import { imagePath, pilots } from "@/server/catalog-illustrations";
+import { imagePath, catalogImages } from "@/server/catalog-illustrations";
 import { prisma } from "@/lib/prisma";
 import { getActorFrom } from "@/lib/session";
 import { recordStepUp } from "@/server/admin-step-up.service";
@@ -9,10 +9,10 @@ import { makeUser } from "./helpers";
 import { sessionCookie } from "./personas";
 import { reviewEditorial, stamp, withApprovedImage } from "@/server/catalog-editorial.service";
 const catalog = [...EXERCISE_CATALOG, ...STADIUM_EDITION];
-describe("Photographies du pilote", () => {
+describe("Illustrations du catalogue", () => {
   it("associe chaque couple de fichiers WebP à une seule fiche et à la bonne édition", () => {
-    expect(new Set(pilots.map((p) => p.key)).size).toBe(12);
-    for (const pilot of pilots) {
+    expect(new Set(catalogImages.map((p) => p.key)).size).toBe(18);
+    for (const pilot of catalogImages) {
       expect(catalog.filter((e) => e.catalogKey === pilot.key).map((e) => e.catalogVersion)).toEqual([
         pilot.guideVersion,
       ]);
@@ -23,7 +23,7 @@ describe("Photographies du pilote", () => {
     }
   });
   it("respecte les validations indépendantes, la version et les textes personnalisés", () => {
-    const p = pilots[0],
+    const p = catalogImages[0],
       guide = catalog.find((e) => e.catalogKey === p.key)!.guide;
     const approvals = new Set([stamp(p.key, p.guideVersion, "text"), stamp(p.key, p.guideVersion, "motion")]);
     expect(withApprovedImage(guide, approvals)?.illustration).toMatchObject({ motion: "approved" });
@@ -38,7 +38,7 @@ describe("Photographies du pilote", () => {
       expect(withApprovedImage(original, approvals)).toBe(original);
   });
   it("publie une fiche relue une seule fois et retire un texte rouvert du catalogue approuvé pour l’IA", async () => {
-    const p = pilots[0];
+    const p = catalogImages[0];
     const user = await makeUser("Relecture");
     await prisma.platformAdmin.create({ data: { email: user.email } });
     const cookie = await sessionCookie(user.email);
