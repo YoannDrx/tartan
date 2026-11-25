@@ -156,7 +156,8 @@ await png(bare({ margin: 44, accent: WHITE }), 1024, path.join(mobile, "adaptive
 await sharp({ create: { width: 1024, height: 1024, channels: 3, background: BRICK } })
   .png()
   .toFile(path.join(mobile, "adaptive-background.png"));
-await png(icon(), 512, path.join(mobile, "play-store-512.png"));
+// Google Play applique son propre masque au PNG carré.
+await png(icon({ rounded: false }), 512, path.join(mobile, "play-store-512.png"));
 
 // Écran de lancement : la marque seule, posée sur la piste par la configuration de l'app.
 await png(bare({ margin: 16 }), 1024, path.join(mobile, "splash.png"));

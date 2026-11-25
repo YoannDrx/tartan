@@ -9,6 +9,9 @@ const { chromium } = createRequire(path.join(ROOT, "apps/web/package.json"))("@p
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1024, height: 500 } });
 await page.goto(pathToFileURL(path.join(ROOT, "apps/mobile/store/feature-graphic.html")).href);
-await page.evaluate(() => document.fonts.ready);
+await page.evaluate(async () => {
+  await document.fonts.ready;
+  await Promise.all(Array.from(document.images, (image) => image.decode()));
+});
 await page.screenshot({ path: path.join(ROOT, "apps/mobile/store/android/feature-graphic.png") });
 await browser.close();

@@ -102,6 +102,10 @@ La PR 192 a été fusionnée avec les contrôles requis réussis. Vérification 
 
 La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.
 
+## 2026-11-25, Codex, identité des stores
+
+La bannière Play reprend les tracés du mot Tartan et sa ligne d’arrivée. Le test d’icône contrôle le format, la transparence et le poids du fichier Play. Les 29 tests de marque passent. Le rendu Apple du build 18, ramené à 512 px, a un écart moyen de 0,18 sur 255 par canal avec le PNG iOS de référence.
+
 Modèle :
 
 ```text
