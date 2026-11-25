@@ -18,6 +18,7 @@ import {
   decidePlannerAdjustment,
   getPlannerProposal,
   listPlannerProposals,
+  duplicatePlannerProposal,
   savePlannerReview,
   removePlannerProposal,
   purgePlannerProposals,
@@ -227,6 +228,26 @@ it("transmet le matériel et la convention sans données privées et relit les a
   );
   expect(p.interpret.mock.calls[1]![0].exercises[0]).toMatchObject({ classification: null, strengthLoadKind: null });
 });
+it("duplique les retouches privées une seule fois, sans appel IA ni brouillon", async () => {
+  const a = await setup(),
+    p = provider(),
+    initial = await a.create(p);
+  const args = [a.owner.userId, a.organizationId, a.input.id] as const;
+  const review = await preparePlannerDrafts(...args, initial.version, now);
+  review.sessions[0]!.draft.title = "Séance à reprendre";
+  const saved = await savePlannerReview(...args, { expectedVersion: initial.version, sessions: review.sessions }, now);
+  const input = { expectedVersion: saved.version, id: randomUUID() };
+  const [copy, replay] = await Promise.all([
+    duplicatePlannerProposal(...args, input, now),
+    duplicatePlannerProposal(...args, input, now),
+  ]);
+  expect(copy).toEqual(replay);
+  const detached = await preparePlannerDrafts(a.owner.userId, a.organizationId, copy.id, 1, now);
+  expect(detached.sessions[0]!.draft.title).toBe("Séance à reprendre");
+  expect(detached.sessions[0]!.draft.blocks[0]!.items[0]?.ref).toContain(copy.id);
+  expect(p.interpret).toHaveBeenCalledTimes(1);
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+});
 it("retrouve les propositions privées par pages stables, sans texte, quota ni appel IA supplémentaire", async () => {
   const a = await setup(),
     p = provider();
@@ -263,7 +284,7 @@ it("retrouve les propositions privées par pages stables, sans texte, quota ni a
   expect(ids).not.toContain(foreignId);
   expect(second.nextCursor).toBeNull();
   expect(Object.keys(first.items[0]!).sort()).toEqual(
-    ["id", "state", "version", "period", "createdAt", "expiresAt"].sort(),
+    ["id", "state", "actions", "version", "period", "createdAt", "expiresAt"].sort(),
   );
   expect(JSON.stringify(first)).not.toContain(a.input.text);
   await expect(

@@ -1124,6 +1124,22 @@ export const MATRICE: Row[] = [
     },
   },
   {
+    route: "POST /api/v1/orgs/[orgId]/planner/proposals/[proposalId]/duplicate",
+    ...encadrants,
+    call: async (w, qui) => {
+      const proposal = await readyProposal(w, qui);
+      return { params: { proposalId: proposal.id }, body: { expectedVersion: proposal.version, id: randomUUID() } };
+    },
+  },
+  {
+    route: "POST /api/v1/orgs/[orgId]/sessions/[sessionId]/duplicate-draft",
+    ...encadrants,
+    call: async (w, qui) => {
+      const draft = await freshDraft(w, qui);
+      return { params: { sessionId: draft.id }, body: { expectedVersion: draft.version, operationId: randomUUID() } };
+    },
+  },
+  {
     route: "POST /api/v1/orgs/[orgId]/planner/proposals/[proposalId]/clarify",
     ...encadrants,
     call: async (w, qui) => {

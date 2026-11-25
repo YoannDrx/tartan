@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { z } from "zod";
 import {
   resolvePlannerExerciseInput,
+  duplicatePlannerProposalInput,
   type ResolvePlannerExerciseInput,
   clarifyPlannerProposalInput,
   decidePlannerAdjustmentInput,
@@ -262,6 +263,80 @@ function adjustmentLines(value: PlannerRichInterpretation, bindings: PlannerBind
     }),
   ]);
 }
+const actionsByState = {
+  processing: ["progress"],
+  clarification: ["answer", "remove"],
+  proposal: ["edit", "duplicate", "remove"],
+  failed: ["retry", "remove"],
+  committed: ["sessions", "remove"],
+} as const;
+const actionsFor = (state: string) => actionsByState[plannerProposalResponse.shape.state.parse(state)];
+export async function duplicatePlannerProposal(
+  userId: string,
+  organizationId: string,
+  sourceId: string,
+  raw: z.infer<typeof duplicatePlannerProposalInput>,
+  now = new Date(),
+) {
+  const input = duplicatePlannerProposalInput.parse(raw);
+  return prisma.$transaction(async (tx) => {
+    await lock(tx, organizationId);
+    const access = await accessFor(userId, organizationId, tx),
+      source = await owned(userId, organizationId, sourceId, now, tx);
+    const selection = plannerSelection.parse(source.selection),
+      bindings = plannerBindings.parse(source.bindings);
+    await recheckPlannerBindings(tx, access, selection, bindings);
+    const hash = plannerFingerprint({ sourceId, ...input });
+    const existing = await tx.aiPlannerProposal.findUnique({
+      where: { id: input.id },
+      select: { creationFingerprint: true, actorId: true, organizationId: true },
+    });
+    if (existing) {
+      if (
+        existing.creationFingerprint !== hash ||
+        existing.actorId !== userId ||
+        existing.organizationId !== organizationId
+      )
+        throw conflict();
+      return { id: input.id };
+    }
+    if (source.version !== input.expectedVersion || (await effectiveState(source, now, tx)) !== "proposal")
+      throw conflict();
+    const saved = z
+      .object({ version: z.number(), sessions: savePlannerReviewInput.shape.sessions })
+      .safeParse(source.savedReview);
+    const sessions =
+      saved.success && saved.data.version === source.version
+        ? savePlannerReviewInput.shape.sessions.parse(
+            JSON.parse(JSON.stringify(saved.data.sessions), (key, value: unknown) =>
+              (key === "ref" || key === "itemRef") && typeof value === "string" && value.startsWith(`ai-${sourceId}-`)
+                ? value.replace(sourceId, input.id)
+                : value,
+            ),
+          )
+        : undefined;
+    await tx.aiPlannerProposal.create({
+      data: {
+        id: input.id,
+        actorId: userId,
+        organizationId,
+        creationFingerprint: hash,
+        state: "proposal",
+        activeOperationId: input.id,
+        selection,
+        bindings: bindings as Prisma.InputJsonValue,
+        messages: messagesSchema.parse(source.messages),
+        interpretation: plannerRichInterpretation.parse(source.interpretation),
+        clarificationCount: source.clarificationCount,
+        adjustmentCount: source.adjustmentCount,
+        createdAt: now,
+        expiresAt: source.expiresAt,
+        ...(sessions ? { savedReview: { version: 1, sessions } } : {}),
+      },
+    });
+    return { id: input.id };
+  });
+}
 export async function getPlannerProposal(userId: string, organizationId: string, id: string, now = new Date()) {
   const access = await accessFor(userId, organizationId);
   const row = await owned(userId, organizationId, id, now);
@@ -285,7 +360,9 @@ export async function getPlannerProposal(userId: string, organizationId: string,
     after = staged ? adjustmentLines(staged.candidate, bindings) : [];
   const confirmed = readSelections(row).flatMap((receipt) => receipt.items);
   const linkedIds = row.draftIds ? plannerProposalResponse.shape.draftIds.unwrap().parse(row.draftIds) : confirmed;
+  const state = await effectiveState(row, now);
   return plannerProposalResponse.parse({
+    actions: actionsFor(state),
     calendar,
     ...(staged
       ? {
@@ -299,7 +376,7 @@ export async function getPlannerProposal(userId: string, organizationId: string,
     failure: await lastFailure(row),
     id: row.id,
     version: row.version,
-    state: await effectiveState(row, now),
+    state,
     clarificationCount: row.clarificationCount,
     adjustmentCount: row.adjustmentCount,
     expiresAt: row.expiresAt.toISOString(),
@@ -364,7 +441,7 @@ export async function listPlannerProposals(
     Pick<AiPlannerProposal, "id" | "version" | "state" | "selection" | "createdAt" | "expiresAt">[]
   >`
     WITH effective AS (
-      SELECT p.id, p.version, p.selection, p.created_at, p.expires_at,
+      SELECT p.id, p.version, p.selection, p.created_at, p.expires_at, p.week_confirmations IS NOT NULL AS has_drafts,
         CASE WHEN p.state <> 'processing' THEN p.state
              WHEN op.state = 'pending' AND op.lease_until > ${now} THEN 'processing'
              ELSE COALESCE(p.interpretation->>'status', 'failed') END AS state
@@ -378,7 +455,7 @@ export async function listPlannerProposals(
     SELECT id, version, state, selection, created_at AS "createdAt", expires_at AS "expiresAt"
     FROM ranked
     WHERE expires_at > ${now}
-      AND (${filter} = 'all' OR (${filter} = 'created' AND state = 'committed')
+      AND (${filter} = 'all' OR (${filter} = 'created' AND (state = 'committed' OR has_drafts))
         OR (${filter} = 'pending' AND state <> 'committed'))
       AND (${before ?? null}::uuid IS NULL OR (priority, created_at, id) <
         (SELECT priority, created_at, id FROM ranked WHERE id = ${before ?? null}::uuid))
@@ -398,6 +475,7 @@ export async function listPlannerProposals(
     items.push({
       id: row.id,
       state: row.state,
+      actions: actionsFor(row.state),
       version: row.version,
       period: selection.period,
       createdAt: row.createdAt.toISOString(),

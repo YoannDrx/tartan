@@ -1,7 +1,8 @@
 import { m } from "@tartan/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { randomUUID } from "expo-crypto";
+import { useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { errorMessage } from "../src/lib/errors";
 import { api } from "../src/lib/api";
@@ -18,6 +19,8 @@ function ProposalList({ orgId, userId }: { orgId: string; userId: string }) {
   const [cursors, setCursors] = useState<string[]>([]);
   const [filter, setFilter] = useState<"all" | "pending" | "created">("all");
   const [failure, setFailure] = useState("");
+  const [menu, setMenu] = useState<string | null>(null);
+  const copies = useRef(new Map<string, string>());
   const before = cursors.at(-1);
   const router = useRouter();
   const proposals = useQuery({
@@ -79,7 +82,34 @@ function ProposalList({ orgId, userId }: { orgId: string; userId: string }) {
                 }
                 onPress={() => router.replace({ pathname: "/planner", params: { proposalId: proposal.id } })}
               />
-              {proposal.version !== undefined && proposal.state !== "processing" ? (
+              {proposal.version !== undefined &&
+                (proposal.actions?.includes("remove") ?? proposal.state !== "processing") && (
+                  <Button
+                    variant="ghost"
+                    label={t.moreProposalActions}
+                    onPress={() => setMenu(menu === proposal.id ? null : proposal.id)}
+                  />
+                )}
+              {menu === proposal.id && proposal.actions?.includes("duplicate") && (
+                <Button
+                  variant="secondary"
+                  label={t.duplicateProposal}
+                  onPress={async () => {
+                    const version = proposal.version;
+                    if (version === undefined) return;
+                    const key = proposal.id + version;
+                    const copyId = copies.current.get(key) ?? randomUUID();
+                    copies.current.set(key, copyId);
+                    try {
+                      const copy = await api.duplicatePlannerProposal(orgId, proposal.id, copyId, version);
+                      router.replace({ pathname: "/planner", params: { proposalId: copy.id } });
+                    } catch (error) {
+                      setFailure(errorMessage(error));
+                    }
+                  }}
+                />
+              )}
+              {menu === proposal.id && proposal.version !== undefined && proposal.state !== "processing" ? (
                 <Button
                   variant="ghost"
                   label={t.removeProposal}

@@ -562,7 +562,12 @@ export const plannerUnderstandingView = z.object({
   corrections: z.array(z.object({ said: z.string().max(200), kept: z.string().max(200) })).max(10),
 });
 export type PlannerUnderstandingView = z.infer<typeof plannerUnderstandingView>;
+export const duplicatePlannerProposalInput = z
+  .object({ id: uuid, expectedVersion: z.number().int().positive() })
+  .strict();
+const plannerActions = z.array(z.enum(["progress", "answer", "edit", "retry", "sessions", "duplicate", "remove"]));
 export const plannerProposalResponse = z.object({
+  actions: plannerActions.optional(),
   // Additif : la cause du dernier échec, lisible après un rechargement. Les anciens clients l'ignorent.
   failure: z
     .object({ code: plannerFailureCode, message: z.string(), step: plannerStepName.nullable().optional() })
@@ -686,6 +691,7 @@ export const plannerProposalList = z.object({
       z.object({
         id: uuid,
         state: plannerProposalResponse.shape.state,
+        actions: plannerActions.optional(),
         version: z.number().int().positive().optional(),
         period: plannerSelection.shape.period,
         createdAt: z.iso.datetime(),

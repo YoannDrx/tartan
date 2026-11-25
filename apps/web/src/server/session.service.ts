@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { Prisma } from "@/generated/prisma/client";
 import {
   type CalendarResponse,
@@ -748,14 +748,17 @@ const copySession = async (
   userId: string,
   date: string,
   groupId?: string,
+  db: Prisma.TransactionClient = prisma,
+  copyId?: string,
 ) => {
   const [assignments, overrides] = await Promise.all([
-    prisma.assignment.findMany({ where: { scheduledSessionId: session.id } }),
+    db.assignment.findMany({ where: { scheduledSessionId: session.id } }),
     // Vers un autre groupe, les adaptations individuelles n'ont plus de sens.
-    groupId ? [] : prisma.athleteOverride.findMany({ where: { scheduledSessionId: session.id } }),
+    groupId ? [] : db.athleteOverride.findMany({ where: { scheduledSessionId: session.id } }),
   ]);
-  return prisma.scheduledSession.create({
+  return db.scheduledSession.create({
     data: {
+      ...(copyId ? { id: copyId } : {}),
       organizationId: session.organizationId,
       createdBy: userId,
       date: toDbDate(date),
@@ -787,6 +790,36 @@ export const duplicateSession = async (userId: string, organizationId: string, s
   return { id: copy.id };
 };
 
+export async function duplicatePlannerDraft(
+  userId: string,
+  organizationId: string,
+  sessionId: string,
+  operationId: string,
+  expectedVersion: number,
+) {
+  // La même opération appliquée à deux sources différentes ne peut pas désigner la même copie.
+  const bytes = createHash("sha256")
+    .update([organizationId, userId, sessionId, operationId, expectedVersion].join("/"))
+    .digest();
+  bytes[6] = (bytes[6]! & 15) | 128;
+  bytes[8] = (bytes[8]! & 63) | 128;
+  const hex = bytes.toString("hex", 0, 16),
+    id = [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join("-");
+  return prisma.$transaction(async (tx) => {
+    const access = await requireOrgMember(userId, organizationId, "manageSessions", tx);
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id=${organizationId}::uuid FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id=${sessionId}::uuid AND organization_id=${organizationId}::uuid FOR UPDATE`;
+    const source = await requireSessionWrite(access, sessionId, tx);
+    const already = await tx.scheduledSession.findFirst({
+      where: { id, organizationId, createdBy: userId },
+      select: { id: true },
+    });
+    if (already) return already;
+    if (source.version !== expectedVersion || source.publishedAt || source.publishAt) throw sessionConflict();
+    await copySession(source, userId, fromDbDate(source.date), undefined, tx, id);
+    return { id };
+  });
+}
 export const duplicateWeek = async (
   userId: string,
   organizationId: string,
