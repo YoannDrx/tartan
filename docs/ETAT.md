@@ -8,6 +8,14 @@ Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p
 
 La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
 
+## APK Android de bêta · 25 novembre 2026
+
+Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.
+
+## Console privée des testeurs · 25 novembre 2026
+
+La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.
+
 **En une phrase.**
 - Fait : le plan du 15 novembre est mené jusqu'au lot 4. Le constructeur est terminé sur le web et sur le mobile, Maestro tourne sur iOS et Android, et les 173 fiches ont un geste animé, de profil ou de face.
 - Pas encore prouvé : l'IA n'est pas qualifiée, aucun vrai paiement n'a été fait et aucun téléphone physique n'a servi.

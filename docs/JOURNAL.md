@@ -6,6 +6,26 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 
 La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
 
+## 2026-11-25, Codex, téléchargement Gradle de la CI Android
+
+Le journal de compilation identifie des refus HTTP 429 de Maven Central pendant la résolution de dépendances. Les deux jobs Android réessaient cette étape une fois sur 429 ou indisponibilité temporaire du serveur. Une erreur de compilation remonte immédiatement. Le délai de Maestro et le temps de téléchargement des dépendances se mesurent séparément.
+
+## 2026-11-25, Codex, APK Android de bêta
+
+Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.
+
+## 2026-11-25, Codex, invitations indépendantes par plateforme
+
+Une interruption du service Apple conserve l’envoi Android disponible pour une même personne. Le prochain traitement reprend iOS et déduplique l’e-mail APK déjà envoyé. Les deux états sont vérifiés en base avec une panne puis un rétablissement simulés.
+
+## 2026-11-25, Codex, stockage privé des APK
+
+Le store Blob privé du lancement a été créé en région fra1 et connecté à la production avec le préfixe BETA_APK. Le téléchargement contrôlé utilise la variable dédiée posée par Vercel. Les nouvelles invitations restent suspendues par défaut.
+
+## 2026-11-25, Codex, Console privée des testeurs
+
+La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.
+
 Modèle :
 
 ```text
