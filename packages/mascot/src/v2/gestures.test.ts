@@ -27,7 +27,12 @@ import { distance } from "./vec";
 const clips = Object.values(GESTURES).map((clip) => [clip.key, clip] as const);
 // Les gestes d'haltérophilie et de musculation se tiennent sur leurs deux pieds à chaque tenue.
 const TWO_FEET = new Set([...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES].map((clip) => clip.key));
-const JUMPS = new Set([...PLYOMETRIC_GESTURES, ...STRIDE_GESTURES].map((clip) => clip.key));
+const JUMPS = new Set([
+  ...[...PLYOMETRIC_GESTURES, ...STRIDE_GESTURES].map((clip) => clip.key),
+  "curve-arm-drive",
+  "jump-drive-target",
+  "scissor-jump",
+]);
 const STRIDES = new Set([...STRIDE_GESTURES.map((clip) => clip.key), "cone-high-knees"]);
 // Au moins 120 images par boucle ; 240 pour ne pas manquer une phase de moins de 150 ms.
 const SAMPLES = 240;
@@ -545,5 +550,32 @@ describe("appuis du triple saut", () => {
     const finish = held(clip, "feet-together");
     expect(finish.legs.L.ball.x).toBeCloseTo(finish.legs.R.ball.x);
     expect(clip.props(0, finish)).toHaveLength(4);
+  });
+});
+
+describe("éducatifs de hauteur", () => {
+  it("fait tourner les appuis au passage de la porte et garde les plots de part et d’autre", () => {
+    const clip = GESTURES["curve-entry-gate"]!;
+    const first = held(clip, "plant-0");
+    const entry = held(clip, "plant-2");
+    const last = held(clip, "plant-5");
+    expect(entry.pelvis.z).toBeCloseTo(first.pelvis.z);
+    expect(last.pelvis.z).toBeGreaterThan(entry.pelvis.z + 20);
+    expect(last.controls.pelvisYaw).toBeGreaterThan(30);
+    const gates = clip.props(0, entry);
+    expect(gates[0]!.at).toBeLessThan(entry.pelvis.z);
+    expect(gates[1]!.at).toBeGreaterThan(entry.pelvis.z);
+  });
+
+  it("passe les jambes en ciseaux dans l’ordre et finit sur le tapis", () => {
+    const clip = GESTURES["scissor-jump"]!;
+    const leading = held(clip, "lead-clears");
+    const trailing = held(clip, "trailing-clears");
+    const finish = held(clip, "land");
+    expect(leading.legs.R.ball.x).toBeGreaterThan(8);
+    expect(leading.legs.L.ball.x).toBeLessThan(8);
+    expect(trailing.legs.L.ball.x).toBeGreaterThan(8);
+    expect(trailing.legs.L.ball.y).toBeGreaterThan(75);
+    for (const side of SIDES) expect(finish.legs[side].ball.y).toBeCloseTo(38);
   });
 });

@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, gestes de saut en hauteur
+
+Les dix nouvelles fiches de hauteur ont une animation. La vue de dessus montre les marques et l’entrée en courbe. Les ciseaux passent la jambe libre puis la jambe d’appel et finissent sur le tapis. Les 3 343 tests du moteur de gestes passent. La relecture sportive reste à faire dans l’atelier.
+
 ## 2026-11-25, Codex, isolation de la recette du catalogue
 
 La recette de l’atelier retire sa fiche de stade et ses avis à la fin du scénario. La consultation vérifie chacune des clés historiques même après l’ajout de nouvelles fiches. Les deux scénarios successifs passent sur ordinateur et téléphone.
