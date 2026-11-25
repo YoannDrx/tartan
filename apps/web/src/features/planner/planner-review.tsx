@@ -12,6 +12,7 @@ import {
   type Prescription,
 } from "@tartan/contracts";
 import {
+  editSessionBlock,
   formatPrescription,
   occurrenceRef,
   phasePlanningKey,
@@ -35,6 +36,7 @@ import { toast } from "@/components/ui/toast";
 import { ExerciseFinder, ExerciseQuickCreate } from "@/features/exercises/exercise-finder";
 import { PhasePlanningPanel } from "@/features/phases/phase-planning";
 import { ExerciseSource } from "@/features/sessions/exercise-picker";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SequenceEditor, type SequenceItemExtras } from "@/features/sessions/sequence-editor";
 import { PrescriptionEditor } from "@/features/sessions/session-builder";
 import { PlannerLoads } from "./planner-loads";
@@ -153,6 +155,15 @@ export function PlannerDraftReview({
     [index, onUpdate],
   );
   const change = (patch: Partial<PlannerReviewedDraft>) => onUpdate(index, (old) => ({ ...old, ...patch }));
+  const editBlock = (ref: string, action: "duplicate" | "remove") => {
+    setPreviousDraft(session);
+    change(editSessionBlock(session, ref, action, () => crypto.randomUUID()));
+  };
+  const hasSlot = (block: PlannerReviewedDraft["draft"]["blocks"][number]) =>
+    block.items.some(
+      (item) =>
+        item.exerciseId === PLANNER_SLOT_EXERCISE_ID || item.autonomous?.exerciseId === PLANNER_SLOT_EXERCISE_ID,
+    );
   const reschedule = (patch: Partial<PlannerReviewedDraft>) => {
     setRescheduled(true);
     change({ ...patch, phaseReview: undefined });
@@ -519,6 +530,30 @@ export function PlannerDraftReview({
                 />
               )}
             </Field>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="quiet"
+                disabled={busy || hasSlot(block) || session.draft.blocks.length >= 12}
+                onClick={() => editBlock(block.ref!, "duplicate")}
+              >
+                {m.builder.duplicateBlock}
+              </Button>
+              <ConfirmDialog
+                title={m.nativeBuilder.removeBlock}
+                onConfirm={() => editBlock(block.ref!, "remove")}
+                trigger={
+                  <Button
+                    size="sm"
+                    variant="quiet"
+                    disabled={busy || hasSlot(block) || session.draft.blocks.length === 1}
+                  >
+                    {m.builder.deleteBlock}
+                  </Button>
+                }
+              />
+            </div>
+            {hasSlot(block) ? <p className="t-caption text-soft">{m.builder.resolveBlockSlots}</p> : null}
             {/* Les marges de l'éditeur sont celles du constructeur : ici il s'aligne sur la carte de la séance. */}
             <div className="-mx-3 min-w-0">
               <SequenceEditor

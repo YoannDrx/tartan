@@ -57,6 +57,20 @@ const monthAt = (now: Date, timeZone: string) => {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit" }).formatToParts(now);
   return `${parts.find((p) => p.type === "year")!.value}-${parts.find((p) => p.type === "month")!.value}`;
 };
+// Seul un droit administratif explicite sur un espace pilote dispense du quota mensuel.
+const quotaAccess = {
+  aiPlannerEnabled: true,
+  plan: true,
+  timeZone: true,
+  entitlements: {
+    where: { key: "plannerUnlimited", source: "admin", value: { equals: true } },
+    select: { id: true },
+  },
+} satisfies Prisma.OrganizationSelect;
+
+const hasUnlimitedQuota = (org: { plan: string; entitlements: { id: string }[] }) =>
+  org.plan === "pilot" && org.entitlements.length > 0;
+
 const enabled = (organization: { aiPlannerEnabled: boolean; plan: string }) =>
   plannerServerEnabled(env()) && organization.aiPlannerEnabled && organization.plan !== "discovery";
 
@@ -124,7 +138,7 @@ export async function reservePlannerOperation(
       await requireOrgMember(userId, organizationId, "manageSessions", tx);
       const organization = await tx.organization.findUniqueOrThrow({
         where: { id: organizationId },
-        select: { aiPlannerEnabled: true, plan: true, timeZone: true },
+        select: quotaAccess,
       });
       if (!enabled(organization)) throw disabled();
       await refundExpired(tx, organizationId, now);
@@ -180,6 +194,7 @@ export async function reservePlannerOperation(
       });
       if (
         input.kind !== "clarification" &&
+        !hasUnlimitedQuota(organization) &&
         !plannerQuotaFits(
           organization.plan,
           {
@@ -234,7 +249,7 @@ export async function getPlannerUsage(userId: string, organizationId: string, no
     await requireOrgMember(userId, organizationId, "manageSessions", tx);
     const org = await tx.organization.findUniqueOrThrow({
       where: { id: organizationId },
-      select: { aiPlannerEnabled: true, plan: true, timeZone: true },
+      select: quotaAccess,
     });
     if (!enabled(org)) throw disabled();
     const month = monthAt(now, org.timeZone);
@@ -243,10 +258,15 @@ export async function getPlannerUsage(userId: string, organizationId: string, no
       where: { organizationId, month, state: "pending", leaseUntil: { gt: now } },
       _sum: { proposalCost: true, audioSeconds: true },
     });
+    const unlimited = hasUnlimitedQuota(org);
     return plannerUsageResponse.parse({
       month,
       timeZone: org.timeZone,
-      limit: plannerLimits(org.plan),
+      ...(unlimited ? { unlimited: true } : {}),
+      // Les clients déjà installés attendent deux entiers et bloquent localement au plafond annoncé.
+      limit: unlimited
+        ? { proposals: Number.MAX_SAFE_INTEGER, audioSeconds: Number.MAX_SAFE_INTEGER }
+        : plannerLimits(org.plan),
       used: { proposals: quota?.usedProposals ?? 0, audioSeconds: quota?.usedAudioSeconds ?? 0 },
       reserved: { proposals: pending._sum.proposalCost ?? 0, audioSeconds: pending._sum.audioSeconds ?? 0 },
     });

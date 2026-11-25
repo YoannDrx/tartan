@@ -32,7 +32,7 @@ export function PlannerHeader({
   return (
     <View style={{ gap: space.sm }}>
       <T variant="small" tone="muted">
-        {exhausted ? m.aiPlanner.quotaExceeded : t.quota(left)}
+        {usage.unlimited ? t.unlimitedQuota : exhausted ? m.aiPlanner.quotaExceeded : t.quota(left)}
       </T>
       <T variant="smallStrong" accessibilityRole="header">
         {t.stage(stage)}

@@ -12,6 +12,7 @@ import {
 } from "@tartan/contracts";
 import {
   copyDraftWithNewRefs,
+  editSessionBlock,
   formatPrescription,
   withSessionRefs,
   withSessionSequences,
@@ -323,7 +324,7 @@ export const NativeSessionBuilder = ({
     setUndo(null);
     setForm((v) => ({ ...v, draft: { ...v.draft, ...patch } }));
   };
-  const blocks = (next: SessionDraft["blocks"]) => {
+  const blocks = (next: SessionDraft["blocks"], overrides = form.overrides) => {
     const nextDraft = withSessionSequences({ ...form.draft, blocks: next });
     let refs: Set<string>;
     try {
@@ -337,7 +338,7 @@ export const NativeSessionBuilder = ({
     setForm((v) => ({
       ...v,
       draft: nextDraft,
-      overrides: v.overrides.filter((o) => refs.has(o.itemRef)),
+      overrides: overrides.filter((o) => refs.has(o.itemRef)),
     }));
   };
   const move = <T,>(list: T[], index: number, offset: number): T[] => {
@@ -950,8 +951,17 @@ export const NativeSessionBuilder = ({
                 <Button
                   compact
                   variant="secondary"
-                  label={m.common.delete}
-                  disabled={form.draft.blocks.length === 1}
+                  label={m.builder.duplicateBlock}
+                  disabled={form.draft.blocks.length >= 12}
+                  onPress={() => {
+                    const next = editSessionBlock(form, block.ref!, "duplicate", randomUUID);
+                    blocks(next.draft.blocks, next.overrides);
+                  }}
+                />
+                <Button
+                  compact
+                  variant="secondary"
+                  label={m.builder.deleteBlock}
                   onPress={() =>
                     confirm(
                       m.nativeBuilder.removeBlock,

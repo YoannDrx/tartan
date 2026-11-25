@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Codex, QR code du groupe · 25 novembre 2026
+
+Le SVG de 320 px était rogné dans le cadre de 240 px. Le composant partagé utilise le viewBox du QR et une marge de quatre modules. Le parcours vérifie les dimensions du SVG et du cadre aux trois largeurs.
+
 ## 2026-11-25, Codex, candidat de livraison des stores
 
 Ce candidat réunit les lots du terrain, les 22 images d’atelier, la correction du dépôt Maven et le logo des deux stores. Les exports de recette iOS et Android contiennent les 22 images attendues, contrôlées par empreinte. Les binaires de bêta précédents contiennent les 18 premières. Le budget de production et la taille éditoriale sont extrapolés dans la procédure des illustrations.
@@ -74,9 +78,17 @@ Sur Android, sélectionner le texte du groupe pouvait décocher son bouton déj�
 
 Le champ de dictée précède le choix de période. Les parcours centrent le champ avant la saisie et vérifient que l’envoi est disponible. L’espace Android de recette reçoit les mêmes droits au planificateur que celui du simulateur iOS.
 
+## Exemption mensuelle du planificateur · 25 novembre 2026
+
+Un droit administratif sur un espace Pilote permet les propositions et la dictée sans quota mensuel. Les réservations restent comptabilisées et la limitation des requêtes simultanées reste active. Le serveur consulte ce droit à chaque demande.
+
 ## 2026-11-25, Codex, contrôle des créneaux du planificateur
 
 La revue de semaine compare aussi les durées des séances du calendrier pour avertir d’un chevauchement. Le banc historique de 80 consignes qui isole le prestataire transmet désormais le véritable statut de relecture des exercices fictifs. Les attendus du corpus restent figés. Les raccourcis de matériel, la sélection des fiches et la revue de semaine reconnaissent aussi la corde à sauter sur le web et le natif.
+
+## Blocs de séance et reprise du brouillon · 25 novembre 2026
+
+Le constructeur web ne charge au départ que les fiches du serveur et des modèles. Les brouillons locaux conservent maintenant les fiches utilisées. Les anciens les retrouvent par leurs identifiants dans leur espace. Le domaine teste la duplication et le retrait d’un circuit avec charge individuelle au deuxième tour.
 
 ## 2026-11-25, Codex, Reprendre une proposition IA
 

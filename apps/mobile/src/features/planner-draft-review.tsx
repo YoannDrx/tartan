@@ -1,3 +1,4 @@
+import { randomUUID } from "expo-crypto";
 import {
   PLANNER_SLOT_EXERCISE_ID,
   clockTime,
@@ -10,6 +11,7 @@ import {
   type Prescription,
 } from "@tartan/contracts";
 import {
+  editSessionBlock,
   formatPrescription,
   phasePlanningKey,
   replacedExercisePrescription,
@@ -19,7 +21,7 @@ import {
 } from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
 import { useCallback, useState } from "react";
-import { AccessibilityInfo, View } from "react-native";
+import { AccessibilityInfo, Alert, View } from "react-native";
 import type { api } from "../lib/api";
 import { plannerItemState, type PlannerDraftSlot, type PlannerDraftWarning } from "../lib/planner-flow";
 import { DateField } from "../ui/date-field";
@@ -123,6 +125,14 @@ export function PlannerDraftReview({
     [index, onUpdate],
   );
   const change = (patch: Partial<PlannerReviewedDraft>) => onUpdate(index, (old) => ({ ...old, ...patch }));
+  const editBlock = (ref: string, action: "duplicate" | "remove") => {
+    change(editSessionBlock(session, ref, action, randomUUID));
+  };
+  const hasSlot = (block: PlannerReviewedDraft["draft"]["blocks"][number]) =>
+    block.items.some(
+      (item) =>
+        item.exerciseId === PLANNER_SLOT_EXERCISE_ID || item.autonomous?.exerciseId === PLANNER_SLOT_EXERCISE_ID,
+    );
   const reschedule = (patch: Partial<PlannerReviewedDraft>) => {
     setRescheduled(true);
     change({ ...patch, phaseReview: undefined });
@@ -461,6 +471,28 @@ export function PlannerDraftReview({
               })
             }
           />
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
+            <Button
+              compact
+              variant="secondary"
+              label={m.builder.duplicateBlock}
+              disabled={busy || hasSlot(block) || session.draft.blocks.length >= 12}
+              onPress={() => editBlock(block.ref!, "duplicate")}
+            />
+            <Button
+              compact
+              variant="secondary"
+              label={m.builder.deleteBlock}
+              disabled={busy || hasSlot(block) || session.draft.blocks.length === 1}
+              onPress={() =>
+                Alert.alert(m.nativeBuilder.removeBlock, undefined, [
+                  { text: m.common.cancel, style: "cancel" },
+                  { text: m.common.delete, style: "destructive", onPress: () => editBlock(block.ref!, "remove") },
+                ])
+              }
+            />
+          </View>
+          {hasSlot(block) ? <T variant="small">{m.builder.resolveBlockSlots}</T> : null}
           <NativeSequenceEditor
             block={block}
             exercises={context.exercises}

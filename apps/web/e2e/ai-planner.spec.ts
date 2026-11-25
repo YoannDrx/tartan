@@ -487,7 +487,15 @@ test("un circuit décrit par son objectif arrive dans l'éditeur de séquence", 
     await prepare(page);
     await expect(page.getByLabel(t.blockName, { exact: true })).toHaveValue("Circuit");
     await expect(page.getByLabel(m.builder.sequence.rounds, { exact: true })).toHaveValue("3");
-    await page.getByLabel(t.blockName, { exact: true }).fill("Circuit du jour");
+    await page.getByRole("button", { name: m.builder.duplicateBlock, exact: true }).click();
+    const names = page.getByLabel(t.blockName, { exact: true });
+    await expect(names).toHaveCount(2);
+    await names.nth(1).fill("Circuit du jour");
+    await page.getByRole("button", { name: m.builder.deleteBlock, exact: true }).first().click();
+    await page.getByRole("dialog").getByRole("button", { name: m.common.delete, exact: true }).click();
+    await expect(names).toHaveCount(1);
+    await expect(names).toHaveValue("Circuit du jour");
+    await expect(page.getByLabel(m.builder.sequence.rounds, { exact: true })).toHaveValue("3");
     await expectAccessible(page);
     await expectNoHorizontalScroll(page);
     await createDraft(page);
