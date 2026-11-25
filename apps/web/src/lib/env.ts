@@ -69,6 +69,7 @@ const schema = z.object({
   BETA_ASC_KEY_ID: optional,
   BETA_ASC_PRIVATE_KEY: optional,
   BETA_ASC_GROUP_ID: optional,
+  BETA_ASC_BUILD_ID: optional,
   BETA_PLAY_URL: z.url().startsWith("https://play.google.com/").optional(),
   EXPO_ACCESS_TOKEN: optional,
   OPENAI_API_KEY: optional,
