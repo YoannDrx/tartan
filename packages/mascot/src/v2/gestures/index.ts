@@ -1,5 +1,6 @@
 // Les gestes écrits à la main, par clé de catalogue : les mêmes clés que le premier moteur (exercises/index.ts).
 // Les autres gestes du catalogue sont relevés du premier moteur (registry.ts).
+import { STADIUM_GESTURES } from "./stadium";
 import type { MotionClip } from "../gesture";
 import { backSquat } from "./back-squat";
 import { hipCar, legSwings } from "./balance";
@@ -142,9 +143,14 @@ export const STRIDE_GESTURES: readonly MotionClip[] = [
 ];
 
 export const GESTURES: Readonly<Record<string, MotionClip>> = Object.fromEntries(
-  [...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES, ...OTHER_GESTURES, ...PLYOMETRIC_GESTURES, ...STRIDE_GESTURES].map(
-    (clip) => [clip.key, clip],
-  ),
+  [
+    ...STADIUM_GESTURES,
+    ...WEIGHTLIFTING_GESTURES,
+    ...STRENGTH_GESTURES,
+    ...OTHER_GESTURES,
+    ...PLYOMETRIC_GESTURES,
+    ...STRIDE_GESTURES,
+  ].map((clip) => [clip.key, clip]),
 );
 
 export {

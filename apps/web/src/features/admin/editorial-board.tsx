@@ -1,6 +1,6 @@
 import { w } from "@tartan/i18n/web";
 import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
-import { exerciseClip } from "@tartan/mascot/exercises";
+import { gestureClip } from "@tartan/mascot/v2/registry";
 import Link from "next/link";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -38,6 +38,7 @@ export async function EditorialBoard({ selected }: { selected?: string }) {
   return (
     <section id="atelier" className="rounded-card bg-card p-4 on-card">
       <h2 className="t-h2">{t.title}</h2>
+      <p>{t.publication}</p>
       <p>
         {t.coverage(pilots.filter((p) => approved.has(stamp(p.key, p.guideVersion, "image"))).length, entries.length)}
       </p>
@@ -71,7 +72,7 @@ export async function EditorialBoard({ selected }: { selected?: string }) {
                   ))}
                 </ol>
                 <p>{entry.guide.counting.explanation}</p>
-                {exerciseClip(key) ? (
+                {gestureClip(key) ? (
                   <GuideMotion guide={entry.guide} autoPlay={false} />
                 ) : (
                   <p>
@@ -101,7 +102,7 @@ export async function EditorialBoard({ selected }: { selected?: string }) {
                     <Button
                       type="submit"
                       variant="secondary"
-                      disabled={(kind === "motion" && !exerciseClip(key)) || (kind === "image" && !p)}
+                      disabled={(kind === "motion" && !gestureClip(key)) || (kind === "image" && !p)}
                     >
                       {t[kind]} · {ok ? t.reopen : t.approve}
                     </Button>

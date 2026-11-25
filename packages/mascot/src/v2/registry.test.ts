@@ -3,6 +3,7 @@ import { EXERCISE_CLIPS } from "../exercises";
 import { inspect, type Report } from "./constraints";
 import { HEIGHT } from "./body";
 import { BODY_WINDOW, drawClip, framing, staged } from "./draw-svg";
+import { STADIUM_GESTURES } from "./gestures/stadium";
 import { GESTURES } from "./gestures";
 import { liftClip } from "./lift-v1";
 import { GESTURE_KEYS, gestureClip, gestureEntry } from "./registry";
@@ -19,9 +20,11 @@ const broken = new Map(
 );
 
 describe("registre des gestes", () => {
-  it("donne un geste à chacune des 173 clés du catalogue animé", () => {
-    expect(GESTURE_KEYS).toHaveLength(173);
-    expect(GESTURE_KEYS).toEqual(Object.keys(EXERCISE_CLIPS));
+  it("donne un geste à chacune des clés historiques et aux huit gestes du stade", () => {
+    expect(GESTURE_KEYS).toHaveLength(173 + 8);
+    expect(new Set(GESTURE_KEYS)).toEqual(
+      new Set([...Object.keys(EXERCISE_CLIPS), ...STADIUM_GESTURES.map((c) => c.key)]),
+    );
     expect(entries.every((entry) => entry.clip.key === entry.key)).toBe(true);
     expect(gestureClip("snatch")).toBe(GESTURES.snatch);
     expect(gestureClip("inconnu")).toBeNull();
@@ -31,7 +34,7 @@ describe("registre des gestes", () => {
   it("distingue les gestes écrits à la main des gestes relevés", () => {
     const written = entries.filter((entry) => entry.level === "ecrit").map((entry) => entry.key);
     expect(written.sort()).toEqual(Object.keys(GESTURES).sort());
-    expect(entries.filter((entry) => entry.level === "releve")).toHaveLength(173 - written.length);
+    expect(entries.filter((entry) => entry.level === "releve")).toHaveLength(GESTURE_KEYS.length - written.length);
   });
 
   it("chaque geste se lit sous deux vues au moins, la sienne d'abord", () => {
@@ -66,8 +69,8 @@ describe("contraintes sur tout le registre", () => {
     expect(broken.get(key)).toEqual([]);
   });
 
-  it("le compte est connu : les 173 gestes respectent tout", () => {
-    expect([...broken.values()].filter((constraints) => constraints.length === 0)).toHaveLength(173);
+  it("tous les gestes enregistrés respectent les contraintes", () => {
+    expect([...broken.values()].filter((constraints) => constraints.length === 0)).toHaveLength(entries.length);
   });
 
   it.each(entries.map((entry) => [entry.key, entry] as const))("%s : chaque vue se dessine", (_, entry) => {

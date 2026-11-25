@@ -5,7 +5,7 @@ import { pilotImages } from "./pilot-images";
 import { Image, Pressable, View } from "react-native";
 import { SvgXml } from "react-native-svg";
 import { useQuery } from "@tanstack/react-query";
-import { exerciseClip } from "@tartan/mascot/exercises";
+import { gestureClip } from "@tartan/mascot/v2/registry";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { guideIllustrationQuery } from "../lib/exercise-guide-media";
 import { guideAuthorship, guideMediaModes, showsReviewedText, shownGuideText } from "../lib/exercise-guide-text";
@@ -102,7 +102,7 @@ function CatalogVideoPlayer({ guide, videos }: { guide: ExerciseGuide; videos: C
 
 // Le geste d'abord ; une fiche commune qui a sa vidéo la propose à côté (« Geste animé », « Vidéo »).
 function GuideMedia({ guide }: { guide: ExerciseGuide }) {
-  const clip = exerciseClip(guide.catalogKey);
+  const clip = gestureClip(guide.catalogKey);
   const modes = guideMediaModes(guide, Boolean(clip));
   const [mode, setMode] = useState(modes[0] ?? "motion");
   if (modes.length === 0)
@@ -130,7 +130,7 @@ function GuideMedia({ guide }: { guide: ExerciseGuide }) {
         </View>
       ) : null}
       {mode === "motion" && clip ? (
-        <GuideMotion guide={guide} clip={clip} />
+        <GuideMotion guide={guide} />
       ) : (
         <CatalogVideoPlayer guide={guide} videos={guide.illustration.videos ?? []} />
       )}

@@ -4,7 +4,7 @@ import type { ExerciseGuide } from "@tartan/contracts";
 import { SURFACES } from "@tartan/design-tokens/athletes";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { exerciseClip } from "@tartan/mascot/exercises";
+import { gestureClip } from "@tartan/mascot/v2/registry";
 import { guidePositionAt } from "@tartan/mascot/v2/gesture";
 import { createMotionPlayer, svgSink, type MotionPlayer, type PlayerOptions } from "@tartan/mascot/v2/player";
 import type { GestureView } from "@tartan/mascot/v2/project";
@@ -50,8 +50,7 @@ export const GuideMotion = ({
   guide: ExerciseGuide;
   autoPlay?: boolean;
   bothViews?: boolean;
-}) =>
-  exerciseClip(guide.catalogKey) ? <GestureFrame guide={guide} autoPlay={autoPlay} bothViews={bothViews} /> : null;
+}) => (gestureClip(guide.catalogKey) ? <GestureFrame guide={guide} autoPlay={autoPlay} bothViews={bothViews} /> : null);
 
 // Le geste n'est préparé qu'à l'approche de l'écran (un geste relevé se construit à ce moment), et sa lecture
 // s'arrête dès qu'il en sort.
