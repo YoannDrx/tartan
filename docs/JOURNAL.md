@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, illustrations des sauts et des appuis
+
+Quatre nouvelles images et leurs vignettes rejoignent l’atelier. Pour le saut en hauteur, le franchissement a été repris à partir de la phase correspondante de l’animation, avec le bassin au-dessus de la barre et la tête du côté du tapis. Les images attendent leur validation dans l’atelier avant affichage aux athlètes.
+
 ## 2026-11-25, Codex, animations des 60 fiches de stade
 
 Les 31 gestes restants rejoignent les éducatifs de saut. Le gros plan de pied distingue les cinq orteils, les patins se déplacent sous les talons et le halo décrit les deux sens. La recette contrôle le tripode, les ancrages, la hauteur de la marche, le quart de tour et le nombre de kettlebells. Les 233 clés versionnées ont un geste. L’atelier conserve les décisions de relecture séparées pour le texte, l’animation et l’image.
