@@ -65,7 +65,8 @@ export async function matchMovements(
     const answer = await plannerStep("match", deadline, plannerMatchGeneration, (signal) =>
       provider.match(input, { signal }),
     );
-    for (const match of plannerModelMatches(rules.remaining, answer, keys)) found.set(match.id, match);
+    const equipmentByKey = new Map(input.library.map(({ key, equipment }) => [key, equipment]));
+    for (const match of plannerModelMatches(rules.remaining, answer, keys, equipmentByKey)) found.set(match.id, match);
   }
   return movements.map((movement) => found.get(movement.id)!);
 }

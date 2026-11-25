@@ -5,7 +5,7 @@ import type {
   PlannerMatchRelation,
   PlannerSlotSuggestion,
 } from "@tartan/contracts";
-import { normalizeExerciseMention } from "./exercise-aliases";
+import { normalizeExerciseMention, normalizeExerciseTerm } from "./exercise-aliases";
 
 // Étape « Retrouver » : à chaque mouvement cité par le coach, une fiche de la bibliothèque, ou aucune.
 // Les règles passent d'abord, sans modèle : alias appris de l'espace, nom exact, alias exact. Ce qui reste part
@@ -232,6 +232,7 @@ export function plannerModelMatches(
   movements: readonly Movement[],
   generation: PlannerMatchGeneration,
   keys: ReadonlyMap<string, string>,
+  equipmentByKey?: ReadonlyMap<string, readonly string[] | null>,
 ): PlannerMatch[] {
   const answers = new Map(generation.matches.map((match) => [match.id, match]));
   return movements.map((movement) => {
@@ -240,7 +241,16 @@ export function plannerModelMatches(
     const others = [...new Set((answer?.others ?? []).flatMap((key) => (keys.has(key) ? [keys.get(key)!] : [])))]
       .filter((other) => other !== token)
       .slice(0, 3);
-    if (!answer || answer.confidence === "absent" || !token)
+    // Un appui glissant définit la mécanique du geste. Une suggestion du modèle
+    // sur la seule flexion du genou reste proposée sans inscrire un autre mouvement.
+    const said = normalizeExerciseTerm(movement.said);
+    const sliding = /\b(?:patins?|serviettes?|gliss[a-z]*|couliss[a-z]*|slid[a-z]*)\b/;
+    const withoutSliding = /\b(?:sans|without|pas de) (?:(?:les|des|aucun|aucune) )?(?:patins?|serviettes?|gliss[a-z]*|couliss[a-z]*|slid[a-z]*)\b/;
+    const missingSupport =
+      answer?.key &&
+      equipmentByKey?.get(answer.key)?.includes("sliders") &&
+      (!sliding.test(said) || withoutSliding.test(said));
+    if (!answer || answer.confidence === "absent" || !token || missingSupport)
       return {
         id: movement.id,
         said: movement.said,

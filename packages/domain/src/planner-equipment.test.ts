@@ -30,3 +30,9 @@ it("reconnaît la corde uniquement pour les fiches qui l’utilisent", () => {
     false,
   );
 });
+
+it("réserve les flexions sur patins aux espaces qui disposent d’un appui glissant", () => {
+  const classification = { equipment: plannerRequiredEquipment("hamstring-slider", ["other"]) };
+  expect(plannerEquipmentAvailable(classification, ["patins glissants"])).toBe(true);
+  expect(plannerEquipmentAvailable(classification, ["ballon suisse"])).toBe(false);
+});
