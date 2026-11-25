@@ -12,28 +12,44 @@ env:
       id: open-settings
     timeout: 30000
 - waitForAnimationToEnd
-# Un jour de séance, l'accueil tient en une ligne sous la séance ; elle l'ouvre.
+# Un jour de séance, le bouton se trouve sous la séance et peut affleurer derrière les onglets iOS.
+# Centrer le contrôle puis attendre l’arrêt du défilement avant de le toucher.
 - scrollUntilVisible:
     element:
       id: athlete-welcome-line
+    centerElement: true
     timeout: 10000
     optional: true
-- tapOn:
-    id: athlete-welcome-line
-    optional: true
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible:
+        id: athlete-welcome-line
+    commands:
+      - tapOn:
+          id: athlete-welcome-line
+      - extendedWaitUntil:
+          visible:
+            text: "Bienvenue dans .*"
+          timeout: 10000
 - scrollUntilVisible:
     element:
       id: athlete-welcome-dismiss
+    centerElement: true
     timeout: 10000
     optional: true
-- assertVisible:
-    text: "Bienvenue dans .*"
-    optional: true
-- tapOn:
-    id: athlete-welcome-dismiss
-    optional: true
-- assertNotVisible:
-    id: athlete-welcome
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible:
+        id: athlete-welcome-dismiss
+    commands:
+      - tapOn:
+          id: athlete-welcome-dismiss
+      - extendedWaitUntil:
+          notVisible:
+            id: athlete-welcome
+          timeout: 10000
 # Une autre connexion, comme sur un autre appareil : l'accueil ne revient pas.
 - runFlow: flows/_sign-in.yml
 - extendedWaitUntil:
