@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { m } from "@tartan/i18n";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { File } from "expo-file-system";
+import { uploadVoiceFile } from "../lib/voice-upload";
 import { randomUUID } from "expo-crypto";
 import { useFocusEffect } from "expo-router";
 import { fetch as expoFetch } from "expo/fetch";
@@ -334,13 +334,7 @@ export function VoiceEditor({
   }, [busy, removing]);
   const upload: VoiceUpload = async (uri, _clientId, signal) => {
     const headers = await sessionHeaders();
-    const response = await expoFetch(url, {
-      method: sessionId ? "PUT" : "POST",
-      headers: { ...headers, "Content-Type": "audio/mp4" },
-      credentials: "omit",
-      signal,
-      body: new File(uri),
-    });
+    const response = await uploadVoiceFile(url, sessionId ? "PUT" : "POST", uri, headers, signal);
     if (!response.ok) throw new Error("voice_upload_failed");
     const id = sessionId ?? z.object({ id: z.uuid() }).parse(await response.json()).id;
     if (!signal.aborted) {

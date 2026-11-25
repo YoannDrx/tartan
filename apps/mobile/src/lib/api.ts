@@ -1,6 +1,6 @@
 import { ApiError, createApiClient, sessionThreadPath, type SessionThreadTarget } from "@tartan/api-client";
 import type { ExerciseInput } from "@tartan/contracts";
-import { File } from "expo-file-system";
+import { uploadVoiceFile } from "./voice-upload";
 import { fetch as expoFetch } from "expo/fetch";
 import { appVersion, nativePlatform } from "./app-version";
 import { authClient } from "./auth-client";
@@ -43,13 +43,13 @@ export async function sendSessionThreadAudio(
   signal: AbortSignal,
 ) {
   const headers = await sessionHeaders();
-  const response = await expoFetch(`${config.apiUrl}/api/v1${sessionThreadPath(target)}`, {
-    method: "POST",
-    credentials: "omit",
-    headers: { ...headers, "Content-Type": "audio/mp4", "Idempotency-Key": clientId },
-    body: new File(uri),
+  const response = await uploadVoiceFile(
+    `${config.apiUrl}/api/v1${sessionThreadPath(target)}`,
+    "POST",
+    uri,
+    { ...headers, "Idempotency-Key": clientId },
     signal,
-  });
+  );
   if (response.status === 401) await expireIfCurrent(headers.Cookie ?? "");
   if (!response.ok) throw new ApiError(response.status, undefined, "voice_upload_failed");
 }
