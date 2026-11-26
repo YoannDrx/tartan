@@ -912,6 +912,12 @@
   }
 }
 
+html:has(.app-header)::view-transition-group(*),
+html:has(.app-header)::view-transition-old(*),
+html:has(.app-header)::view-transition-new(*) {
+  animation: none;
+}
+
 /* Feuilles, dialogues, menus et messages : ils entrent en montant de quelques pixels et sortent plus vite
    qu'ils ne sont entrés. Radix attend la fin de la sortie avant de retirer l'élément. Sans mouvement, ils
    apparaissent et disparaissent d'un coup. */

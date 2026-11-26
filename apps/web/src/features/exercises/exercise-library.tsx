@@ -284,7 +284,7 @@ export const ExerciseLibrary = ({
         />
       ) : null}
       <p className="t-caption text-inherit" aria-live="polite">
-        {t.results(found.length)}
+        <span>{t.results(found.length)}</span>
         {rows.some((row) => row.filmed !== undefined) &&
           ` · ${m.filming.progress(found.filter((row) => row.filmed).length, found.length)}`}
       </p>
