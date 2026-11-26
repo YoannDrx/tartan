@@ -10,6 +10,7 @@ const SIZES = {
   sm: { box: "size-8", text: "text-[12px]", px: 32 },
   md: { box: "size-10", text: "text-[14px]", px: 40 },
   lg: { box: "size-16", text: "text-[22px]", px: 64 },
+  portrait: { box: "aspect-square w-full max-w-96", text: "text-6xl", px: 384 },
   xl: { box: "size-24", text: "text-[32px]", px: 96 },
 } as const;
 export type AvatarSize = keyof typeof SIZES;

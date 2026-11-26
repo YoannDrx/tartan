@@ -4,7 +4,7 @@ import { VoicePlayer } from "./voice-player";
 import { Mic, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { m } from "@tartan/i18n";
-import { Button } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import {
   browserAudio,
   BrowserPlannerRecording,
@@ -86,6 +86,13 @@ export function VoiceRecorder({
     },
     [draft],
   );
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (state !== "recording") return;
+    const start = Date.now();
+    const timer = setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 500);
+    return () => clearInterval(timer);
+  }, [state]);
   const pending = state !== "idle" || Boolean(draft) || saving;
   useEffect(() => {
     onPendingChange?.(pending);
@@ -128,30 +135,29 @@ export function VoiceRecorder({
               : notice;
   return (
     <fieldset disabled={disabled} className="col-span-full grid min-w-0 gap-2">
-      <legend className="t-caption mb-1">{label}</legend>
+      <legend className="sr-only">{label}</legend>
       {draft || (src && !hideSavedAudio) ? (
         <VoicePlayer key={draft?.url ?? src} src={draft?.url ?? src!} label={draft ? t.preview : label} />
       ) : null}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         {state === "idle" && !draft ? (
-          <Button
-            size="sm"
-            variant="secondary"
+          <IconButton
+            label={src ? t.replace : (recordLabel ?? t.record)}
             disabled={saving}
             onClick={() => {
               setNotice("");
+              setSeconds(0);
               setError("");
               void capture.current?.start();
             }}
           >
             <Mic aria-hidden className="size-4" />
-            {src ? t.replace : (recordLabel ?? t.record)}
-          </Button>
+          </IconButton>
         ) : null}
         {state === "recording" ? (
-          <Button size="sm" onClick={() => capture.current?.finish()}>
+          <Button size="sm" aria-label={t.stop} onClick={() => capture.current?.finish()}>
             <Square aria-hidden className="size-4" />
-            {t.stop}
+            {t.stop} · {seconds} {m.units.seconds}
           </Button>
         ) : null}
         {draft ? (

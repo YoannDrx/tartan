@@ -6,6 +6,7 @@ import { RotateCcw, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Button, IconButton } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { cutOutPortrait } from "./portrait-mask";
 import { cn } from "@/lib/cn";
 import {
   START,
@@ -29,13 +30,24 @@ const ZOOM_STEP = 0.1;
 // En deçà, un appui est un toucher (qui centre le point) et non un glisser.
 const TAP_SLOP = 4;
 
-const draw = (canvas: HTMLCanvasElement, bitmap: ImageBitmap, state: CropState, frame: number, fit: CropFit) => {
+const draw = (
+  canvas: HTMLCanvasElement,
+  bitmap: ImageBitmap,
+  state: CropState,
+  frame: number,
+  fit: CropFit,
+  background?: string,
+) => {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const size = canvas.width;
   const tr = drawTransform(bitmap, state, frame, size, fit);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, size, size);
+  if (background) {
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, size, size);
+  }
   ctx.imageSmoothingQuality = "high";
   ctx.translate(tr.translateX, tr.translateY);
   ctx.rotate(tr.rotation);
@@ -47,11 +59,17 @@ const toBlob = (canvas: HTMLCanvasElement, type: string) =>
   new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.9));
 
 // L'export : WebP quand le navigateur sait l'écrire, sinon JPEG. Un JPEG n'a pas de transparence : fond blanc.
-export const exportCrop = async (bitmap: ImageBitmap, state: CropState, frame: number, fit: CropFit) => {
+export const exportCrop = async (
+  bitmap: ImageBitmap,
+  state: CropState,
+  frame: number,
+  fit: CropFit,
+  background?: string,
+) => {
   const canvas = document.createElement("canvas");
   canvas.width = EXPORT_SIZE;
   canvas.height = EXPORT_SIZE;
-  draw(canvas, bitmap, state, frame, fit);
+  draw(canvas, bitmap, state, frame, fit, background);
   const webp = await toBlob(canvas, "image/webp");
   if (webp?.type === "image/webp") return new File([webp], "photo.webp", { type: "image/webp" });
   const flat = document.createElement("canvas");
@@ -72,7 +90,7 @@ export const openImage = (file: File) => createImageBitmap(file, { imageOrientat
 type Pointer = { x: number; y: number };
 
 export const ImageCropper = ({
-  bitmap,
+  bitmap: original,
   fit,
   open,
   onOpenChange,
@@ -84,9 +102,44 @@ export const ImageCropper = ({
   fit: CropFit;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (state: CropState, frame: number) => void;
+  onSave: (state: CropState, frame: number, bitmap: ImageBitmap, background?: string) => void;
   saving: boolean;
 }) => {
+  const [cutout, setCutout] = useState<ImageBitmap | null>(null);
+  const [background, setBackground] = useState<string>();
+  const [processing, setProcessing] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  useEffect(() => () => cutout?.close(), [cutout]);
+  async function changeBackdrop(color: string) {
+    setFailed(false);
+    if (!color || cutout) {
+      setBackground(color || undefined);
+      return;
+    }
+    if (!original || processing) return;
+    setProcessing(true);
+    try {
+      const result = await cutOutPortrait(original);
+      if (!mounted.current) {
+        result.close();
+        return;
+      }
+      setCutout(result);
+      setBackground(color);
+    } catch {
+      if (mounted.current) setFailed(true);
+    } finally {
+      if (mounted.current) setProcessing(false);
+    }
+  }
+  const bitmap = background && cutout ? cutout : original;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
   const [frame, setFrame] = useState(0);
@@ -117,14 +170,14 @@ export const ImageCropper = ({
     if (canvas) {
       canvas.width = Math.round(frame * ratio);
       canvas.height = canvas.width;
-      draw(canvas, bitmap, state, frame, fit);
+      draw(canvas, bitmap, state, frame, fit, background);
     }
     if (preview) {
       preview.width = Math.round(64 * ratio);
       preview.height = preview.width;
-      draw(preview, bitmap, state, frame, fit);
+      draw(preview, bitmap, state, frame, fit, background);
     }
-  }, [bitmap, state, frame, fit]);
+  }, [bitmap, state, frame, fit, background]);
 
   const update = useCallback(
     (next: (current: CropState) => CropState) => setState((current) => (bitmap ? next(current) : current)),
@@ -340,12 +393,34 @@ export const ImageCropper = ({
             </div>
           </div>
         </div>
+        {!logo && (
+          <label className="grid gap-1">
+            {t.background}
+            <select
+              className="min-h-11 rounded-control bg-card p-2"
+              value={background ?? ""}
+              disabled={processing || saving}
+              onChange={(e) => void changeBackdrop(e.target.value)}
+            >
+              <option value="">{t.original}</option>
+              <option value={tokens.color.white}>{t.white}</option>
+              <option value={tokens.color.ink}>{t.ink}</option>
+              <option value={tokens.color.brand}>{t.track}</option>
+            </select>
+          </label>
+        )}
+        {processing && <p role="status">{t.processing}</p>}
+        {failed && <p role="alert">{t.failed}</p>}
         <p id="crop-status" aria-live="polite" className="sr-only">
           {t.status(zoomPct, state.turns)}
         </p>
 
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" disabled={!bitmap || saving || frame === 0} onClick={() => onSave(state, frame)}>
+          <Button
+            size="sm"
+            disabled={!bitmap || processing || saving || frame === 0}
+            onClick={() => bitmap && onSave(state, frame, bitmap, background)}
+          >
             {saving ? t.saving : logo ? t.saveLogo : t.save}
           </Button>
           <Button size="sm" variant="secondary" disabled={saving} onClick={() => onOpenChange(false)}>

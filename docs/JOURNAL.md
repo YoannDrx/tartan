@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Codex, espaces, exercices et diffusion bêta · 26 novembre 2026
+
+Branche `feat/navigation-notifications-beta`. Deux migrations additives portent les notes de tournage par club et le suivi des testeurs. L’éditeur photo partage le recadrage web avec les WebView natives. Le modèle Selfie Segmenter v1 de Google et son moteur s’exécutent sur l’appareil. Le générateur produit désormais le même mot-symbole pour les e-mails, les applications et Stripe. La préparation d’un APK et sa publication sont décrites dans `docs/reference/fiches-stores.md`. Le build 28 sert déjà la bonne icône sur App Store Connect. Les bundles Expo et le parcours navigateur des deux séances ont été vérifiés. La PR ne diffuse aucun nouveau binaire.
+
 ## Codex, fils d’exercice et de débrief · 25 novembre 2026
 
 Les routes du fil conservent une discussion par athlète et par exercice effectif, ou par débrief après validation de la séance. Les réponses textuelles et audio supportent la répétition d’un envoi. Le retrait du consentement santé efface les échanges du débrief. Le fournisseur de transcription reçoit un seul vocal sur accord explicite de son auteur. La version et un verrou temporaire évitent les traitements concurrents. La matrice HTTP, les tests de concurrence et un essai du prestataire réel avec une voix de synthèse passent. Le parcours d’échange entre deux comptes passe dans le navigateur, sur un iPhone simulé et sur un émulateur Android.

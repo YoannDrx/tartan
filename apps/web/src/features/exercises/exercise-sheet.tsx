@@ -52,7 +52,14 @@ export const ExerciseDetail = ({
           className="h-auto w-full max-w-[488px] rounded-card"
         />
       )}
-      {exercise.guide ? <MovementGuide guide={exercise.guide} variants={variants} basePath={basePath} /> : null}
+      {exercise.guide ? (
+        <MovementGuide
+          hideIllustration={media?.kind === "upload" && Boolean(media.streamUrl)}
+          guide={exercise.guide}
+          variants={variants}
+          basePath={basePath}
+        />
+      ) : null}
       {media?.kind === "youtube" || media?.kind === "instagram" ? (
         <ExternalVideo media={media} title={exercise.name} />
       ) : media?.kind === "upload" && media.streamUrl ? (

@@ -53,7 +53,9 @@ const SessionEffects = () => {
     void hydrate(userId).then(flush);
     void flushUploads();
     void registerPush({ prompt: false });
-    void reportClientVersion();
+    void queryClient
+      .fetchQuery({ queryKey: ["beta-update", userId], queryFn: async () => (await reportClientVersion()) ?? null })
+      .catch(() => undefined);
     return listenToPushToken();
   }, [userId, hydrate, flush]);
   return null;

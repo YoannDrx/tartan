@@ -110,12 +110,12 @@ export const registerDevice = async (
 
 export const listNotifications = async (
   userId: string,
-  query: { cursor?: string; limit?: number } = {},
+  query: { cursor?: string; limit?: number; filter?: "unread" | "read" } = {},
 ): Promise<NotificationsPage> => {
   const limit = query.limit ?? 30;
   const [rows, unread] = await Promise.all([
     prisma.notification.findMany({
-      where: { userId },
+      where: { userId, readAt: query.filter === "unread" ? null : query.filter === "read" ? { not: null } : undefined },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),

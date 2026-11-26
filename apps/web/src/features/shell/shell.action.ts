@@ -23,6 +23,7 @@ export const chooseHomeAction = authAction
   .inputSchema(z.object({ organizationId: uuid }))
   .action(async ({ parsedInput, ctx }) => {
     await updatePreferences(ctx.actor.userId, { homeOrganizationId: parsedInput.organizationId });
+    await writeSpaceCookie(parsedInput.organizationId);
     revalidatePath("/", "layout");
   });
 

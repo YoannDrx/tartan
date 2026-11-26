@@ -244,6 +244,7 @@ model Organization {
   groups            Group[]
   athletes          Athlete[]
   invitations       Invitation[]
+  filmingNotes       ExerciseFilming[]
   exercises         Exercise[]
   exerciseLists     ExerciseList[]
   exerciseTermAliases ExerciseTermAlias[]
@@ -623,6 +624,20 @@ enum ExerciseCategory {
   @@map("exercise_category")
 }
 
+model ExerciseFilming {
+  organizationId String @map("organization_id") @db.Uuid
+  exerciseId String @map("exercise_id") @db.Uuid
+  filmed Boolean @default(false)
+  comment String @default("") @db.VarChar(2000)
+  revision Int @default(1)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, exerciseId])
+  @@index([exerciseId])
+  @@map("exercise_filming")
+}
+
 model Exercise {
   catalogKey          String?          @unique @map("catalog_key")
   sourceCatalogKey    String?          @map("source_catalog_key")
@@ -645,6 +660,7 @@ model Exercise {
   updatedAt           DateTime         @updatedAt @map("updated_at")
   organization        Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  filmingNotes ExerciseFilming[]
   media ExerciseMedia[]
   videos Video[]
   items SessionItem[]
@@ -2169,7 +2185,37 @@ model GameBan {
   @@map("game_bans")
 }
 
+model BetaApkRelease {
+  build Int @id
+  version String
+  digest String @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("beta_apk_releases")
+}
+
+model BetaInstallation {
+  testerId String @map("tester_id") @db.Uuid
+  installationId String @map("installation_id") @db.Uuid
+  platform DevicePlatform
+  model String?
+  os String
+  appVersion String @map("app_version")
+  build String
+  firstSeenAt DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt DateTime @map("last_seen_at")
+  tester BetaTester @relation(fields:[testerId],references:[id],onDelete:Cascade)
+
+  @@id([testerId,installationId])
+  @@map("beta_installations")
+}
+
 model BetaTester {
+  installations BetaInstallation[]
+  openedAt DateTime? @map("opened_at")
+  apkAt DateTime? @map("apk_at")
+  appleAt DateTime? @map("apple_at")
+
   id             String    @id @default(uuid()) @db.Uuid
   email          String    @unique
   tokenId        String    @unique @map("token_id") @db.Uuid

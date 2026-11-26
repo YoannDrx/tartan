@@ -2,10 +2,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
 import { AVATAR_PRESETS, type AvatarPreset, type MeResponse } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { File } from "expo-file-system";
+import { PortraitEditor } from "./portrait-editor";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { api } from "../lib/api";
-import { pickAvatarPhoto, uploadAvatarPhoto } from "../lib/avatar-upload";
+import { pickAvatarPhoto } from "../lib/avatar-upload";
 import { errorMessage } from "../lib/errors";
 import { Avatar } from "../ui/avatar";
 import { PresetArt, presetLabel } from "../ui/avatar-art";
@@ -60,6 +62,7 @@ const PresetTile = ({
 // La photo de profil : la photo du téléphone recadrée en carré, un avatar de la galerie, ou les initiales.
 export const AvatarEditor = ({ me }: { me: MeResponse }) => {
   const client = useQueryClient();
+  const [source, setSource] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const name = [me.firstName, me.lastName].filter(Boolean).join(" ") || me.email;
@@ -70,17 +73,31 @@ export const AvatarEditor = ({ me }: { me: MeResponse }) => {
   };
 
   const photo = useMutation({
-    mutationFn: async (from: "library" | "camera") => {
+    mutationFn: async (from: "library" | "camera" | "current") => {
+      if (from === "current" && me.avatarUrl) {
+        const response = await fetch(me.avatarUrl);
+        if (!response.ok) throw new Error();
+        const blob = await response.blob();
+        if (blob.size > 12 * 1024 * 1024) throw new Error();
+        const uri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error());
+          reader.readAsDataURL(blob);
+        });
+        return { kind: "edit" as const, uri };
+      }
+      if (from === "current") return { kind: "unreadable" as const };
       const picked = await pickAvatarPhoto(from);
       if (picked.kind !== "picked") return picked;
-      return { kind: "saved" as const, me: await uploadAvatarPhoto(picked.uri) };
+      return { kind: "edit" as const, uri: `data:image/jpeg;base64,${await new File(picked.uri).base64()}` };
     },
     onMutate: () => {
       setNotice(null);
       setError(null);
     },
     onSuccess: (outcome) => {
-      if (outcome.kind === "saved") saved(outcome.me, m.account.avatar.saved);
+      if (outcome.kind === "edit") setSource(outcome.uri);
       else if (outcome.kind === "denied") setError(m.account.avatar.permissionCamera);
       else if (outcome.kind === "unreadable") setError(m.account.avatar.unreadable);
     },
@@ -108,9 +125,19 @@ export const AvatarEditor = ({ me }: { me: MeResponse }) => {
 
   return (
     <View style={{ gap: space.sm }}>
+      {source && (
+        <PortraitEditor
+          source={source}
+          onClose={() => setSource(null)}
+          onSaved={(next) => {
+            setSource(null);
+            saved(next, m.account.avatar.saved);
+          }}
+        />
+      )}
       <SectionTitle>{m.account.avatar.section}</SectionTitle>
       <Card>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space.lg }}>
+        <View style={{ alignItems: "center", gap: space.lg }}>
           <Avatar
             testID="avatar-current"
             person={{
@@ -120,13 +147,21 @@ export const AvatarEditor = ({ me }: { me: MeResponse }) => {
               avatarUrl: me.avatarUrl,
               avatarPreset: me.avatarPreset,
             }}
-            size="xl"
+            size="portrait"
             labelled
           />
-          <T variant="small" tone="muted" style={{ flex: 1 }}>
+          <T variant="small" tone="muted">
             {m.account.avatar.detail}
           </T>
         </View>
+        {me.avatarUrl && (
+          <Button
+            variant="secondary"
+            label={m.account.avatar.recrop}
+            disabled={busy}
+            onPress={() => photo.mutate("current")}
+          />
+        )}
         <Button
           testID="avatar-library"
           label={m.account.avatar.fromLibrary}

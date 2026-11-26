@@ -26,3 +26,6 @@ apps/web/src/generated
 # Clip de démonstration pour les captures (VIDEO_DEV_MP4_URL), jamais versionné
 apps/web/public/dev/
 apps/web/public/dev-clip.*
+
+# Produced from the locked MediaPipe package by the web postinstall.
+apps/web/public/portrait/runtime/

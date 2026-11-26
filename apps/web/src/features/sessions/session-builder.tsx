@@ -405,23 +405,26 @@ export const PrescriptionEditor = ({
         )}
       </Field>
       <SetPlanEditor value={value} onChange={onChange} />
-      <Field label={m.builder.notes} className="col-span-2 tablet:col-span-3">
-        {(a) => (
-          <Input
-            {...a}
-            value={value.notes ?? ""}
-            onChange={(e) => onChange({ ...value, notes: e.target.value || undefined })}
+      <div className="col-span-full grid gap-1 rounded-control border border-card-line p-2">
+        <Field label={m.builder.notes}>
+          {(a) => (
+            <Input
+              {...a}
+              className="border-0"
+              value={value.notes ?? ""}
+              onChange={(e) => onChange({ ...value, notes: e.target.value || undefined })}
+            />
+          )}
+        </Field>
+        {organizationId ? (
+          <InstructionRecorder
+            organizationId={organizationId}
+            clipId={value.coachVoiceId}
+            onChange={(id) => onChange({ ...value, coachVoiceId: id })}
+            onPendingChange={onVoicePendingChange}
           />
-        )}
-      </Field>
-      {organizationId ? (
-        <InstructionRecorder
-          organizationId={organizationId}
-          clipId={value.coachVoiceId}
-          onChange={(id) => onChange({ ...value, coachVoiceId: id })}
-          onPendingChange={onVoicePendingChange}
-        />
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 };

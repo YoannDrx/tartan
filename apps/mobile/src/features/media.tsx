@@ -190,6 +190,7 @@ export const ExerciseVideo = ({ media, rate }: { media: ExerciseMedia | null; ra
 };
 
 type ExerciseRowProps = {
+  ordinal?: number;
   name: string;
   category: string;
   summary?: string;
@@ -215,6 +216,7 @@ export const ExerciseRow = ({ accessory, ...props }: ExerciseRowProps) =>
   );
 
 const ExerciseRowBody = ({
+  ordinal,
   name,
   category,
   summary,
@@ -244,6 +246,11 @@ const ExerciseRowBody = ({
         opacity: pressed ? 0.8 : 1,
       })}
     >
+      {ordinal !== undefined && (
+        <T variant="caption" tone="muted">
+          {ordinal}
+        </T>
+      )}
       <View
         style={{
           width: 44,

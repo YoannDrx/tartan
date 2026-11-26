@@ -1,3 +1,5 @@
+import type { CheckInInput } from "@tartan/contracts";
+import { currentApk } from "./beta-apk.service";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { createElement } from "react";
@@ -15,15 +17,21 @@ import { syncAppleBeta } from "./beta-apple";
 const PURPOSE = "beta-install-v1";
 const days = (n: number) => n * 86400000;
 const live = (row: BetaTester, now: Date) => !row.revokedAt && row.expiresAt > now;
-const apkReady = () => Boolean(env().BETA_APK_PATH && env().BETA_APK_READ_WRITE_TOKEN && env().BETA_APK_VERSION);
-const payload = z.object({ id: z.uuid(), version: z.number().int(), channel: z.enum(["ios", "android", "play"]) });
+const payload = z.object({
+  id: z.uuid(),
+  version: z.number().int(),
+  channel: z.enum(["ios", "android", "play", "invite"]),
+  build: z.number().int().positive().optional(),
+  tokenId: z.uuid().optional(),
+});
 type Channel = z.infer<typeof payload>["channel"];
-const ready = (r: BetaTester, c: Channel) =>
+const ready = (r: BetaTester, c: Exclude<Channel, "invite">, apk: boolean) =>
   c === "ios"
     ? r.ios && r.iosAuthorized
     : c === "play"
       ? r.android && r.playAuthorized && Boolean(env().BETA_PLAY_URL)
-      : r.android && apkReady();
+      : r.android && apk;
+const inviteUrl = (row: BetaTester) => env().NEXT_PUBLIC_APP_URL + "/installation#" + deriveToken(PURPOSE, row.tokenId);
 const key = (r: BetaTester, c: Channel) => `beta:${r.id}:${r.version}:${c}`;
 const txOptions = { timeout: 25000 };
 const lock = (tx: Prisma.TransactionClient, id: string) =>
@@ -58,7 +66,11 @@ export async function inviteBeta(actor: Actor, email: string, platform: "ios" | 
       nextAttemptAt: now,
       revokedAt: null,
       providerFailed: false,
+      openedAt: null,
+      apkAt: null,
+      appleAt: null,
     };
+    if (previous) await tx.betaInstallation.deleteMany({ where: { testerId: previous.id } });
     return tx.betaTester.upsert({
       where: { email: address },
       create: { email: address, ...data },
@@ -102,26 +114,88 @@ export async function betaAccess(token: string, now = new Date()) {
   if (token.length > 100 || !tokenMatches(PURPOSE, token)) return null;
   const row = await prisma.betaTester.findUnique({ where: { tokenId: idFromToken(token)! } });
   if (!row || !live(row, now) || row.tokenHash !== sha256(token)) return null;
-  return { ios: ready(row, "ios"), android: ready(row, "android"), play: ready(row, "play") };
+  const apk = await currentApk();
+  return {
+    ios: ready(row, "ios", Boolean(apk)),
+    android: ready(row, "android", Boolean(apk)),
+    play: ready(row, "play", Boolean(apk)),
+    apk,
+  };
+}
+export async function recordBetaEvent(token: string, event: "openedAt" | "apkAt" | "appleAt", now = new Date()) {
+  if (!tokenMatches(PURPOSE, token)) return false;
+  const result = await prisma.betaTester.updateMany({
+    where: {
+      tokenId: idFromToken(token)!,
+      tokenHash: sha256(token),
+      revokedAt: null,
+      expiresAt: { gt: now },
+      ...(event === "apkAt" ? { android: true } : event === "appleAt" ? { ios: true, iosAuthorized: true } : {}),
+    },
+    data: { [event]: now },
+  });
+  return result.count === 1;
+}
+export async function recordBetaUse(userId: string, input: CheckInInput, now: Date) {
+  if (!input.beta || input.platform === "web") return;
+  const { platform, beta } = input;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, emailVerified: true } });
+  if (!user?.emailVerified) return;
+  const tester = await prisma.$transaction(async (tx) => {
+    const address = user.email.toLowerCase();
+    const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM beta_testers WHERE email = ${address} FOR UPDATE`;
+    if (!rows.length) return null;
+    const row = await tx.betaTester.findUniqueOrThrow({ where: { id: rows[0]!.id } });
+    if (!live(row, now) || !row[platform]) return null;
+    const device = {
+      platform,
+      model: beta.model ?? null,
+      os: beta.os,
+      appVersion: input.appVersion,
+      build: beta.build,
+      lastSeenAt: now,
+    };
+    await tx.betaInstallation.upsert({
+      where: { testerId_installationId: { testerId: row.id, installationId: input.installationId } },
+      create: { testerId: row.id, installationId: input.installationId, firstSeenAt: now, ...device },
+      update: device,
+    });
+    return row;
+  });
+  if (!tester) return;
+  if (platform !== "android") return;
+  const apk = await currentApk();
+  if (apk && /^\d+$/.test(beta.build) && Number(beta.build) < apk.build)
+    return { url: inviteUrl(tester), build: apk.build, version: apk.version };
 }
 export async function isBetaMailRelevant(raw: unknown, email: string, now = new Date()) {
   const p = payload.parse(raw),
     r = await prisma.betaTester.findUnique({ where: { id: p.id } });
+  const apk = await currentApk();
+  const available =
+    r &&
+    (p.channel === "invite"
+      ? (["ios", "android", "play"] as const).some((c) => ready(r, c, Boolean(apk)))
+      : ready(r, p.channel, Boolean(apk)));
   return Boolean(
     env().BETA_INVITES_ENABLED === "true" &&
     r &&
     r.email === email &&
     live(r, now) &&
-    r.version === p.version &&
-    ready(r, p.channel),
+    (p.build ? p.tokenId === r.tokenId && p.build === apk?.build : r.version === p.version) &&
+    available,
   );
 }
 export async function renderBetaMail(raw: unknown) {
   const p = payload.parse(raw),
     r = await prisma.betaTester.findUniqueOrThrow({ where: { id: p.id } });
-  if (r.version !== p.version) throw notFound();
-  const url = env().NEXT_PUBLIC_APP_URL + "/installation#" + deriveToken(PURPOSE, r.tokenId);
-  return { subject: w.admin.testers.subject, react: createElement(BetaEmail, { url }) };
+  if (p.build ? p.tokenId !== r.tokenId : r.version !== p.version) throw notFound();
+  const url = inviteUrl(r);
+  const update = p.build ? (await currentApk())?.version : undefined;
+  return {
+    subject: update ? w.admin.testers.update(update) : w.admin.testers.subject,
+    react: createElement(BetaEmail, { url, update }),
+  };
 }
 export async function dispatchBeta(now = new Date()) {
   const rows = await prisma.betaTester.findMany({
@@ -130,6 +204,7 @@ export async function dispatchBeta(now = new Date()) {
     take: 8,
     select: { id: true },
   });
+  const apk = Boolean(await currentApk());
   for (const { id } of rows) {
     try {
       if (env().BETA_INVITES_ENABLED === "true") {
@@ -166,16 +241,20 @@ export async function dispatchBeta(now = new Date()) {
             });
         }
         if (active && enabled) {
-          for (const channel of ["ios", "android", "play"] as const) {
-            if (ready(r, channel))
+          if ((["ios", "android", "play"] as const).some((c) => ready(r, c, apk))) {
+            // Une invitation déjà livrée par l’ancien système continue à ouvrir les deux plateformes.
+            const legacy = await tx.emailOutbox.count({
+              where: { dedupeKey: { in: (["ios", "android", "play"] as const).map((c) => key(r, c)) }, failedAt: null },
+            });
+            if (!legacy)
               await tx.emailOutbox.createMany({
                 data: [
                   {
                     toEmail: r.email,
                     retryUntil: r.expiresAt,
                     kind: "beta_install",
-                    dedupeKey: key(r, channel),
-                    payload: { id, channel, version: r.version },
+                    dedupeKey: key(r, "invite"),
+                    payload: { id, channel: "invite", version: r.version },
                   },
                 ],
                 skipDuplicates: true,
@@ -200,29 +279,38 @@ export async function dispatchBeta(now = new Date()) {
 }
 export async function listBeta(actor: Actor, now = new Date()) {
   await requireStepUp(actor, STEP_UP_READ_MS);
-  const rows = await prisma.betaTester.findMany({ orderBy: { createdAt: "desc" } });
+  const rows = await prisma.betaTester.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { installations: { orderBy: { lastSeenAt: "desc" } } },
+  });
+  const apk = Boolean(await currentApk());
   const mail = await prisma.emailOutbox.findMany({
     where: {
       kind: "beta_install",
-      dedupeKey: { in: rows.flatMap((r) => (["ios", "android", "play"] as const).map((c) => key(r, c))) },
+      dedupeKey: { in: rows.flatMap((r) => (["ios", "android", "play", "invite"] as const).map((c) => key(r, c))) },
     },
     select: { dedupeKey: true, sentAt: true, failedAt: true },
   });
   const messages = new Map(mail.map((r) => [r.dedupeKey, r]));
   const t = w.admin.testers;
   return rows.map((r) => {
-    const status = (c: Channel) => {
+    const status = (c: Exclude<Channel, "invite">) => {
       if (r.revokedAt) return t.revoked;
       if (r.expiresAt <= now) return t.expired;
-      const message = messages.get(key(r, c));
+      const message = messages.get(key(r, "invite")) ?? messages.get(key(r, c));
       if (message?.failedAt || (c === "ios" && r.providerFailed)) return t.failed;
-      if (message?.sentAt) return t.sent;
-      return ready(r, c) ? t.authorized : t.pending;
+      if (!ready(r, c, apk)) return t.pending;
+      return message?.sentAt ? t.sent : t.authorized;
     };
     return {
       id: r.id,
       version: r.version,
       email: r.email,
+      url: live(r, now) ? inviteUrl(r) : null,
+      openedAt: r.openedAt,
+      apkAt: r.apkAt,
+      appleAt: r.appleAt,
+      installations: r.installations,
       ios: r.ios ? status("ios") : null,
       android: r.android ? status(r.playAuthorized ? "play" : "android") : null,
       active: live(r, now),

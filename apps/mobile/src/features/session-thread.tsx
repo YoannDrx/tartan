@@ -151,6 +151,7 @@ export function ThreadConversation({
   target: SessionThreadTarget;
   onBusyChange?: (value: boolean) => void;
 }) {
+  const palette = usePalette();
   const focused = useIsFocused();
   const query = useQuery({
     enabled: focused,
@@ -245,15 +246,27 @@ export function ThreadConversation({
         </MessageBubble>
       ))}
       {!data.root && data.messages.length === 0 ? <T variant="small">{t.emptyHint}</T> : null}
-      <Field
-        testID="thread-text"
-        multiline
-        label={t.write}
-        maxLength={2000}
-        value={draft}
-        editable={!sending}
-        onChangeText={setDraft}
-      />
+      <View style={{ borderWidth: 1, borderColor: palette.border, borderRadius: radius.card, padding: space.sm }}>
+        <Field
+          style={{ borderWidth: 0 }}
+          testID="thread-text"
+          multiline
+          label={t.write}
+          maxLength={2000}
+          value={draft}
+          editable={!sending}
+          onChangeText={setDraft}
+        />
+        <VoiceCapture
+          upload={async (uri, clientId, signal) => {
+            await sendSessionThreadAudio(target, uri, clientId, signal);
+            if (!signal.aborted) refresh();
+          }}
+          recordLabel={t.record}
+          sendLabel={t.sendAudio}
+          onBusyChange={setRecording}
+        />
+      </View>
       {draft.trim() ? (
         <Button
           testID="thread-send-text"
@@ -268,15 +281,6 @@ export function ThreadConversation({
           {t.sendError}
         </T>
       ) : null}
-      <VoiceCapture
-        upload={async (uri, clientId, signal) => {
-          await sendSessionThreadAudio(target, uri, clientId, signal);
-          if (!signal.aborted) refresh();
-        }}
-        recordLabel={t.record}
-        sendLabel={t.sendAudio}
-        onBusyChange={setRecording}
-      />
     </View>
   );
 }

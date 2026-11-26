@@ -10,7 +10,7 @@ export const Logo = ({ height = 32, onDark = false }: { height?: number; onDark?
   <Image
     src={onDark ? "/brand/logo-on-dark.svg" : "/brand/logo.svg"}
     alt={w.shell.brand}
-    width={Math.round((height * 573) / 160)}
+    width={Math.round((height * 408) / 107)}
     height={height}
     unoptimized
     priority

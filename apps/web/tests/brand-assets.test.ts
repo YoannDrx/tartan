@@ -22,7 +22,10 @@ const PNGS: [file: string, width: number, height: number, alpha: boolean][] = [
   [`${web}/icon-192.png`, 192, 192, true],
   [`${web}/icon-512.png`, 512, 512, true],
   [`${web}/icon-maskable-512.png`, 512, 512, false],
-  [`${web}/brand/logo-email.png`, 258, 72, true],
+  [`${web}/brand/logo-email.png`, 274, 72, true],
+  [`${web}/brand/logo-stripe.png`, 512, 134, true],
+  [`${mobile}/wordmark-light.png`, 816, 214, true],
+  [`${mobile}/wordmark-dark.png`, 816, 214, true],
   [`${web}/brand/og.png`, 1200, 630, false],
   [`${mobile}/icon-ios.png`, 1024, 1024, false],
   [`${mobile}/icon-ios-dark.png`, 1024, 1024, true],
@@ -40,9 +43,9 @@ const SVGS: [file: string, viewBox: string][] = [
   [`${web}/brand/icon.svg`, "0 0 160 160"],
   [`${web}/brand/icon-small.svg`, "0 0 160 160"],
   [`${web}/brand/icon-mono.svg`, "0 0 160 160"],
-  [`${web}/brand/logo.svg`, "0 0 573 160"],
-  [`${web}/brand/logo-mono.svg`, "0 0 573 160"],
-  [`${web}/brand/logo-on-dark.svg`, "0 0 573 160"],
+  [`${web}/brand/logo.svg`, "3 -105 408 107"],
+  [`${web}/brand/logo-mono.svg`, "3 -105 408 107"],
+  [`${web}/brand/logo-on-dark.svg`, "3 -105 408 107"],
   // Le mot « Tartan » de l'en-tête du site : `.wordmark` (globals.css) reprend ce rapport, 408 sur 107.
   [`${web}/brand/wordmark-letters.svg`, "3 -105 408 107"],
   [`${web}/brand/wordmark-line.svg`, "3 -105 408 107"],
@@ -89,6 +92,6 @@ describe("fichiers du logo", () => {
 
   // Le composant du logotype calcule sa largeur d'après ce rapport.
   it("le logotype garde le rapport que le composant attend", () => {
-    expect(readFileSync(path.join(root, "apps/web/src/components/logo.tsx"), "utf8")).toContain("573) / 160");
+    expect(readFileSync(path.join(root, "apps/web/src/components/logo.tsx"), "utf8")).toContain("408) / 107");
   });
 });

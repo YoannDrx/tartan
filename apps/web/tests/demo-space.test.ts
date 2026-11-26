@@ -397,7 +397,7 @@ describe("coupé dans l'espace de démonstration, service par service", () => {
     const admin = { email: `admin-demo-${randomUUID().slice(0, 8)}@test.tartan.coach`, userId: randomUUID() };
     await prisma.platformAdmin.create({ data: { email: admin.email } });
     const usage = await usageOverview(admin);
-    expect(usage.spaces).toBe(await prisma.organization.count({ where: { isDemo: false } }));
+    expect(usage.spaces).toBe(await prisma.organization.count({ where: { isDemo: false, kind: "coach" } }));
     const listed = await adminListSpaces(admin, { q: "Démonstration" });
     expect(JSON.stringify(listed)).not.toContain(demo.organizationId);
   });

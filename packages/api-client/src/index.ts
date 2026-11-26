@@ -1,6 +1,9 @@
 import {
   exerciseList,
   exerciseSearchResult,
+  checkInResult,
+  filmingNote,
+  type FilmingNote,
   exerciseSheet,
   quickExerciseResult,
   type QuickExerciseInput,
@@ -392,8 +395,9 @@ export const createApiClient = (options: ApiClientOptions) => {
       platform: "ios" | "android" | "web",
       client: { appVersion?: string; updateId?: string | null; installationId?: string } = {},
     ) => request("POST", "/devices", okResponse, { pushToken, platform, ...client }),
-    checkIn: (body: CheckInInput) => request("POST", "/client/check-in", okResponse, body),
-    notifications: (cursor?: string) => request("GET", "/notifications", notificationsPage, undefined, { cursor }),
+    checkIn: (body: CheckInInput) => request("POST", "/client/check-in", checkInResult, body),
+    notifications: (cursor?: string, filter?: "unread" | "read") =>
+      request("GET", "/notifications", notificationsPage, undefined, { cursor, filter }),
     markNotificationsRead: (body: { ids?: string[]; all?: true }) =>
       request("POST", "/notifications/read", okResponse, body),
     releases: (platform: "web" | "ios" | "android") =>
@@ -561,6 +565,9 @@ export const createApiClient = (options: ApiClientOptions) => {
         `/orgs/${orgId}/exercises/${exerciseId}/personalize`,
         z.object({ id: z.string(), created: z.boolean() }),
       ),
+    filmingNotes: (orgId: string) => request("GET", `/orgs/${orgId}/exercise-filming`, z.array(filmingNote)),
+    saveFilming: (orgId: string, note: FilmingNote) =>
+      request("PUT", `/orgs/${orgId}/exercise-filming`, filmingNote, note),
     exerciseLists: (orgId: string) => request("GET", `/orgs/${orgId}/exercise-lists`, z.array(exerciseList)),
     createExerciseList: (orgId: string, name: string) =>
       request("POST", `/orgs/${orgId}/exercise-lists`, z.object({ id: z.string() }), { name }),

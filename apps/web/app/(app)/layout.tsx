@@ -13,7 +13,7 @@ import { unseenRelease } from "@/server/releases.service";
 import { shouldAskSatisfaction } from "@/server/satisfaction.service";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const { actor, space, staff } = await requireSpace();
+  const { actor, space, spaces, staff } = await requireSpace();
   const [askSatisfaction, me, unseen, billingAlert, onboarding] = await Promise.all([
     shouldAskSatisfaction(actor.userId),
     getMe(actor.userId),
@@ -37,6 +37,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <AppShell
             staff={staff}
             space={space}
+            spaces={spaces}
             account={{
               name,
               email: me.email,

@@ -146,7 +146,10 @@ function GuideMedia({ guide }: { guide: ExerciseGuide }) {
           style={{ width: "100%", aspectRatio: 1 }}
         />
       ) : (
-        <CatalogVideoPlayer guide={guide} videos={guide.illustration.videos ?? []} />
+        <CatalogVideoPlayer
+          guide={guide}
+          videos={guide.illustration.videos?.filter((video) => video.streamUrl) ?? []}
+        />
       )}
     </View>
   );
@@ -209,11 +212,13 @@ const Bullets = ({ lines }: { lines: readonly string[] }) => {
  * les erreurs à éviter, puis les variantes. Le texte complet reste sous « Détail ».
  */
 export function MovementGuide({
+  hideIllustration = false,
   guide,
   variants,
   onOpenVariant,
 }: {
   guide: ExerciseGuide;
+  hideIllustration?: boolean;
   variants?: GuideVariants;
   onOpenVariant?: (variant: { id: string; name: string }) => void;
 }) {
@@ -230,7 +235,7 @@ export function MovementGuide({
   const authorship = guideAuthorship(guide);
   return (
     <View testID="exercise-guide-concise" accessibilityLabel={m.exerciseGuide.title} style={{ gap: space.lg }}>
-      <GuideMedia guide={guide} />
+      {!hideIllustration && <GuideMedia guide={guide} />}
       <T variant="bodyStrong">{text.objective}</T>
       <View style={{ gap: space.xs }}>
         <SectionTitle>{t.setup}</SectionTitle>

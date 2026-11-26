@@ -18,7 +18,16 @@ const config = [
   },
   // Le catalogue d'essai porte des données fictives, pas des textes du produit.
   { files: ["emails/catalog.tsx"], rules: { "tartan/no-hardcoded-text": "off" } },
-  { ignores: [".next/**", ".next-e2e/**", "src/generated/**", "playwright-report/**", "test-results/**"] },
+  {
+    ignores: [
+      "public/portrait/runtime/**",
+      ".next/**",
+      ".next-e2e/**",
+      "src/generated/**",
+      "playwright-report/**",
+      "test-results/**",
+    ],
+  },
 ];
 
 export default config;

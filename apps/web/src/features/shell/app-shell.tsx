@@ -14,13 +14,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { type ReactNode } from "react";
 import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { Logo, LogoMark } from "@/components/logo";
-import { RouteTransition } from "@/components/ui/route-transition";
+import { selectableSpaces } from "@tartan/domain";
+import { chooseHomeAction } from "./shell.action";
+import { useAction } from "next-safe-action/hooks";
+import { onErr } from "@/features/settings/shared";
 import { ACTIVE_TAB } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
 import { worldFor } from "@/lib/world";
@@ -65,6 +68,7 @@ const personalItems: Item[] = [
 export const AppShell = ({
   staff,
   space,
+  spaces,
   account,
   admin,
   askSatisfaction = false,
@@ -74,6 +78,7 @@ export const AppShell = ({
 }: {
   staff: boolean;
   space: SpaceSummary;
+  spaces: SpaceSummary[];
   account: Account;
   admin: boolean;
   askSatisfaction?: boolean;
@@ -81,6 +86,9 @@ export const AppShell = ({
   billingAlert?: "past_due" | null;
   children: ReactNode;
 }) => {
+  const choices = selectableSpaces(spaces);
+  const router = useRouter();
+  const choose = useAction(chooseHomeAction, { onError: onErr, onSuccess: () => router.replace("/accueil") });
   const pathname = usePathname().replace(/^\/(carnet|club)(?=\/)/, "");
   const work = worldFor(pathname) === "world-work";
   const selectedClass = "bg-accent text-on-accent";
@@ -103,7 +111,7 @@ export const AppShell = ({
   return (
     <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
       <header className={cn("app-header sticky z-30", barClass)}>
-        <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-2 px-4 tablet:gap-4 desktop:px-6">
+        <div className="mx-auto flex min-h-14 max-w-[1440px] flex-wrap items-center gap-x-2 px-4 tablet:flex-nowrap tablet:gap-4 desktop:px-6">
           {/* Sur téléphone, l'icône seule : la place revient au nom de l'espace (audit G6). */}
           <Link href="/accueil" className="flex min-h-11 min-w-24 items-center gap-2">
             <span className="tablet:hidden">
@@ -115,11 +123,29 @@ export const AppShell = ({
             </span>
             <span className="flex min-w-0 flex-col leading-tight">
               <strong>{staff ? m.roles.coach : m.roles.athlete}</strong>{" "}
-              <span data-testid="space-name" className="max-w-32 truncate text-[13px]">
+              <span hidden={choices.length > 1} data-testid="space-name" className="max-w-32 truncate text-[13px]">
                 {space.organizationName}
               </span>
             </span>
           </Link>
+          {choices.length > 1 && (
+            <select
+              aria-label={m.settings.switchSpace}
+              value={space.organizationId}
+              disabled={choose.isPending}
+              onChange={(event) => choose.execute({ organizationId: event.target.value })}
+              className="order-last mb-1 min-h-11 w-full min-w-0 truncate rounded-control tablet:order-none tablet:mb-0 tablet:w-auto bg-card px-2 text-card-fg tablet:max-w-52"
+            >
+              {!choices.some((s) => s.organizationId === space.organizationId) && (
+                <option value={space.organizationId}>{space.organizationName}</option>
+              )}
+              {choices.map((s) => (
+                <option key={s.organizationId} value={s.organizationId}>
+                  {s.organizationName} ({m.roles[s.role]})
+                </option>
+              ))}
+            </select>
+          )}
           <nav aria-label={w.shell.mainNav} className="hidden flex-1 items-center gap-1 desktop:flex">
             {items.map((item) => (
               <Link
@@ -181,7 +207,7 @@ export const AppShell = ({
           </p>
         ) : null}
         {/* Le contenu d'abord, l'athlète vient pour sa séance : les autres bandeaux passent dessous. */}
-        <RouteTransition>{children}</RouteTransition>
+        {children}
         <UpdateWatcher unseen={unseenRelease} />
         <InstallBanner />
         {askSatisfaction && !space.isDemo ? <SatisfactionQuestion /> : null}

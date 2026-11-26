@@ -1,12 +1,12 @@
 import { avatarSource, initialsOf } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useState } from "react";
-import { Image, Text, View } from "react-native";
+import { Image, Text, useWindowDimensions, View } from "react-native";
 import { PresetArt, presetLabel } from "./avatar-art";
 import { textStyles, usePalette } from "./theme";
 
 // Les tailles des avatars, les mêmes que sur le web. Un avatar touchable se pose dans une cible d'au moins 44 points.
-export const AVATAR_SIZES = { xs: 24, sm: 32, md: 40, lg: 64, xl: 96 } as const;
+export const AVATAR_SIZES = { xs: 24, sm: 32, md: 40, lg: 64, xl: 96, header: 80, portrait: 384 } as const;
 export type AvatarSize = keyof typeof AVATAR_SIZES;
 
 export type AvatarPerson = {
@@ -31,7 +31,8 @@ export const Avatar = ({
   testID?: string;
 }) => {
   const p = usePalette();
-  const px = AVATAR_SIZES[size];
+  const { width } = useWindowDimensions();
+  const px = size === "portrait" ? Math.min(384, width - 88) : AVATAR_SIZES[size];
   const [first, ...rest] = person.name.trim().split(/\s+/);
   const firstName = person.firstName ?? first ?? "";
   const lastName = person.lastName ?? rest.join(" ");

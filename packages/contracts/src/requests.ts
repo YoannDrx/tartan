@@ -468,7 +468,14 @@ export const deviceInput = z.object({
   installationId: uuid.optional(),
 });
 
+export const checkInResult = z.object({
+  ok: z.literal(true),
+  betaUpdate: z.object({ build: z.number().int().positive(), version: z.string(), url: z.url() }).optional(),
+});
 export const checkInInput = z.object({
+  beta: z
+    .object({ model: z.string().max(100).optional(), os: z.string().min(1).max(80), build: z.string().min(1).max(40) })
+    .optional(),
   installationId: uuid,
   platform: devicePlatform,
   appVersion: z.string().min(1).max(32),
@@ -482,6 +489,7 @@ export const markNotificationsInput = z
   .refine((value) => Boolean(value.ids) !== Boolean(value.all), { message: "Précise les notifications" });
 
 export const notificationsQuery = z.object({
+  filter: z.enum(["unread", "read"]).optional(),
   cursor: uuid.optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 });

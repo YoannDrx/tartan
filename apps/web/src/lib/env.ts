@@ -62,6 +62,8 @@ const schema = z.object({
   VAPID_PRIVATE_KEY: optional,
   VAPID_SUBJECT: z.string().default("mailto:bonjour@tartan.coach"),
   BETA_INVITES_ENABLED: z.enum(["true", "false"]).default("false"),
+  BETA_APK_CERT_SHA256: optional,
+  BETA_APK_BASE_BUILD: optional,
   BETA_APK_PATH: optional,
   BETA_APK_VERSION: optional,
   BETA_APK_READ_WRITE_TOKEN: optional,

@@ -367,6 +367,7 @@ export const createCheckout = async (
           button_color: tokens.color.brand,
           background_color: tokens.color.ink,
           icon: { type: "url", url: `${appUrl}/icon-512.png` },
+          logo: { type: "url", url: `${appUrl}/brand/logo-stripe.png` },
         },
         custom_text: {
           submit: {

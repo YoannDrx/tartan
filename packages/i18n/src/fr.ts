@@ -46,7 +46,8 @@ export const fr = {
     today: "aujourd’hui",
     tomorrow: "demain",
     yesterday: "hier",
-    published: (coach: string, day: string) => day ? `${coach} t'a envoyé une séance pour ${day}` : `${coach} t'a envoyé une séance`,
+    published: (coach: string, day: string) =>
+      day ? `${coach} t'a envoyé une séance pour ${day}` : `${coach} t'a envoyé une séance`,
     dated: (date: string) => `le ${date}`,
     session: (day: string) => {
       if (day === "aujourd’hui" || day === "hier") return `Ta séance d’${day}`;
@@ -56,9 +57,12 @@ export const fr = {
     updated: (session: string) => `${session} a été modifiée`,
     cancelled: (session: string) => `${session} est annulée`,
     autonomous: (session: string) => `${session} en autonomie est prête`,
-    attendance: (day: string, past: boolean) => past || !day ? `Présence au club${day ? ` ${day}` : ""} ?` : `Seras-tu au club ${day} ?`,
-    blocked: (day: string) => `La séance programmée${day ? ` pour ${day}` : ""} attend ta relecture : son auteur n'a plus accès`,
-    absence: (athlete: string, day: string, past: boolean) => past ? `Absence signalée par ${athlete} pour ${day}` : `${athlete} ne viendra pas${day ? ` ${day}` : ""}`,
+    attendance: (day: string, past: boolean) =>
+      past || !day ? `Présence au club${day ? ` ${day}` : ""} ?` : `Seras-tu au club ${day} ?`,
+    blocked: (day: string) =>
+      `La séance programmée${day ? ` pour ${day}` : ""} attend ta relecture : son auteur n'a plus accès`,
+    absence: (athlete: string, day: string, past: boolean) =>
+      past ? `Absence signalée par ${athlete} pour ${day}` : `${athlete} ne viendra pas${day ? ` ${day}` : ""}`,
   },
   brand: {
     name: "Tartan",
@@ -69,6 +73,7 @@ export const fr = {
     usual: "Accueil habituel",
     makeUsual: "Choisir comme accueil",
     openClub: "Ouvrir",
+    apkUpdate: (version: string) => `Installer la mise à jour Android · ${version}`,
     personalSession: "Ma séance",
     clubSession: "Séance du coach",
     notebook: "Mon carnet personnel",
@@ -2107,6 +2112,7 @@ export const fr = {
     avatar: {
       section: "Ta photo",
       detail: "Ton coach et ton groupe te reconnaissent d'un coup d'œil.",
+      recrop: "Recadrer ma photo",
       fromLibrary: "Choisir dans mes photos",
       fromCamera: "Prendre une photo",
       cropHint: "Tu recadres ensuite en carré : déplace et zoome avant de valider.",
@@ -2767,6 +2773,14 @@ export const fr = {
     aliases: "Autres noms",
     equipment: "Matériel",
   },
+  filming: {
+    title: "Suivi du tournage",
+    filmed: "Filmée",
+    pending: "À filmer",
+    comment: "Note de tournage pour les coachs du club",
+    progress: (filmed: number, total: number) => `${filmed} sur ${total} filmées`,
+    conflict: "Un autre coach a modifié cette fiche. Rouvre-la pour lire sa note.",
+  },
   exerciseGuide: {
     title: "Guide du mouvement",
     open: "Voir le guide du mouvement",
@@ -3230,7 +3244,8 @@ export const fr = {
     inviteCoach: "Inviter un coach",
     privacy: "Confidentialité",
     healthConsent: "Données de santé",
-    healthConsentDetail: "Blessures, douleurs, effort ressenti et échanges de débrief de séance, y compris les transcriptions.",
+    healthConsentDetail:
+      "Blessures, douleurs, effort ressenti et échanges de débrief de séance, y compris les transcriptions.",
     videoConsent: "Vidéos",
     videoConsentDetail: "Être filmé et conserver mes vidéos.",
     deleteAccount: "Supprimer mon compte",
@@ -3439,6 +3454,10 @@ export const fr = {
     open: (unread: number) => (unread > 0 ? `Notifications, ${unread} non lues` : "Notifications"),
     empty: "Rien de neuf pour l'instant.",
     markAll: "Tout marquer comme lu",
+    markOne: "Marquer comme lue",
+    readTab: "Lues",
+    unreadTab: "Non lues",
+    unreadCount: (count: number) => `Non lues (${count})`,
     more: "Voir plus",
     unread: "Non lue",
     categories: "Ce que je reçois",

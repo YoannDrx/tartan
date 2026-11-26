@@ -60,7 +60,7 @@ describe("fiche concise", () => {
     expect(guideAuthorship(guide({ technicalReview: "pending" }))).toBe("pending");
   });
 
-  it("propose la vidéo de catalogue à côté du geste animé, ou seule sans geste", () => {
+  it("présente la vidéo filmée seule dès qu’elle est lisible", () => {
     const video = { view: "side" as const, streamUrl: "https://stream.example/v.mp4", hlsUrl: null, posterUrl: null };
     const withVideo = guide({ illustration: { ...guide().illustration, videos: [video] } });
     const illustrated = {
@@ -70,9 +70,9 @@ describe("fiche concise", () => {
         photo: { path: "/exercise-photos/step-up-v1.webp", alt: "Pied sur la marche." },
       },
     };
-    expect(guideMediaModes(illustrated, true)).toEqual(["motion", "photo", "video"]);
-    expect(guideMediaModes(illustrated, true, false)).toEqual(["motion", "video"]);
-    expect(guideMediaModes(withVideo, true)).toEqual(["motion", "video"]);
+    expect(guideMediaModes(illustrated, true)).toEqual(["video"]);
+    expect(guideMediaModes(illustrated, true, false)).toEqual(["video"]);
+    expect(guideMediaModes(withVideo, true)).toEqual(["video"]);
     expect(guideMediaModes(withVideo, false)).toEqual(["video"]);
     expect(guideMediaModes(guide(), true)).toEqual(["motion"]);
     expect(guideMediaModes(guide(), false)).toEqual([]);

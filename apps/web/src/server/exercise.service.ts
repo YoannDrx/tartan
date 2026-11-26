@@ -54,7 +54,7 @@ import { legacyCovers, legacyCoverStamp } from "./legacy-catalog-covers";
 import { approvedEditorial, withApprovedImage } from "./catalog-editorial.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
-import { catalogVideos, withCatalogVideos } from "./catalog-media.service";
+import { catalogVideos, playableCatalogKeys, withCatalogVideos } from "./catalog-media.service";
 
 type MediaRow = {
   kind: "upload" | "youtube" | "instagram";
@@ -186,7 +186,14 @@ export const listExercises = async (userId: string, organizationId: string): Pro
 export const listExerciseIndex = async (userId: string, organizationId: string): Promise<ExerciseSummary[]> => {
   const access = await requireOrgMember(userId, organizationId, "viewExercises");
   if (access.role !== "athlete" || access.personal) await ensureExerciseCatalog(userId, organizationId);
-  return (await libraryRows(organizationId)).map((row) => lightSummary(readableExercise(row, access)));
+  const rows = (await libraryRows(organizationId)).map((row) => readableExercise(row, access));
+  const filmed = await playableCatalogKeys(rows.map(catalogKeyOf));
+  return rows.map((row) => ({
+    ...lightSummary(row),
+    hasFilmedVideo:
+      filmed.has(catalogKeyOf(row)) ||
+      Boolean(row.media[0]?.kind === "upload" && row.media[0].muxPlaybackId && env().MUX_SIGNING_KEY_ID),
+  }));
 };
 
 /** Les fiches qu'une séance ou un modèle cite déjà, sans guide : le constructeur n'embarque plus la bibliothèque. */

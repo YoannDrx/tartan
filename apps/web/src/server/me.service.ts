@@ -1,3 +1,4 @@
+import { selectableSpaces } from "@tartan/domain";
 import {
   calendarView,
   type AvatarPreset,
@@ -46,10 +47,14 @@ export const listSpaces = async (userId: string, options: { includeDemo?: boolea
   });
   const athletes = await prisma.athlete.findMany({ where: { userId }, select: { id: true, organizationId: true } });
   // Le tri stable garde le premier club rejoint à priorité égale.
+  const athleteClub = rows.some(
+    (row) => !row.organization.isDemo && row.organization.kind !== "personal" && row.role === "athlete",
+  );
   const priority = (row: (typeof rows)[number]) => {
     if (row.organization.isDemo) return 5;
-    if (row.organization.kind === "personal") return 4;
+    if (row.organization.kind === "personal" && athleteClub) return 4;
     if (row.organization.id === row.user.profile?.homeOrganizationId) return 0;
+    if (row.organization.kind === "personal") return 4;
     if (row.role === "owner") return 1;
     return isStaff(row.role) ? 2 : 3;
   };
@@ -134,7 +139,7 @@ export const getCalendarView = async (userId: string): Promise<CalendarView | nu
 export const updatePreferences = async (userId: string, input: PreferencesInput): Promise<void> => {
   if (input.homeOrganizationId) {
     const spaces = await listSpaces(userId);
-    if (!spaces.some((s) => s.organizationId === input.homeOrganizationId && s.kind !== "personal")) throw invalid();
+    if (!selectableSpaces(spaces).some((s) => s.organizationId === input.homeOrganizationId)) throw invalid();
     const data = { homeOrganizationId: input.homeOrganizationId };
     await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, ...data }, update: data });
   }

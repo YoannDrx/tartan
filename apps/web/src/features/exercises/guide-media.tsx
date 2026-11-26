@@ -53,7 +53,7 @@ const CatalogVideoPlayer = ({ guide, videos }: { guide: ExerciseGuide; videos: C
 
 // Une fiche commune qui a sa vidéo : le geste animé d'abord, la vidéo au choix. Sans geste animé, la vidéo seule.
 export const GuideMedia = ({ guide, motion }: { guide: ExerciseGuide; motion: boolean }) => {
-  const videos = guide.illustration.videos ?? [];
+  const videos = guide.illustration.videos?.filter((video) => video.streamUrl) ?? [];
   const photo = guide.illustration.photo;
   const [failedPhoto, setFailedPhoto] = useState<string>();
   const modes = guideMediaModes(guide, motion, Boolean(photo && failedPhoto !== photo.path));

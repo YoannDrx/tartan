@@ -1,3 +1,6 @@
+import * as Application from "expo-application";
+import Constants from "expo-constants";
+import * as Updates from "expo-updates";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { api } from "./api";
@@ -122,11 +125,28 @@ export const listenToPushToken = (): (() => void) => {
 };
 
 // Connaître la version de chaque installation, y compris sans autorisation de notification.
-export const reportClientVersion = async (): Promise<void> => {
+export const reportClientVersion = async () => {
   if (!appVersion) return;
-  await api
-    .checkIn({ installationId: await installationId(), platform: nativePlatform, appVersion, updateId: updateId() })
-    .catch(() => undefined);
+  const build = Application.nativeBuildVersion;
+  const beta =
+    Updates.channel === "beta" && build
+      ? {
+          build,
+          os: Platform.OS === "android" ? Platform.constants.Release : String(Platform.Version),
+          model: Platform.OS === "android" ? Platform.constants.Model : (Constants.platform?.ios?.model ?? undefined),
+        }
+      : undefined;
+  return (
+    (
+      await api.checkIn({
+        installationId: await installationId(),
+        platform: nativePlatform,
+        appVersion,
+        updateId: updateId(),
+        beta,
+      })
+    ).betaUpdate ?? null
+  );
 };
 
 // Les boutons d'action sont traités sans ouvrir l'app (voir notification-actions.ts). Ici, seul le toucher simple navigue.

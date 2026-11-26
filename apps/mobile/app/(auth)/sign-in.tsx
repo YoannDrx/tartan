@@ -2,7 +2,7 @@ import { PASSWORD_MIN_LENGTH } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { InviteLinkSheet } from "../../src/features/invite-link-sheet";
@@ -197,9 +197,13 @@ export default function SignIn() {
           }}
         >
           {/* Sur fond rouge, le logotype seul : l'icône s'y perdrait. */}
-          <T variant="title1" accessibilityLabel={m.brand.name}>
-            {m.brand.name}
-          </T>
+          <Image
+            accessible
+            accessibilityLabel={m.brand.name}
+            resizeMode="contain"
+            source={require("../../assets/brand/wordmark-light.png")}
+            style={{ width: 168, height: 44 }}
+          />
           <ScreenTitle title={creating ? t.createTitle : m.auth.signInTitle} testID="sign-in-title" />
           <T variant="body" style={{ maxWidth: 320 }}>
             {creating ? t.createLead : m.auth.signInLead}

@@ -46,9 +46,9 @@ test("changer d'espace : rôle et données de chaque espace, aucune fuite, cooki
   // Audit G6 : à 390 px, le sélecteur garde le nom de l'espace lisible et une cible de 44 px, pas un chevron seul.
   const viewport = page.viewportSize();
   await page.setViewportSize({ width: 390, height: 844 });
-  const name = page.getByTestId("space-name");
+  const name = page.getByRole("combobox", { name: m.settings.switchSpace });
   await expect(name).toBeVisible();
-  await expect(name).toHaveText(own.organizationName);
+  await expect(name).toHaveValue(own.organizationId);
   const nameBox = (await name.boundingBox())!;
   expect(nameBox.width).toBeGreaterThanOrEqual(56);
   const target = (await brand.boundingBox())!;
@@ -60,11 +60,7 @@ test("changer d'espace : rôle et données de chaque espace, aucune fuite, cooki
   await expect(page.getByText("Coaching Voisin", { exact: true })).toHaveCount(0);
 
   // Vers l'espace où il est athlète : l'accueil de l'athlète, et le suivi lui est fermé.
-  await page.goto("/reglages");
-  const clubRow = page.getByRole("listitem").filter({ hasText: joined.organizationName });
-  await clubRow.getByRole("button", { name: m.brand.makeUsual }).click();
-  await expect(clubRow.getByText(m.brand.usual)).toBeVisible();
-  await clubRow.getByRole("link", { name: m.brand.openClub }).click();
+  await name.selectOption(joined.organizationId);
   await expect(page.getByRole("heading", { name: /^Salut/ })).toBeVisible();
   expect(await cookie()).toBe(joined.organizationId);
   await page.goto("/suivi");

@@ -42,9 +42,15 @@ const useCropUpload = (fit: CropFit) => {
       toast.error(t.errors.unreadable);
     }
   };
-  const save = async (state: CropState, frame: number, send: (file: File) => void) => {
+  const save = async (
+    state: CropState,
+    frame: number,
+    source: ImageBitmap,
+    background: string | undefined,
+    send: (file: File) => void,
+  ) => {
     if (!bitmap) return;
-    const file = await exportCrop(bitmap, state, frame, fit).catch(() => null);
+    const file = await exportCrop(source, state, frame, fit, background).catch(() => null);
     if (!file) return toast.error(t.errors.export);
     send(file);
   };
@@ -66,6 +72,7 @@ const useCropUpload = (fit: CropFit) => {
   );
   return {
     input,
+    pick,
     bitmap,
     open,
     version,
@@ -110,8 +117,8 @@ export const AvatarEditor = ({ person, uploadEnabled }: { person: AvatarPerson; 
       <h3 id="photo-de-profil" className="t-caption text-inherit">
         {t.avatar.section}
       </h3>
-      <div className="flex items-start gap-4">
-        <Avatar person={person} size="xl" labelled />
+      <div className="flex flex-col items-start gap-4">
+        <Avatar person={person} size="portrait" labelled />
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <p className="t-caption font-normal text-soft">
             <span className="sr-only">{current} </span>
@@ -129,6 +136,25 @@ export const AvatarEditor = ({ person, uploadEnabled }: { person: AvatarPerson; 
                 {person.avatarUrl ? t.avatar.replace : t.avatar.upload}
               </Button>
             ) : null}
+            {uploadEnabled && person.avatarUrl && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={upload.isPending}
+                onClick={async () => {
+                  try {
+                    const response = await fetch(person.avatarUrl!);
+                    if (!response.ok) throw new Error();
+                    const blob = await response.blob();
+                    await crop.pick(new File([blob], "avatar", { type: blob.type }));
+                  } catch {
+                    toast.error(t.errors.unreadable);
+                  }
+                }}
+              >
+                {t.crop.title}
+              </Button>
+            )}
             <Button size="sm" variant="secondary" onClick={() => setGalleryOpen(true)}>
               <Images aria-hidden className="size-4" />
               {t.avatar.choose}
@@ -154,7 +180,9 @@ export const AvatarEditor = ({ person, uploadEnabled }: { person: AvatarPerson; 
         fit="cover"
         open={crop.open}
         onOpenChange={crop.setOpen}
-        onSave={(state, frame) => void crop.save(state, frame, (file) => upload.execute({ file }))}
+        onSave={(state, frame, source, background) =>
+          void crop.save(state, frame, source, background, (file) => upload.execute({ file }))
+        }
         saving={upload.isPending}
       />
       <AvatarGallery
@@ -206,7 +234,9 @@ export const LogoEditor = ({ logoUrl, name, alt }: { logoUrl: string | null; nam
         fit="contain"
         open={crop.open}
         onOpenChange={crop.setOpen}
-        onSave={(state, frame) => void crop.save(state, frame, (file) => upload.execute({ file }))}
+        onSave={(state, frame, source, background) =>
+          void crop.save(state, frame, source, background, (file) => upload.execute({ file }))
+        }
         saving={upload.isPending}
       />
     </div>

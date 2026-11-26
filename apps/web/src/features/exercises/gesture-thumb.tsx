@@ -1,6 +1,7 @@
 "use client";
 
 import { SURFACES } from "@tartan/design-tokens/athletes";
+import { Play } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { ActivityPicto } from "@/components/pictos";
@@ -16,21 +17,23 @@ export const GestureThumb = ({
   motionKey,
   category,
   className,
+  video,
 }: {
   motionKey: string | null | undefined;
   category: string;
   className?: string;
+  video?: boolean;
 }) => {
   const frame = useRef<HTMLSpanElement>(null);
   const [near, setNear] = useState(false);
   useEffect(() => {
-    if (!motionKey || near) return;
+    if (video || !motionKey || near) return;
     const watcher = new IntersectionObserver(([entry]) => entry?.isIntersecting && setNear(true), {
       rootMargin: "300px",
     });
     watcher.observe(frame.current!);
     return () => watcher.disconnect();
-  }, [motionKey, near]);
+  }, [motionKey, near, video]);
   return (
     <span
       ref={frame}
@@ -41,7 +44,15 @@ export const GestureThumb = ({
       )}
       style={{ backgroundColor: SURFACES.ink, color: SURFACES.chalk }}
     >
-      {motionKey ? near ? <Still motionKey={motionKey} /> : null : <ActivityPicto kind={category} className="size-6" />}
+      {video ? (
+        <Play className="size-6" />
+      ) : motionKey ? (
+        near ? (
+          <Still motionKey={motionKey} />
+        ) : null
+      ) : (
+        <ActivityPicto kind={category} className="size-6" />
+      )}
     </span>
   );
 };

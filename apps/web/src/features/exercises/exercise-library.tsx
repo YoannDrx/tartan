@@ -1,6 +1,6 @@
 "use client";
 
-import type { ExerciseFamily, ExerciseFilter, ExerciseList } from "@tartan/contracts";
+import { exerciseFamily, type ExerciseFamily, type ExerciseFilter, type ExerciseList } from "@tartan/contracts";
 import { moveInOrder } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
@@ -8,7 +8,7 @@ import { ArrowDown, ArrowUp, ListOrdered, Pencil, Plus, Search, Trash2, X } from
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Sheet } from "@/components/sheet";
 import { EmptyState, PageHeader } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
@@ -40,6 +40,8 @@ export type LibraryRow = {
   aliases: string[];
   category: string;
   family: ExerciseFamily;
+  filmed?: boolean;
+  hasFilmedVideo?: boolean;
   motionKey: string | null;
   shared: boolean;
   prescription: string;
@@ -200,7 +202,12 @@ export const ExerciseLibrary = ({
 
   const list = filter.kind === "list" ? (lists.find((item) => item.id === filter.listId) ?? null) : null;
   const favorites = filter.kind === "favorites" ? state.favorites : null;
-  const found = useMemo(() => filterRows(rows, filter, search, lists), [rows, filter, search, lists]);
+  const found = useMemo(() => {
+    const filtered = filterRows(rows, filter, search, lists);
+    return filter.kind === "all"
+      ? filtered.sort((a, b) => exerciseFamily.options.indexOf(a.family) - exerciseFamily.options.indexOf(b.family))
+      : filtered;
+  }, [rows, filter, search, lists]);
   const visible = found.slice(0, shown);
   // Changer de filtre ou de recherche repart du début, sans changer de page.
   const choose = (next: ExerciseFilter) => {
@@ -278,6 +285,8 @@ export const ExerciseLibrary = ({
       ) : null}
       <p className="t-caption text-inherit" aria-live="polite">
         {t.results(found.length)}
+        {rows.some((row) => row.filmed !== undefined) &&
+          ` · ${m.filming.progress(found.filter((row) => row.filmed).length, found.length)}`}
       </p>
       {found.length === 0 ? (
         <EmptyState
@@ -296,44 +305,55 @@ export const ExerciseLibrary = ({
       ) : (
         <Sheet>
           <ul className="divide-y divide-card-line">
-            {visible.map((row) => (
-              <li key={row.id} className="flex items-center gap-1 py-1.5 pl-3 pr-1 tablet:pl-4">
-                <Link
-                  href={`${basePath}/${row.id}`}
-                  className="-my-1 flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-thumb py-1 text-inherit no-underline hover:bg-raise"
-                >
-                  <GestureThumb motionKey={row.motionKey} category={row.category} />
-                  <span className="min-w-0 leading-snug">
-                    <span className="block break-words font-semibold">{row.name}</span>
-                    <span className="t-caption block font-normal text-soft">
-                      {m.exerciseGuide.families[row.family]}
-                      {row.shared ? null : `, ${t.sheet.source.mine.toLowerCase()}`}
-                    </span>
-                  </span>
-                </Link>
-                <span className="t-num w-40 shrink-0 text-[17px] max-desktop:hidden">{row.prescription}</span>
-                {editable && (
-                  <>
-                    <FavoriteButton
-                      name={row.name}
-                      active={state.isFavorite(row.id)}
-                      onToggle={() => void state.toggleFavorite(row.id)}
-                    />
-                    {ownList ? (
-                      <IconButton
-                        label={t.lists.remove(row.name)}
-                        onClick={async () => {
-                          if (await state.setMember(ownList.id, row.id, false)) toast.ok(t.lists.removed);
-                        }}
-                      >
-                        <X aria-hidden className="size-5" />
-                      </IconButton>
-                    ) : (
-                      <FileButton name={row.name} onClick={() => setFiling({ id: row.id, name: row.name })} />
-                    )}
-                  </>
+            {visible.map((row, index) => (
+              <Fragment key={row.id}>
+                {filter.kind === "all" && visible[index - 1]?.family !== row.family && (
+                  <li className="bg-card-raised px-4 py-2">
+                    <h2 className="t-section">{m.exerciseGuide.families[row.family]}</h2>
+                  </li>
                 )}
-              </li>
+                <li className="flex items-center gap-1 py-1.5 pl-3 pr-1 tablet:pl-4">
+                  <Link
+                    href={`${basePath}/${row.id}`}
+                    className="-my-1 flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-thumb py-1 text-inherit no-underline hover:bg-raise"
+                  >
+                    <span aria-hidden className="t-caption tabular-nums text-soft">
+                      {index + 1}
+                    </span>
+                    <GestureThumb motionKey={row.motionKey} category={row.category} video={row.hasFilmedVideo} />
+                    <span className="min-w-0 leading-snug">
+                      <span className="block break-words font-semibold">{row.name}</span>
+                      <span className="t-caption block font-normal text-soft">
+                        {m.exerciseGuide.families[row.family]}
+                        {row.filmed !== undefined && ` · ${row.filmed ? m.filming.filmed : m.filming.pending}`}
+                        {row.shared ? null : `, ${t.sheet.source.mine.toLowerCase()}`}
+                      </span>
+                    </span>
+                  </Link>
+                  <span className="t-num w-40 shrink-0 text-[17px] max-desktop:hidden">{row.prescription}</span>
+                  {editable && (
+                    <>
+                      <FavoriteButton
+                        name={row.name}
+                        active={state.isFavorite(row.id)}
+                        onToggle={() => void state.toggleFavorite(row.id)}
+                      />
+                      {ownList ? (
+                        <IconButton
+                          label={t.lists.remove(row.name)}
+                          onClick={async () => {
+                            if (await state.setMember(ownList.id, row.id, false)) toast.ok(t.lists.removed);
+                          }}
+                        >
+                          <X aria-hidden className="size-5" />
+                        </IconButton>
+                      ) : (
+                        <FileButton name={row.name} onClick={() => setFiling({ id: row.id, name: row.name })} />
+                      )}
+                    </>
+                  )}
+                </li>
+              </Fragment>
             ))}
           </ul>
         </Sheet>

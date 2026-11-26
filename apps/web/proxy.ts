@@ -15,7 +15,7 @@ const buildCsp = (nonce: string): string =>
     "img-src 'self' data: blob: https://image.mux.com https://i.ytimg.com https://*.public.blob.vercel-storage.com",
     "font-src 'self'",
     "media-src 'self' blob: https://stream.mux.com https://*.mux.com",
-    "connect-src 'self' https://*.mux.com https://storage.googleapis.com https://vitals.vercel-insights.com https://*.ingest.de.sentry.io",
+    "connect-src 'self' https://*.public.blob.vercel-storage.com https://*.mux.com https://storage.googleapis.com https://vitals.vercel-insights.com https://*.ingest.de.sentry.io",
     "frame-src https://www.youtube-nocookie.com https://www.instagram.com",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
@@ -95,6 +95,9 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    { source: "/((?!api|_next/static|_next/image|.well-known|favicon|icon|apple-touch|manifest|sw.js|brand).*)" },
+    {
+      source:
+        "/((?!api|_next/static|_next/image|.well-known|favicon|icon|apple-touch|manifest|sw.js|portrait/|brand).*)",
+    },
   ],
 };

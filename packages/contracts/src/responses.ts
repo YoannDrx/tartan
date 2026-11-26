@@ -356,6 +356,7 @@ export const exerciseSummary = z.object({
   // Famille et geste de la fiche, lus même quand le guide n'est pas transmis (résultats de recherche).
   family: exerciseFamily.nullable().optional(),
   motionKey: z.string().nullable().optional(),
+  hasFilmedVideo: z.boolean().optional(),
 });
 export type ExerciseSummary = z.infer<typeof exerciseSummary>;
 

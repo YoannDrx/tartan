@@ -153,6 +153,7 @@ export const PrescriptionEditor = ({
   fields: PrescriptionFields;
   onFieldsChange: (fields: PrescriptionFields) => void;
 }) => {
+  const palette = usePalette();
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [error, setError] = useState("");
@@ -299,23 +300,26 @@ export const PrescriptionEditor = ({
         maxLength={20}
         onChangeText={(tempo) => update({ tempo })}
       />
-      <Field
-        nativeID={`${uid}-notes`}
-        label={m.builder.notes}
-        value={fields.notes}
-        maxLength={Math.max(500, fields.notes.length)}
-        hint={fields.notes.length > 500 ? m.aiPlanner.textLimit(fields.notes.length, 500) : undefined}
-        multiline
-        onChangeText={(notes) => update({ notes })}
-      />
-      {orgId ? (
-        <VoiceEditor
-          orgId={orgId}
-          clipId={fields.coachVoiceId}
-          onBusyChange={setVoiceBusy}
-          onChange={(coachVoiceId) => update({ coachVoiceId })}
+      <View style={{ padding: space.sm, borderWidth: 1, borderColor: palette.border, borderRadius: radius.card }}>
+        <Field
+          style={{ borderWidth: 0 }}
+          nativeID={`${uid}-notes`}
+          label={m.builder.notes}
+          value={fields.notes}
+          maxLength={Math.max(500, fields.notes.length)}
+          hint={fields.notes.length > 500 ? m.aiPlanner.textLimit(fields.notes.length, 500) : undefined}
+          multiline
+          onChangeText={(notes) => update({ notes })}
         />
-      ) : null}
+        {orgId ? (
+          <VoiceEditor
+            orgId={orgId}
+            clipId={fields.coachVoiceId}
+            onBusyChange={setVoiceBusy}
+            onChange={(coachVoiceId) => update({ coachVoiceId })}
+          />
+        ) : null}
+      </View>
     </Sheet>
   );
 };

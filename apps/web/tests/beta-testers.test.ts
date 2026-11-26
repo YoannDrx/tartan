@@ -1,3 +1,6 @@
+import { createHash, randomUUID } from "node:crypto";
+import { currentApk, publishApk } from "@/server/beta-apk.service";
+import { recordBetaUse, recordBetaEvent } from "@/server/beta-testers.service";
 import { getActorFrom } from "@/lib/session";
 import { sessionCookie } from "./personas";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,6 +12,11 @@ import { betaAccess, changeBeta, dispatchBeta, inviteBeta, listBeta } from "@/se
 import { flushEmailOutbox } from "@/server/email-outbox.service";
 import { recordStepUp } from "@/server/admin-step-up.service";
 import { makeUser } from "./helpers";
+const blobRead = vi.hoisted(() => vi.fn());
+vi.mock("@vercel/blob", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@vercel/blob")>()),
+  get: blobRead,
+}));
 const remote = vi.hoisted(() => vi.fn(async (_email: string, _wanted: boolean) => true));
 vi.mock("@/server/beta-apple", () => ({ syncAppleBeta: remote }));
 async function operator() {
@@ -29,6 +37,8 @@ afterEach(() => {
     BETA_APK_PATH: undefined,
     BETA_APK_READ_WRITE_TOKEN: undefined,
     BETA_APK_VERSION: undefined,
+    BETA_APK_BASE_BUILD: undefined,
+    BETA_APK_CERT_SHA256: undefined,
   });
 });
 describe("invitations de bêta", () => {
@@ -60,7 +70,7 @@ describe("invitations de bêta", () => {
     });
     await dispatchBeta(new Date(+now + 300001));
     await flushEmailOutbox(new Date(+now + 300001));
-    expect(await prisma.emailOutbox.count({ where: { toEmail: email, kind: "beta_install" } })).toBe(2);
+    expect(await prisma.emailOutbox.count({ where: { toEmail: email, kind: "beta_install" } })).toBe(1);
     expect((await listBeta(admin)).find((r) => r.id === row.id)).toMatchObject({
       ios: "Invitation envoyée",
       android: "Invitation envoyée",
@@ -101,4 +111,58 @@ describe("invitations de bêta", () => {
     expect(await betaAccess(token, later)).toBeNull();
     expect(await betaAccess(deriveToken("beta-install-v1", next.tokenId), new Date(+later + 31 * 86400000))).toBeNull();
   });
+});
+
+it("vérifie le candidat et distingue lien, téléchargement et utilisation pour chaque téléphone", async () => {
+  const admin = await operator(),
+    user = await makeUser("Bêta Android"),
+    stranger = await makeUser("Autre compte");
+  const now = new Date(),
+    tester = await inviteBeta(admin, user.email, "android", now);
+  const token = deriveToken("beta-install-v1", tester.tokenId);
+  const file = "apk de recette";
+  const digest = createHash("sha256").update(file).digest("hex"),
+    cert = "a".repeat(64);
+  const candidate = { build: 26, version: "1.2", cert, digest };
+  Object.assign(env(), {
+    BETA_APK_BASE_BUILD: "25",
+    BETA_APK_PATH: "old.apk",
+    BETA_APK_VERSION: "1.0",
+    BETA_APK_CERT_SHA256: cert,
+    BETA_APK_READ_WRITE_TOKEN: "test",
+  });
+  let bytes = "incomplet";
+  blobRead.mockImplementation(async (path: string) => {
+    const value = path === "beta/staged.json" ? JSON.stringify(candidate) : bytes;
+    return { statusCode: 200, blob: { size: value.length }, stream: new Response(value).body };
+  });
+  await expect(publishApk(admin, digest, now)).rejects.toMatchObject({ status: 400 });
+  bytes = file;
+  try {
+    await Promise.all([publishApk(admin, digest, now), publishApk(admin, digest, now)]);
+    expect((await currentApk())?.build).toBe(26);
+    expect(await prisma.emailOutbox.count({ where: { dedupeKey: `beta-apk:${tester.id}:26` } })).toBe(1);
+    expect((await listBeta(admin)).find((r) => r.id === tester.id)?.openedAt).toBeNull();
+    await recordBetaEvent(token, "openedAt", now);
+    await recordBetaEvent(token, "apkAt", now);
+    expect(await prisma.betaInstallation.count({ where: { testerId: tester.id } })).toBe(0);
+    const check = {
+      appVersion: "1.1",
+      installationId: randomUUID(),
+      platform: "android" as const,
+      beta: { build: "25", model: "Téléphone de test", os: "16" },
+    };
+    expect(await recordBetaUse(stranger.userId, check, now)).toBeUndefined();
+    expect(await recordBetaUse(user.userId, check, now)).toMatchObject({ build: 26 });
+    const later = new Date(+now + 5000);
+    expect(await recordBetaUse(user.userId, { ...check, beta: { ...check.beta, build: "26" } }, later)).toBeUndefined();
+    const installs = await prisma.betaInstallation.findMany({ where: { testerId: tester.id } });
+    expect(installs).toHaveLength(1);
+    expect(installs[0]).toMatchObject({ firstSeenAt: now, lastSeenAt: later, build: "26", model: check.beta.model });
+    await changeBeta(admin, tester.id, tester.version, "revoke", later);
+    expect(await recordBetaEvent(token, "openedAt", later)).toBe(false);
+    expect(await recordBetaUse(user.userId, check, later)).toBeUndefined();
+  } finally {
+    await prisma.betaApkRelease.deleteMany({ where: { digest } });
+  }
 });

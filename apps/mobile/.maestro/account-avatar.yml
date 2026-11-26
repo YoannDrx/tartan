@@ -22,13 +22,18 @@ env:
     visible:
       id: avatar-current
     timeout: 15000
-- assertVisible:
-    id: avatar-library
-- assertVisible:
-    id: avatar-camera
-- assertVisible: "Le groupe"
-- assertVisible:
-    id: avatar-preset-athlete-highJump
+- scrollUntilVisible:
+    element:
+      id: avatar-library
+- scrollUntilVisible:
+    element:
+      id: avatar-camera
+- scrollUntilVisible:
+    element:
+      text: "Le groupe"
+- scrollUntilVisible:
+    element:
+      id: avatar-preset-athlete-highJump
 - scrollUntilVisible:
     element:
       id: avatar-preset-animal-fox
@@ -43,6 +48,9 @@ env:
       id: avatar-current
     direction: UP
 - assertVisible: "Avatar de .*Renard"
+- scrollUntilVisible:
+    element:
+      id: avatar-initials
 - tapOn:
     id: avatar-initials
 - extendedWaitUntil:

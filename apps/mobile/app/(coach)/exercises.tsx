@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ExerciseSummary, ExerciseFamily } from "@tartan/contracts";
-import { canIn, formatPrescription } from "@tartan/domain";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { exerciseFamily, type ExerciseSummary, type ExerciseFamily, type FilmingNote } from "@tartan/contracts";
+import { canIn, isStaff, exerciseFamilyOf, formatPrescription } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -26,6 +26,7 @@ import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
 
 const t = m.nativeExercises;
+const familyOf = (exercise: ExerciseSummary) => exerciseFamilyOf(exercise.guide?.family, exercise.category);
 const folded = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 // La fiche d'un exercice : le geste d'abord, la fiche concise, puis la prescription. Les variantes ouvrent leur fiche.
@@ -54,6 +55,7 @@ const ExerciseSheetBody = ({
         <MovementGuide
           key={exercise.guide.catalogKey}
           guide={exercise.guide}
+          hideIllustration={media?.kind === "upload"}
           variants={sheet.data?.variants}
           onOpenVariant={(variant) => onOpen(variant.id)}
         />
@@ -81,12 +83,54 @@ const ExerciseSheetBody = ({
   );
 };
 
+function FilmingEditor({ orgId, note }: { orgId: string; note: FilmingNote }) {
+  const [draft, setDraft] = useState(note);
+  const cache = useQueryClient();
+  const save = useMutation({
+    mutationFn: () => api.saveFilming(orgId, draft),
+    onSuccess: async () => {
+      await cache.invalidateQueries({ queryKey: ["exercise-filming", orgId] });
+    },
+  });
+  return (
+    <View style={{ gap: space.sm }}>
+      <T variant="smallStrong">{m.filming.title}</T>
+      <Chip
+        label={draft.filmed ? m.filming.filmed : m.filming.pending}
+        active={draft.filmed}
+        onPress={() => setDraft({ ...draft, filmed: !draft.filmed })}
+      />
+      <Field
+        multiline
+        label={m.filming.comment}
+        value={draft.comment}
+        maxLength={2000}
+        onChangeText={(comment) => setDraft({ ...draft, comment })}
+      />
+      <Button label={m.common.save} loading={save.isPending} onPress={() => save.mutate()} />
+      {save.isError && (
+        <ErrorState
+          error={save.error}
+          onRetry={() => void cache.invalidateQueries({ queryKey: ["exercise-filming", orgId] })}
+        />
+      )}
+    </View>
+  );
+}
+
 export default function Exercises() {
   const { orgId, space: active, me } = useTrainingSpace(true);
   const exercises = useExercises(orgId);
   const client = useQueryClient();
   const router = useRouter();
   const canEdit = active ? canIn(active.kind ?? "coach", active.role, "editExercises") : false;
+  const filmingEnabled = active && isStaff(active.role) && active.kind !== "personal";
+  const filming = useQuery({
+    queryKey: ["exercise-filming", orgId],
+    queryFn: () => api.filmingNotes(orgId),
+    enabled: Boolean(orgId && filmingEnabled),
+  });
+  const notes = useMemo(() => new Map(filming.data?.map((note) => [note.exerciseId, note])), [filming.data]);
   const lists = useExerciseLists(orgId, canEdit);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
@@ -109,12 +153,17 @@ export default function Exercises() {
   );
   const list = useMemo(() => {
     const query = folded(search.trim());
-    return exercisesInFilter(exercises.data ?? [], filter, lists.lists).filter(
+    const filtered = exercisesInFilter(exercises.data ?? [], filter, lists.lists).filter(
       (e) =>
         (!category || e.category === category) &&
-        (!family || e.guide?.family === family) &&
+        (!family || familyOf(e) === family) &&
         (!query || [e.name, ...e.tags, ...(e.aliases ?? [])].some((term) => folded(term).includes(query))),
     );
+    return filter.kind === "all" && !category && !family
+      ? filtered.sort(
+          (a, b) => exerciseFamily.options.indexOf(familyOf(a)) - exerciseFamily.options.indexOf(familyOf(b)),
+        )
+      : filtered;
   }, [exercises.data, search, category, family, filter, lists.lists]);
 
   const emptyFilter =
@@ -134,6 +183,7 @@ export default function Exercises() {
       onRefresh={() => {
         void exercises.refetch();
         if (canEdit) void lists.refresh();
+        if (filmingEnabled) void filming.refetch();
       }}
     >
       {active?.role === "athlete" &&
@@ -226,6 +276,9 @@ export default function Exercises() {
           ) : null}
           <T variant="small" tone="muted" accessibilityLiveRegion="polite">
             {t.results(list.length)}
+            {filmingEnabled &&
+              filming.data &&
+              ` · ${m.filming.progress(list.filter((exercise) => notes.get(exercise.id)?.filmed).length, list.length)}`}
           </T>
         </>
       ) : null}
@@ -242,12 +295,26 @@ export default function Exercises() {
           {list.map((e, i) => (
             <View key={e.id}>
               {i > 0 ? <Divider /> : null}
+              {filter.kind === "all" && !category && !family && (!i || familyOf(list[i - 1]!) !== familyOf(e)) && (
+                <T accessibilityRole="header" variant="smallStrong" style={{ padding: space.md }}>
+                  {m.exerciseGuide.families[familyOf(e)]}
+                </T>
+              )}
               <ExerciseRow
+                ordinal={i + 1}
                 testID={`exercise-row-${e.id}`}
                 name={e.name}
                 category={e.category}
-                summary={formatPrescription(e.defaultPrescription)}
-                hasVideo={Boolean(parseMedia(e.media))}
+                summary={[
+                  formatPrescription(e.defaultPrescription),
+                  filmingEnabled && filming.data && (notes.get(e.id)?.filmed ? m.filming.filmed : m.filming.pending),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+                hasVideo={
+                  Boolean(parseMedia(e.media)) ||
+                  Boolean(e.guide?.illustration.videos?.some((video) => video.streamUrl))
+                }
                 onPress={() => {
                   setOpenId(e.id);
                   setPanel("sheet");
@@ -318,7 +385,19 @@ export default function Exercises() {
           {panel === "file" ? (
             <FilePanel exercise={open} state={lists} />
           ) : (
-            <ExerciseSheetBody orgId={orgId} exercise={open} onOpen={(id) => setOpenId(id)} />
+            <>
+              <ExerciseSheetBody orgId={orgId} exercise={open} onOpen={(id) => setOpenId(id)} />
+              {filmingEnabled && filming.isError && (
+                <ErrorState error={filming.error} onRetry={() => void filming.refetch()} />
+              )}
+              {filmingEnabled && filming.data && (
+                <FilmingEditor
+                  key={`${open.id}-${notes.get(open.id)?.revision ?? 0}`}
+                  orgId={orgId}
+                  note={notes.get(open.id) ?? { exerciseId: open.id, filmed: false, comment: "", revision: 0 }}
+                />
+              )}
+            </>
           )}
         </Sheet>
       ) : null}
