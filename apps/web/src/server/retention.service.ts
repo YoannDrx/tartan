@@ -211,6 +211,7 @@ export const runRetention = async (now: Date = new Date()) => {
   const { count: abandonedInstructions } = await prisma.coachVoiceInstruction.deleteMany({
     where: { createdAt: { lt: ago(now, 30) }, sessions: { none: {} }, templates: { none: {} } },
   });
+  await prisma.sessionTranscriptionLease.deleteMany({ where: { expiresAt: { lt: now } } });
   const sheets = await purgeSheetsWithoutAccount(now);
   const accounts = await handleInactiveAccounts(now);
   const result = {

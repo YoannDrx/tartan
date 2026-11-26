@@ -1,5 +1,6 @@
 import { encouragement, type EncouragementTone } from "@tartan/i18n";
 import { celebrationFromResponse } from "@tartan/domain";
+import { ThreadDisclosure } from "./session-thread";
 import { VoiceEditor } from "./session-voice";
 import { ConfirmedRecords } from "./confirmed-records";
 import type { SessionCelebration, BodyArea, BodySide, PainInput, SessionLogInput } from "@tartan/contracts";
@@ -122,7 +123,9 @@ export const ValidationSheet = ({
     comment: initialFeedback.comment ?? "",
     pain: initialFeedback.pain ?? null,
   });
-  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [rootBusy, setRootBusy] = useState(false);
+  const [threadBusy, setThreadBusy] = useState(false);
+  const voiceBusy = rootBusy || threadBusy;
   const [hasDebrief, setHasDebrief] = useState(!!existing?.hasVoiceDebrief);
   const pendingStatus = useOpQueue((queue) =>
     queue.items.some(
@@ -280,13 +283,19 @@ export const ValidationSheet = ({
         pendingStatus ? (
           <T variant="caption">{m.sessionVoice.offline}</T>
         ) : (
-          <VoiceEditor
-            orgId={target.orgId}
-            sessionId={target.sessionId}
-            hasDebrief={hasDebrief}
-            onBusyChange={setVoiceBusy}
-            onChange={(saved) => setHasDebrief(!!saved)}
-          />
+          <>
+            <VoiceEditor
+              orgId={target.orgId}
+              sessionId={target.sessionId}
+              hasDebrief={hasDebrief}
+              onBusyChange={setRootBusy}
+              onChange={(saved) => setHasDebrief(!!saved)}
+            />
+            <ThreadDisclosure
+              target={{ orgId: target.orgId, sessionId: target.sessionId }}
+              onBusyChange={setThreadBusy}
+            />
+          </>
         )
       ) : null}
       {healthConsent ? (

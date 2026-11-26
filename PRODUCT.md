@@ -54,6 +54,8 @@ Après l'audit du 14 novembre, le fondateur confirme :
 
 Le coach peut joindre une consigne vocale à chaque exercice de la séance et indiquer le nombre de foulées et l’espacement entre deux plots en pieds. Une fois sa séance validée, l’athlète peut laisser un débrief vocal que le coach écoute dans le suivi.
 
+Dans chaque exercice et dans le débrief, le coach et l’athlète peuvent poursuivre un échange privé par écrit ou en vocal. Chaque message indique son auteur et son rôle. Le lecteur audio est l’action principale. L’auteur peut demander une transcription automatique du vocal, lisible par ses destinataires. Les réponses à une consigne collective restent propres à chaque athlète.
+
 ## Décision du 16 novembre 2026
 
 Le fondateur fixe la priorité : **la web app d'abord, entièrement fonctionnelle**, avant de reprendre les bêtas iOS et Android. Il ajoute au périmètre :

@@ -1,6 +1,9 @@
 // Textes français de Tartan. Côté athlète : tutoiement, phrases courtes.
 // Côté coach : sobre et précis, vocabulaire du métier (§ 4.5).
+import { sessionThread } from "./session-thread";
+
 export const fr = {
+  sessionThread,
   sessionVoice: {
     instruction: "Consigne vocale du coach",
     debrief: "Débrief vocal de la séance",
@@ -1546,7 +1549,7 @@ export const fr = {
           },
           sante: {
             q: "Et mes données de santé ?",
-            a: "L’effort ressenti, les douleurs, les blessures et le débrief vocal demandent ton accord, facultatif. Tu le retires quand tu veux depuis Réglages : ces données sont alors effacées.",
+            a: "L’effort ressenti, les douleurs, les blessures et les échanges de débrief demandent ton accord, facultatif. Tu le retires quand tu veux depuis Réglages : ces données sont alors effacées.",
           },
           exporter: {
             q: "Comment récupérer mes données ?",
@@ -1867,7 +1870,7 @@ export const fr = {
       "Tu as moins de 15 ans : un parent doit donner son accord pour les informations de santé et les vidéos.",
     consentTerms: "J'accepte les conditions d'utilisation et la politique de confidentialité.",
     consentHealth:
-      "J'accepte que mes informations de santé (blessures, douleurs, effort ressenti, débriefs vocaux) soient traitées et visibles par mes coachs.",
+      "J'accepte que mes informations de santé (blessures, douleurs, effort ressenti, messages de débrief écrits ou vocaux et transcriptions) soient traitées et visibles par mes coachs.",
     consentVideo: "J'accepte que mes coachs me filment et conservent mes vidéos d'entraînement.",
     consentOptional:
       "Tu peux refuser : l'app marche quand même, ces fonctions restent masquées. Tu pourras changer d'avis dans les réglages.",
@@ -1884,7 +1887,7 @@ export const fr = {
     lead: (athlete: string, coach: string) =>
       `${athlete} rejoint le groupe de ${coach}. Comme il ou elle a moins de 15 ans, ton accord est nécessaire pour deux usages :`,
     health:
-      "Traiter ses informations de santé (blessures, douleurs, effort ressenti, débriefs vocaux), visibles uniquement par ses coachs.",
+      "Traiter ses informations de santé (blessures, douleurs, effort ressenti, messages de débrief écrits ou vocaux et transcriptions), visibles uniquement par ses coachs.",
     video: "Filmer ses gestes sportifs et conserver ces vidéos, visibles uniquement par ses coachs et par lui ou elle.",
     otherParent: "L'autre parent est présumé d'accord et peut s'y opposer à tout moment en nous écrivant.",
     grant: "Donner mon accord",
@@ -3227,7 +3230,7 @@ export const fr = {
     inviteCoach: "Inviter un coach",
     privacy: "Confidentialité",
     healthConsent: "Données de santé",
-    healthConsentDetail: "Blessures, douleurs, effort ressenti et débriefs vocaux de séance.",
+    healthConsentDetail: "Blessures, douleurs, effort ressenti et échanges de débrief de séance, y compris les transcriptions.",
     videoConsent: "Vidéos",
     videoConsentDetail: "Être filmé et conserver mes vidéos.",
     deleteAccount: "Supprimer mon compte",
@@ -3247,7 +3250,7 @@ export const fr = {
     consentPerSpace: "Tu suis plusieurs espaces : donne ton accord depuis les réglages de chacun d'eux.",
     healthRevokeTitle: "Retirer ton accord pour la santé ?",
     healthRevokeDetail:
-      "Ton effort ressenti, tes douleurs, tes blessures et tes débriefs vocaux de cet espace seront effacés aussitôt, et ça ne se rattrape pas. Les exports déjà faits et les copies de sauvegarde peuvent en garder une trace pendant 30 jours au plus.",
+      "Ton effort ressenti, tes douleurs, tes blessures et tes échanges de débrief de cet espace, y compris les transcriptions, seront effacés aussitôt, et ça ne se rattrape pas. Les exports déjà faits et les copies de sauvegarde peuvent en garder une trace pendant 30 jours au plus.",
     videoRevokeTitle: "Retirer ton accord pour les vidéos ?",
     videoRevokeDetail:
       "Tes vidéos de cet espace seront masquées à tes coachs aussitôt, puis supprimées dans 30 jours, sauf si tu redonnes ton accord d'ici là.",

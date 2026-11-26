@@ -35,7 +35,7 @@ export function usePlannerDictation(orgId: string, onText: (text: string) => voi
 
   useEffect(() => {
     let alive = true;
-    let captureState: DictationState = "idle";
+    let permissionDialog = false;
     let nativeRecorder: typeof import("../lib/planner-recording") | null = null;
     const fail = (cause: unknown) => {
       if (!alive) return;
@@ -72,7 +72,9 @@ export function usePlannerDictation(orgId: string, onText: (text: string) => voi
           prepare: async (signal) => {
             nativeRecorder ??= await import("../lib/planner-recording");
             if (signal.aborted) throw new Error("dictation_cancelled");
-            recorder = nativeRecorder.createNativeDictationRecorder();
+            recorder = nativeRecorder.createNativeDictationRecorder((open) => {
+              permissionDialog = open;
+            });
             await recorder.prepare(signal);
           },
           start: () => recorder!.start(),
@@ -105,7 +107,6 @@ export function usePlannerDictation(orgId: string, onText: (text: string) => voi
         }
       },
       onState: (next) => {
-        captureState = next;
         if (alive) setState(next);
       },
       onError: fail,
@@ -115,9 +116,8 @@ export function usePlannerDictation(orgId: string, onText: (text: string) => voi
     });
     controller.current = current;
     const appState = AppState.addEventListener("change", (next) => {
-      // iOS devient inactive pendant sa propre demande de permission : seule la
-      // vraie mise en arrière-plan annule cette demande encore en préparation.
-      if (next === "background" || (next === "inactive" && captureState !== "starting")) {
+      // Le dialogue micro suspend temporairement l’activité Android ou la scène iOS.
+      if ((next === "background" || next === "inactive") && !permissionDialog) {
         checkRequest.current?.abort();
         void current.cancel();
       }

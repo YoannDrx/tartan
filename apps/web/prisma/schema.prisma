@@ -21,8 +21,10 @@ model User {
   image         String?
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
+  threadMessages SessionThreadMessage[]
 
   voiceInstructions CoachVoiceInstruction[]
+  voiceDebriefs SessionVoiceDebrief[]
   sessions    Session[]
   accounts    Account[]
   passkeys    Passkey[]
@@ -407,6 +409,7 @@ model Athlete {
   updatedAt       DateTime     @updatedAt @map("updated_at")
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  threadMessages SessionThreadMessage[]
 
   trainingPhases TrainingPhase[]
   performanceCreations PerformanceCreation[]
@@ -940,6 +943,7 @@ model ScheduledSession {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  threadMessages SessionThreadMessage[]
 
   prescriptions SessionPrescription[]
   voiceInstructions CoachVoiceInstruction[]
@@ -1090,6 +1094,7 @@ model SessionLog {
   updatedAt            DateTime         @updatedAt @map("updated_at")
   session              ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
   athlete              Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  threadMessages SessionThreadMessage[]
 
   sets      SetLog[]
   mutations SessionLogMutation[]
@@ -2190,6 +2195,8 @@ model CoachVoiceInstruction {
   organizationId String @map("organization_id") @db.Uuid
   createdBy      String @map("created_by") @db.Uuid
   mimeType       String @map("mime_type")
+  transcript     String?
+  durationSeconds Float? @map("duration_seconds")
   bytes          Bytes
   createdAt      DateTime @default(now()) @map("created_at")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -2203,8 +2210,51 @@ model CoachVoiceInstruction {
 
 model SessionVoiceDebrief {
   sessionLogId String @id @map("session_log_id") @db.Uuid
+  authorId String? @map("author_id") @db.Uuid
+  author User? @relation(fields: [authorId], references: [id], onDelete: Cascade)
   mimeType     String @map("mime_type")
+  voiceVersion String @default(dbgenerated("gen_random_uuid()")) @map("voice_version") @db.Uuid
+  transcript String?
+  durationSeconds Float? @map("duration_seconds")
   bytes        Bytes
   log          SessionLog @relation(fields: [sessionLogId], references: [id], onDelete: Cascade)
   @@map("session_voice_debriefs")
+}
+
+model SessionThreadMessage {
+  id                 String @id @default(uuid()) @db.Uuid
+  position           BigInt @default(autoincrement())
+  scheduledSessionId String @map("scheduled_session_id") @db.Uuid
+  athleteId          String @map("athlete_id") @db.Uuid
+  itemRef            String? @map("item_ref")
+  debriefLogId       String? @map("debrief_log_id") @db.Uuid
+  authorId           String @map("author_id") @db.Uuid
+  authorIsAthlete    Boolean @map("author_is_athlete")
+  clientId           String @map("client_id") @db.Uuid
+  contentHash        String @map("content_hash")
+  text               String?
+  mimeType           String? @map("mime_type")
+  bytes              Bytes?
+  durationSeconds    Float? @map("duration_seconds")
+  transcript         String?
+  createdAt          DateTime @default(now()) @map("created_at")
+  session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
+  athlete            Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  author             User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  debriefLog         SessionLog? @relation(fields: [debriefLogId], references: [id], onDelete: Cascade)
+
+  @@unique([authorId, clientId])
+  @@index([scheduledSessionId, athleteId, itemRef, position])
+  @@index([athleteId])
+  @@index([debriefLogId])
+  @@map("session_thread_messages")
+}
+
+model SessionTranscriptionLease {
+  voiceVersion String   @id @map("voice_version") @db.Uuid
+  token        String   @db.Uuid
+  expiresAt    DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("session_transcription_leases")
 }

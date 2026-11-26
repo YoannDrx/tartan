@@ -104,6 +104,7 @@ export const SCREENS: Screen[] = [
   { path: "/seances/[id]", roles: ["coach"], proof: ["coach-screens.spec.ts", "demo-space.spec.ts"] },
   { path: "/seances/[id]/suivi", roles: ["coach"], proof: ["coach-performed-sets.spec.ts", "filled-sweep.spec.ts"] },
   { path: "/seances/[id]/charges", roles: ["coach"], proof: ["filled-pages.spec.ts"] },
+  { path: "/seances/[id]/athletes/[athleteId]/echanges", roles: ["coach"], proof: ["session-thread.spec.ts"] },
   { path: "/seances/[id]/athletes/[athleteId]/series", roles: ["coach"], proof: ["coach-performed-sets.spec.ts"] },
   {
     path: "/exercices",

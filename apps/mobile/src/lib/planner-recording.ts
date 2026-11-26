@@ -7,7 +7,7 @@ import {
   type RecordingOptions,
 } from "expo-audio";
 import { File } from "expo-file-system";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import { claimPlannerRecorder } from "./planner-recording-files";
 import {
   PLANNER_AUDIO_EXTENSION,
@@ -26,7 +26,29 @@ const options: RecordingOptions = {
   web: { mimeType: "audio/webm", bitsPerSecond: 32_000 },
 };
 
-export function createNativeDictationRecorder(): DictationRecorder {
+// Android peut rendre la décision du dialogue système avant de réactiver notre Activity.
+function waitForPermissionReturn(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.reject(new Error("dictation_cancelled"));
+  if (AppState.currentState === "active") return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + 2000;
+    const finish = (active: boolean) => {
+      clearTimeout(timer);
+      subscription.remove();
+      signal.removeEventListener("abort", cancel);
+      if (active && Date.now() <= deadline && !signal.aborted) resolve();
+      else reject(new Error("dictation_cancelled"));
+    };
+    const cancel = () => finish(false);
+    const timer = setTimeout(cancel, 2000);
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") finish(true);
+    });
+    signal.addEventListener("abort", cancel, { once: true });
+  });
+}
+
+export function createNativeDictationRecorder(onPermissionDialog: (open: boolean) => void): DictationRecorder {
   const releaseClaim = claimPlannerRecorder();
   let recorder: AudioRecorder | null = null;
   let uri: string | null = null;
@@ -35,9 +57,20 @@ export function createNativeDictationRecorder(): DictationRecorder {
   return {
     prepare: async (signal) => {
       if (signal.aborted) throw new Error("dictation_cancelled");
-      const permission = await AudioModule.requestRecordingPermissionsAsync();
+      const permission = await AudioModule.getRecordingPermissionsAsync();
       if (signal.aborted) throw new Error("dictation_cancelled");
-      if (!permission.granted) throw new Error("dictation_permission_denied");
+      if (!permission.granted) {
+        if (!permission.canAskAgain) throw new Error("dictation_permission_denied");
+        onPermissionDialog(true);
+        try {
+          const result = await AudioModule.requestRecordingPermissionsAsync();
+          if (!result.granted) throw new Error("dictation_permission_denied");
+          await waitForPermissionReturn(signal);
+        } finally {
+          onPermissionDialog(false);
+        }
+      }
+      if (signal.aborted || AppState.currentState !== "active") throw new Error("dictation_cancelled");
       await setAudioModeAsync({
         allowsRecording: true,
         playsInSilentMode: true,
@@ -55,6 +88,7 @@ export function createNativeDictationRecorder(): DictationRecorder {
       uri = recorder.uri;
     },
     start: () => {
+      if (AppState.currentState !== "active") throw new Error("dictation_cancelled");
       if (!recorder) throw new Error("dictation_not_ready");
       recorder.record({ forDuration: PLANNER_RECORDING_SECONDS });
     },

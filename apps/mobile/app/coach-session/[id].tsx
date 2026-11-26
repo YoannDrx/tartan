@@ -4,7 +4,8 @@ import { capitalize, formatDateLong, m } from "@tartan/i18n";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
-import { debriefUrl, VoicePlayer } from "../../src/features/session-voice";
+import { VoicePlayer, debriefUrl } from "../../src/features/session-voice";
+import { CoachSessionThreads } from "../../src/features/coach-session-threads";
 import { CommentsSection } from "../../src/features/comments";
 import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
@@ -21,15 +22,15 @@ type Athlete = CoachSessionDetail["athletes"][number];
 
 const AthleteRow = ({
   athlete,
-  orgId,
-  sessionId,
+  onThreads,
+  debriefAudioUrl,
   onRemind,
   reminding,
   onSets,
 }: {
   athlete: Athlete;
-  orgId: string;
-  sessionId: string;
+  onThreads?: () => void;
+  debriefAudioUrl?: string;
   onRemind: () => void;
   reminding: boolean;
   onSets?: () => void;
@@ -75,8 +76,15 @@ const AthleteRow = ({
           </T>
         ) : null}
         {athlete.comment ? <T variant="small">{athlete.comment}</T> : null}
-        {athlete.hasVoiceDebrief ? (
-          <VoicePlayer url={debriefUrl(orgId, sessionId, athlete.athleteId)} label={m.sessionVoice.debrief} />
+        {debriefAudioUrl ? <VoicePlayer url={debriefAudioUrl} label={m.sessionVoice.debrief} /> : null}
+        {onThreads ? (
+          <Button
+            compact
+            variant="secondary"
+            label={m.sessionThread.coachThreads}
+            accessibilityLabel={`${m.sessionThread.coachThreads} · ${athlete.name}`}
+            onPress={onThreads}
+          />
         ) : null}
         {onSets ? (
           <Button
@@ -144,6 +152,7 @@ export default function CoachSession() {
   const detail = useCoachSession(orgId, id);
   const router = useRouter();
   const client = useQueryClient();
+  const [threadAthlete, setThreadAthlete] = useState<Athlete | null>(null);
   const [rollCall, setRollCall] = useState<Record<string, "present" | "absent"> | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   // Le coach n'est prévenu qu'au moment où il en a besoin : des absents, et pas de version autonomie.
@@ -332,8 +341,10 @@ export default function CoachSession() {
                 {i > 0 ? <Divider /> : null}
                 <AthleteRow
                   athlete={a}
-                  orgId={orgId}
-                  sessionId={id}
+                  debriefAudioUrl={a.hasVoiceDebrief ? debriefUrl(orgId, id, a.athleteId) : undefined}
+                  onThreads={
+                    session.publishedAt && active && active.kind !== "personal" ? () => setThreadAthlete(a) : undefined
+                  }
                   reminding={remind.isPending}
                   onRemind={() => remind.mutate([a.athleteId])}
                   onSets={
@@ -354,6 +365,14 @@ export default function CoachSession() {
           <CommentsSection orgId={orgId} entityType="session" entityId={session.id} />
         </View>
       )}
+      {threadAthlete ? (
+        <CoachSessionThreads
+          key={`${orgId}.${id}.${threadAthlete.athleteId}`}
+          athleteName={threadAthlete.name}
+          target={{ orgId, sessionId: id, athleteId: threadAthlete.athleteId }}
+          onClose={() => setThreadAthlete(null)}
+        />
+      ) : null}
     </StackScreen>
   );
 }

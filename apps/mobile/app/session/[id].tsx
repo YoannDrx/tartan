@@ -1,4 +1,5 @@
 import { tokens } from "@tartan/design-tokens";
+import { ThreadDisclosure } from "../../src/features/session-thread";
 import { instructionUrl, VoicePlayer } from "../../src/features/session-voice";
 import { exerciseTransition, celebrationFromResponse } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
@@ -190,6 +191,9 @@ export default function SessionMode() {
   const validating = finished !== null;
   const sending = useRef(false);
   const [saving, setSaving] = useState(false);
+  const [exerciseReplyBusy, setExerciseReplyBusy] = useState(false);
+  const [debriefBusy, setDebriefBusy] = useState(false);
+  const replying = exerciseReplyBusy || debriefBusy;
   const [saveError, setSaveError] = useState<string | null>(null);
   const progress = useSessionProgress((s) => s.bySession[id] ?? NO_PROGRESS);
   const toggle = useSessionProgress((s) => s.toggle);
@@ -298,7 +302,7 @@ export default function SessionMode() {
             testID="session-previous"
             label={m.sessionMode.previous}
             variant="secondary"
-            disabled={index === 0}
+            disabled={replying || index === 0}
             style={{ flex: 1 }}
             onPress={() => setIndex(index - 1)}
           />
@@ -308,7 +312,7 @@ export default function SessionMode() {
               label={m.sessionMode.finish}
               icon={Check}
               style={{ flex: 2 }}
-              disabled={saving}
+              disabled={saving || replying}
               onPress={async () => {
                 if (sending.current) return;
                 sending.current = true;
@@ -333,6 +337,7 @@ export default function SessionMode() {
           ) : (
             <Button
               testID="session-next"
+              disabled={replying}
               label={m.sessionMode.next}
               icon={ArrowRight}
               style={{ flex: 2 }}
@@ -517,6 +522,17 @@ export default function SessionMode() {
 
       {cue && tone !== "off" ? <T accessibilityLiveRegion="polite">{cue}</T> : null}
       {restSeconds ? <RestTimer key={`${item.ref}-${restSeconds}-rest`} seconds={restSeconds} /> : null}
+
+      {!recovery && active && active.kind !== "personal" ? (
+        <ThreadDisclosure
+          key={item.ref}
+          target={{ orgId, sessionId: id, itemRef: item.ref }}
+          onBusyChange={setExerciseReplyBusy}
+        />
+      ) : null}
+      {session.log?.status === "done" && active && active.kind !== "personal" && session.healthConsent ? (
+        <ThreadDisclosure target={{ orgId, sessionId: id }} onBusyChange={setDebriefBusy} />
+      ) : null}
 
       {finished ? (
         <ValidationSheet

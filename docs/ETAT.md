@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## Fils privés autour de la séance · 25 novembre 2026
+
+Le coach et l’athlète peuvent échanger plusieurs réponses écrites ou vocales autour d’un exercice ou du débrief final. Le serveur contrôle le groupe, l’attribution de la séance et la version de l’exercice. La transcription est déclenchée par l’auteur, sur accord explicite, puis consultable par le public du vocal. Une consigne synthétique de trois secondes envoyée au prestataire réel a restitué le placement, les huit foulées et les plots. La recette sur deux téléphones physiques reste ouverte.
+
 ## Accueil coach ou athlète · 26 novembre 2026
 
 L’accueil ouvre le suivi du coach ou la journée de l’athlète. Le club habituel se choisit dans les réglages. La journée et le calendrier réunissent les séances prescrites et personnelles avec leur provenance. L’athlète consulte la bibliothèque du club et retrouve son planificateur, ses modèles, ses records et ses vidéos dans son carnet personnel. Testé sur le build web avec Playwright, le parcours de double validation passe sur les profils ordinateur et mobile avec un prestataire IA simulé. L’accueil passe les contrôles de débordement, d’accessibilité et de mouvement réduit à 390, 768 et 1440 px. Le flux Maestro de double validation passe en local sur simulateur iOS 26.3 et sur émulateur Android. Après relance de l’app, le serveur retrouve les deux validations dans leurs espaces respectifs. La recette sur les téléphones du fondateur reste à faire.

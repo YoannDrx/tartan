@@ -37,5 +37,6 @@ executionOrder:
     - coach-publication-message
     - athlete-circuit-guide
     - athlete-video-capture
+    - session-thread
     - sync-review
     - athlete-notebook

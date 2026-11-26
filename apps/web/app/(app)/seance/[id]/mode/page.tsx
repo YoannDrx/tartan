@@ -8,12 +8,13 @@ import { getAthleteSession, getAthleteToday } from "@/server/athlete-view.servic
 export const metadata: Metadata = { title: encouragementLabels.modeTitle };
 
 export default async function ModePage({ params }: { params: Promise<{ id: string }> }) {
-  const { actor, organizationId } = await requireAthleteSpace();
+  const { actor, organizationId, personal } = await requireAthleteSpace();
   const { id } = await params;
   const session = await orNotFound(() => getAthleteSession(actor.userId, organizationId, id));
   const [today, me] = await Promise.all([getAthleteToday(actor.userId, organizationId), getMe(actor.userId)]);
   return (
     <SessionMode
+      personal={personal}
       tone={me.preferences?.sessionTone ?? "calm"}
       session={session}
       organizationId={organizationId}

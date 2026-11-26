@@ -63,7 +63,12 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
           ) : null}
           {!validated && session.date <= todayIso() ? (
             <div className="flex flex-col gap-2">
-              <QuickValidate session={session} organizationId={organizationId} healthConsent={today.healthConsent} />
+              <QuickValidate
+                personal={personal}
+                session={session}
+                organizationId={organizationId}
+                healthConsent={today.healthConsent}
+              />
               {!personal && session.hasAutonomous ? <TodayAbsence sessionId={id} current={session.attendance} /> : null}
             </div>
           ) : null}
@@ -119,17 +124,13 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
                   {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
                     <p className="text-link">{m.today.loadMissing}</p>
                   ) : null}
-                  {item.prescription.notes || item.prescription.coachVoiceId || item.cues.length ? (
+                  {item.prescription.notes || item.cues.length ? (
                     <div className="flex flex-col gap-2 border-t border-card-line pt-3">
                       <p className="font-semibold">{m.sessionMode.cues}</p>
                       {item.prescription.notes ? (
                         <p className="whitespace-pre-line break-words">{item.prescription.notes}</p>
                       ) : null}
-                      <ExerciseVoice
-                        organizationId={organizationId}
-                        sessionId={id}
-                        clipId={item.prescription.coachVoiceId}
-                      />
+
                       {item.cues.length ? (
                         <ul className="list-disc space-y-1 pl-5">
                           {item.cues.map((cue, i) => (
@@ -138,6 +139,15 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
                         </ul>
                       ) : null}
                     </div>
+                  ) : null}
+                  {!recovery ? (
+                    <ExerciseVoice
+                      organizationId={organizationId}
+                      sessionId={id}
+                      itemRef={item.ref}
+                      personal={personal}
+                      clipId={item.prescription.coachVoiceId}
+                    />
                   ) : null}
                   {item.guide ? <MovementGuideDisclosure guide={item.guide} /> : null}
                 </li>

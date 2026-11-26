@@ -1,0 +1,76 @@
+appId: ${APP_ID}
+---
+- runScript: scripts/create-circuit.js
+- runScript: scripts/thread-fixture.js
+- runFlow:
+    file: flows/_sign-in.yml
+    env:
+      EMAIL: ${ATHLETE_EMAIL}
+- extendedWaitUntil:
+    visible:
+      id: session-hero
+    timeout: 30000
+- openLink: ${output.circuitUrl}
+- runFlow: flows/_accept-deep-link.yml
+- scrollUntilVisible:
+    element: "Échange sur cet exercice"
+- tapOn: "Échange sur cet exercice"
+- scrollUntilVisible:
+    element: "Écouter · 0:04"
+- tapOn: "Écouter · 0:04"
+- assertVisible: "Mettre en pause · 0:04"
+- assertNotVisible: "Transcrire mon vocal"
+- takeScreenshot: athlete-exercise-thread
+- scrollUntilVisible:
+    element:
+      id: thread-text
+- tapOn:
+    id: thread-text
+- inputText: "Question sur ce tour"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: thread-send-text
+- tapOn:
+    id: thread-send-text
+- extendedWaitUntil:
+    visible: "Question sur ce tour"
+    timeout: 15000
+- runFlow:
+    file: flows/_sign-in.yml
+    env:
+      EMAIL: ${COACH_EMAIL}
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- openLink: ${output.threadCoachUrl}
+- runFlow: flows/_accept-deep-link.yml
+- scrollUntilVisible:
+    element: "Échanges privés.*"
+- tapOn: "Échanges privés.*"
+# La feuille est courte pendant la lecture de la prescription individuelle.
+- extendedWaitUntil:
+    visible: ${output.threadExercise}
+    timeout: 30000
+- tapOn: ${output.threadExercise}
+- assertVisible: "Question sur ce tour"
+- tapOn: "Transcrire mon vocal"
+- assertVisible: "J’autorise l’envoi de ce vocal.*"
+- takeScreenshot: coach-thread-transcription-consent
+- tapOn: "Annuler"
+- assertNotVisible: "Autoriser et transcrire"
+- scrollUntilVisible:
+    element:
+      id: thread-text
+- tapOn:
+    id: thread-text
+- inputText: "Garde la meme amplitude"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: thread-send-text
+- tapOn:
+    id: thread-send-text
+- extendedWaitUntil:
+    visible: "Garde la meme amplitude"
+    timeout: 15000

@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Codex, fils d’exercice et de débrief · 25 novembre 2026
+
+Les routes du fil conservent une discussion par athlète et par exercice effectif, ou par débrief après validation de la séance. Les réponses textuelles et audio supportent la répétition d’un envoi. Le retrait du consentement santé efface les échanges du débrief. Le fournisseur de transcription reçoit un seul vocal sur accord explicite de son auteur. La version et un verrou temporaire évitent les traitements concurrents. La matrice HTTP, les tests de concurrence et un essai du prestataire réel avec une voix de synthèse passent. Le parcours d’échange entre deux comptes passe dans le navigateur, sur un iPhone simulé et sur un émulateur Android.
+
 ## Codex, accueil par rôle et carnets personnels · 26 novembre 2026
 
 Branche `feat/accueil-coach-athlete`. La migration additive ajoute la préférence de club au profil. Une notification ouvre temporairement son club. Les services existants vérifient chaque accès au club ou au carnet, y compris la validation et les consentements. Le scénario Playwright `ai-planner-athlete` et le flux Maestro `athlete-notebook` couvrent le retour dans l’application avec deux séances le même jour. Les anciennes API mobiles restent disponibles. Les deux rapports Maestro locaux confirment le parcours. Sur iOS, le test traite la demande système d’enregistrement du mot de passe et centre les boutons de validation au-dessus des onglets.
