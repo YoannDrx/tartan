@@ -34,7 +34,7 @@ test("l’athlète et son coach se répondent dans deux fils privés, avec trans
     await record(athletePage, athleteRecording);
     await athleteRecording.getByRole("button", { name: t.sendAudio, exact: true }).click();
     await expect(athletePage.getByText(t.sent, { exact: true })).toBeVisible();
-    await page.getByRole("link", { name: new RegExp(t.coachThreads) }).click();
+    await page.getByRole("link", { name: `${t.coachThreads} · Lina Test`, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/seances/${id}/athletes/[a-f0-9-]{36}/echanges`));
     await expect(page.getByRole("heading", { name: t.coachThreads })).toBeVisible();
     await page.getByRole("button", { name: t.exercise, exact: true }).click();
