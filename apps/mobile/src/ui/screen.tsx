@@ -17,7 +17,7 @@ import { reportClientVersion } from "../lib/notifications";
 import * as Updates from "expo-updates";
 import { SpaceSwitcher } from "./space-switcher";
 import { useActiveSpace } from "../lib/queries";
-import { homeFor, useSpaceStore } from "../lib/space-store";
+import { homeFor } from "../lib/space-store";
 import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./theme";
 
 // La barre d'état suit le fond de l'écran au premier plan : encre sur la craie et le soleil, claire ailleurs.
@@ -135,18 +135,14 @@ const TabInner = ({
     enabled: Updates.channel === "beta" && Boolean(me.data?.id),
     refetchInterval: 15 * 60_000,
   });
-  const home = me.data?.spaces[0];
-  const setActive = useSpaceStore((s) => s.setActive);
+
   const titleRow = (
     <>
-      {active && home && (
+      {active && (
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={`${active.role === "athlete" ? m.brand.athlete : m.brand.coach}, ${active.organizationName}`}
-          onPress={() => {
-            setActive(home.organizationId);
-            router.replace(homeFor(home) ?? "/");
-          }}
+          onPress={() => router.replace(homeFor(active) ?? "/")}
           style={{ minHeight: 44, flexDirection: "row", gap: space.sm, alignItems: "center" }}
         >
           <Image

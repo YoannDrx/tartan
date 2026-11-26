@@ -40,6 +40,10 @@ env:
 - assertVisible: "Animaux"
 - tapOn:
     id: avatar-preset-animal-fox
+- scrollUntilVisible:
+    element:
+      id: avatar-notice
+    direction: UP
 - extendedWaitUntil:
     visible: "Avatar enregistré."
     timeout: 15000
@@ -56,4 +60,8 @@ env:
 - extendedWaitUntil:
     visible: "Tes initiales s'affichent à nouveau."
     timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: avatar-current
+    direction: UP
 - assertVisible: "Initiales de .*"

@@ -19,7 +19,7 @@ import { type ReactNode } from "react";
 import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { Logo, LogoMark } from "@/components/logo";
+import { LogoMark, Wordmark } from "@/components/logo";
 import { selectableSpaces } from "@tartan/domain";
 import { chooseHomeAction } from "./shell.action";
 import { useAction } from "next-safe-action/hooks";
@@ -113,13 +113,13 @@ export const AppShell = ({
       <header className={cn("app-header sticky z-30", barClass)}>
         <div className="mx-auto flex min-h-14 max-w-[1440px] flex-wrap items-center gap-x-2 px-4 tablet:flex-nowrap tablet:gap-4 desktop:px-6">
           {/* Sur téléphone, l'icône seule : la place revient au nom de l'espace (audit G6). */}
-          <Link href="/accueil" className="flex min-h-11 min-w-24 items-center gap-2">
+          <Link href={staff ? "/suivi" : "/aujourdhui"} className="flex min-h-11 min-w-24 items-center gap-2">
             <span className="tablet:hidden">
               <LogoMark size={32} />
               <span className="sr-only">{m.brand.name} </span>
             </span>
             <span className="max-tablet:hidden">
-              <Logo height={28} onDark />
+              <Wordmark className="align-middle text-inherit" />
             </span>
             <span className="flex min-w-0 flex-col leading-tight">
               <strong>{staff ? m.roles.coach : m.roles.athlete}</strong>{" "}
