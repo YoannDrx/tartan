@@ -39,3 +39,4 @@ executionOrder:
     - athlete-video-capture
     - session-thread
     - sync-review
+    - athlete-notebook

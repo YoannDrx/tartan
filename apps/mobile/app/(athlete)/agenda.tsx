@@ -14,20 +14,26 @@ import { useCalendarView } from "../../src/lib/calendar-view";
 import { useActiveSpace, useAthleteCalendar, usePrefetchMonths } from "../../src/lib/queries";
 import { useOpQueue } from "../../src/lib/sync/op-queue";
 import { applyPendingToCard } from "../../src/lib/sync/queue-core";
-import { ActivityTag, Tag } from "../../src/ui/primitives";
+import { Button, ActivityTag, Tag } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { StatusDisc } from "../../src/ui/status";
 import { NativeCalendarPhases } from "../../src/features/training-phases";
 
 export default function AthleteAgenda() {
-  const { orgId } = useActiveSpace();
+  const { orgId, space: active, me } = useActiveSpace();
   const { view, setView } = useCalendarView();
   const isMonth = view === "month";
   const nav = useWeekNavigator();
   const monthNav = useMonthNavigator();
   const [picked, setPicked] = useState<string | null>(null);
   const calendar = useAthleteCalendar(orgId, isMonth ? monthNav.from : nav.week, isMonth ? monthNav.to : nav.to);
+  const notebook = me.data?.spaces.find((s) => s.kind === "personal" && s.organizationId !== orgId);
+  const extra = useAthleteCalendar(
+    notebook?.organizationId ?? "",
+    isMonth ? monthNav.from : nav.week,
+    isMonth ? monthNav.to : nav.to,
+  );
   usePrefetchMonths(orgId, monthNav.month, isMonth);
   const items = useOpQueue((s) => s.items);
   const router = useRouter();
@@ -42,9 +48,20 @@ export default function AthleteAgenda() {
       tags: <Tag label={m.calendar.competition} tone="brand" />,
       accessibilityLabel: [m.calendar.competition, c.name, c.location].filter(Boolean).join(", "),
     }));
-    const sessions = calendar.data.sessions.map((raw) => {
+    const cards = [
+      ...calendar.data.sessions.map((raw) => ({ raw, personal: active?.kind === "personal" })),
+      ...(extra.data?.sessions ?? []).map((raw) => ({ raw, personal: true })),
+    ];
+    const sessions = cards.map(({ raw, personal }) => {
       const s = applyPendingToCard({ ...raw }, items);
-      const detail = [s.startTime?.replace(":", " h "), s.location, m.variant[s.variant]].filter(Boolean).join(" · ");
+      const detail = [
+        personal ? m.brand.personalSession : m.brand.clubSession,
+        s.startTime?.replace(":", " h "),
+        s.location,
+        m.variant[s.variant],
+      ]
+        .filter(Boolean)
+        .join(" · ");
       return {
         key: s.id,
         date: s.date,
@@ -53,24 +70,34 @@ export default function AthleteAgenda() {
         sessionType: s.type,
         tags: <ActivityTag type={s.type} />,
         leading: <StatusDisc status={s.status} />,
-        onPress: () => router.push(`/session/${s.id}`),
+        onPress: () =>
+          router.push({ pathname: "/session/[id]", params: { id: s.id, carnet: personal ? "1" : undefined } }),
         accessibilityLabel: `${s.title}, ${detail}, ${m.status[s.status]}`,
       };
     });
     return [...competitions, ...sessions];
-  }, [calendar.data, items, router]);
+  }, [calendar.data, extra.data, active?.kind, items, router]);
 
   return (
     <TabScreen
       world="work"
       title={m.nav.calendrier}
       refreshing={calendar.isRefetching}
-      onRefresh={() => void calendar.refetch()}
+      onRefresh={() => {
+        void calendar.refetch();
+        if (notebook) void extra.refetch();
+      }}
     >
+      {notebook && (
+        <Button label={m.mobile.solo.planSession} variant="secondary" onPress={() => router.push("/plan")} />
+      )}
       <CalendarViewSwitch view={view} onChange={setView} />
       {isMonth ? <MonthNav {...monthNav} /> : <WeekNav {...nav} />}
       {isMonth ? null : <NativeCalendarPhases from={nav.week} to={nav.to} />}
       {calendar.isPending ? <LoadingState /> : null}
+      {notebook && extra.isError && !extra.data ? (
+        <ErrorState error={extra.error} onRetry={() => void extra.refetch()} />
+      ) : null}
       {calendar.isError && !calendar.data ? (
         <ErrorState error={calendar.error} onRetry={() => void calendar.refetch()} />
       ) : null}

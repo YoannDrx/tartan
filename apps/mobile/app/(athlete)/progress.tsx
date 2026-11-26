@@ -2,7 +2,7 @@ import { addDays, formatHeight } from "@tartan/domain";
 import { capitalize, formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
-import { useActiveSpace, useAthleteFile } from "../../src/lib/queries";
+import { useTrainingSpace, useAthleteFile } from "../../src/lib/queries";
 import { Button, Divider, ListSurface, SectionTitle, T, Tag } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
@@ -22,7 +22,7 @@ const testKind = (kind: string) => (m.testKind as Record<string, string>)[kind] 
 
 // Les séries et courbes sont accessibles avec le flag progression.
 export default function Progress() {
-  const { orgId, space: active } = useActiveSpace();
+  const { orgId, me, space: active } = useTrainingSpace();
   const router = useRouter();
   const today = localIsoDate();
   const file = useAthleteFile(orgId);
@@ -36,18 +36,25 @@ export default function Progress() {
       refreshing={file.isRefetching}
       onRefresh={() => void file.refetch()}
     >
+      {!self && me.data?.spaces.some((s) => s.kind === "personal") && (
+        <Button
+          label={m.brand.notebook}
+          variant="secondary"
+          onPress={() => router.push({ pathname: "/progress", params: { carnet: "1" } })}
+        />
+      )}
       {self ? (
         <>
           <Button
             testID="progress-add-test"
             label={m.mobile.solo.progress.addTest}
-            onPress={() => router.push(`/athlete-strength/${self}`)}
+            onPress={() => router.push(`/athlete-strength/${self}${self ? "?carnet=1" : ""}`)}
           />
           <Button
             testID="progress-add-performance"
             label={m.mobile.solo.progress.addPerformance}
             variant="secondary"
-            onPress={() => router.push(`/athlete-performances/${self}`)}
+            onPress={() => router.push(`/athlete-performances/${self}${self ? "?carnet=1" : ""}`)}
           />
         </>
       ) : null}
@@ -55,13 +62,21 @@ export default function Progress() {
       {file.isError && !file.data ? <ErrorState error={file.error} onRetry={() => void file.refetch()} /> : null}
       {active?.progressionEnabled ? (
         <>
-          <Button label={m.analysis.title} variant="secondary" onPress={() => router.push("/training-analysis")} />
-          <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
+          <Button
+            label={m.analysis.title}
+            variant="secondary"
+            onPress={() => router.push({ pathname: "/training-analysis", params: { carnet: self ? "1" : undefined } })}
+          />
+          <Button
+            label={m.calculator.title}
+            variant="secondary"
+            onPress={() => router.push({ pathname: "/load-calculator", params: { carnet: self ? "1" : undefined } })}
+          />
           {file.data && !file.isError ? (
             <Button
               label={m.exerciseHistory.title}
               variant="secondary"
-              onPress={() => router.push(`/exercise-history/${file.data.id}`)}
+              onPress={() => router.push(`/exercise-history/${file.data.id}${self ? "?carnet=1" : ""}`)}
             />
           ) : null}
         </>

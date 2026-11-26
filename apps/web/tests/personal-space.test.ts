@@ -20,7 +20,7 @@ import { saveExercise } from "@/server/exercise.service";
 import { INVITATION_PURPOSE } from "@/server/invitation-email";
 import { acceptInvitation, createInvitation } from "@/server/invitation.service";
 import { queueActivationEmails } from "@/server/lifecycle-email.service";
-import { listSpaces } from "@/server/me.service";
+import { listSpaces, updatePreferences } from "@/server/me.service";
 import { saveGroup, updateOrganization } from "@/server/org.service";
 import { createPersonalSpace, signupOptions } from "@/server/personal-space.service";
 import { updatePlatformSettings } from "@/server/platform-settings.service";
@@ -176,6 +176,32 @@ describe("création de l'espace personnel", () => {
         aiPlannerEnabled: true,
       }),
     ]);
+  });
+});
+
+describe("accueil habituel", () => {
+  it("privilégie le propriétaire, puis le choix du compte, et oublie un club suspendu", async () => {
+    const { owner, organizationId } = await makeOrg("Club principal");
+    const other = await makeOrg("Second club");
+    await prisma.organizationMember.create({
+      data: { userId: owner.userId, organizationId: other.organizationId, role: "athlete" },
+    });
+    const notebook = await createPersonalSpace(owner.userId, signup);
+    const home = async () => (await listSpaces(owner.userId))[0]?.organizationId;
+    expect(await home()).toBe(organizationId);
+    await expect(
+      updatePreferences(owner.userId, { homeOrganizationId: notebook.organizationId }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(updatePreferences(other.owner.userId, { homeOrganizationId: organizationId })).rejects.toMatchObject({
+      status: 400,
+    });
+    await updatePreferences(owner.userId, { homeOrganizationId: other.organizationId });
+    expect(await home()).toBe(other.organizationId);
+    await prisma.organizationMember.update({
+      where: { organizationId_userId: { organizationId: other.organizationId, userId: owner.userId } },
+      data: { status: "suspended" },
+    });
+    expect(await home()).toBe(organizationId);
   });
 });
 

@@ -7,7 +7,7 @@ import {
   type ProfileInput,
   type SpaceSummary,
 } from "@tartan/contracts";
-import { canIn, knownAvatarPreset, plannerServerEnabled } from "@tartan/domain";
+import { isStaff, canIn, knownAvatarPreset, plannerServerEnabled } from "@tartan/domain";
 import { put } from "@vercel/blob";
 import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
@@ -20,7 +20,7 @@ import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { setEmailPreference } from "./email-preferences.service";
 
-// L'espace de démonstration ne se liste que pour la web app, qui sait l'annoncer (bandeau, sélecteur) : l'API du
+// L'espace de démonstration ne se liste que pour la web app, qui sait l'annoncer (bandeau, réglages) : l'API du
 // mobile et `/me` ne le montrent pas. Il vient toujours après les espaces réels.
 export const listSpaces = async (userId: string, options: { includeDemo?: boolean } = {}): Promise<SpaceSummary[]> => {
   const rows = await prisma.organizationMember.findMany({
@@ -28,6 +28,7 @@ export const listSpaces = async (userId: string, options: { includeDemo?: boolea
     orderBy: [{ organization: { isDemo: "asc" } }, { createdAt: "asc" }],
     select: {
       role: true,
+      user: { select: { profile: { select: { homeOrganizationId: true } } } },
       organization: {
         select: {
           id: true,
@@ -44,30 +45,40 @@ export const listSpaces = async (userId: string, options: { includeDemo?: boolea
     },
   });
   const athletes = await prisma.athlete.findMany({ where: { userId }, select: { id: true, organizationId: true } });
-  return rows.map((r) => {
-    // Le planificateur est coupé dans la démonstration, offre comprise : ni l'onglet, ni l'invitation à payer.
-    const planner = plannerServerEnabled(env()) && r.organization.aiPlannerEnabled && !r.organization.isDemo;
-    return {
-      organizationId: r.organization.id,
-      organizationName: r.organization.name,
-      progressionEnabled: r.organization.progressionEnabled,
-      phasesEnabled: r.organization.phasesEnabled,
-      aiPlannerEnabled:
-        planner && r.organization.plan !== "discovery" && canIn(r.organization.kind, r.role, "manageSessions"),
-      aiPlannerUpgrade:
-        planner && r.organization.plan === "discovery" && canIn(r.organization.kind, r.role, "manageSessions"),
-      role: r.role,
-      athleteId:
-        r.role === "athlete" ? (athletes.find((a) => a.organizationId === r.organization.id)?.id ?? null) : null,
-      ...(r.organization.isDemo
-        ? { isDemo: true, demoExpiresAt: r.organization.demoExpiresAt?.toISOString() ?? null }
-        : {}),
-      // L'app native en circulation l'ignore et y voit un espace d'athlète : elle valide ses séances sans le reste.
-      ...(r.organization.kind === "personal"
-        ? { kind: "personal" as const, organizationName: m.personalSpace.name }
-        : {}),
-    };
-  });
+  // Le tri stable garde le premier club rejoint à priorité égale.
+  const priority = (row: (typeof rows)[number]) => {
+    if (row.organization.isDemo) return 5;
+    if (row.organization.kind === "personal") return 4;
+    if (row.organization.id === row.user.profile?.homeOrganizationId) return 0;
+    if (row.role === "owner") return 1;
+    return isStaff(row.role) ? 2 : 3;
+  };
+  return rows
+    .sort((a, b) => priority(a) - priority(b))
+    .map((r) => {
+      // Le planificateur est coupé dans la démonstration, offre comprise : ni l'onglet, ni l'invitation à payer.
+      const planner = plannerServerEnabled(env()) && r.organization.aiPlannerEnabled && !r.organization.isDemo;
+      return {
+        organizationId: r.organization.id,
+        organizationName: r.organization.name,
+        progressionEnabled: r.organization.progressionEnabled,
+        phasesEnabled: r.organization.phasesEnabled,
+        aiPlannerEnabled:
+          planner && r.organization.plan !== "discovery" && canIn(r.organization.kind, r.role, "manageSessions"),
+        aiPlannerUpgrade:
+          planner && r.organization.plan === "discovery" && canIn(r.organization.kind, r.role, "manageSessions"),
+        role: r.role,
+        athleteId:
+          r.role === "athlete" ? (athletes.find((a) => a.organizationId === r.organization.id)?.id ?? null) : null,
+        ...(r.organization.isDemo
+          ? { isDemo: true, demoExpiresAt: r.organization.demoExpiresAt?.toISOString() ?? null }
+          : {}),
+        // L'app native en circulation l'ignore et y voit un espace d'athlète : elle valide ses séances sans le reste.
+        ...(r.organization.kind === "personal"
+          ? { kind: "personal" as const, organizationName: m.personalSpace.name }
+          : {}),
+      };
+    });
 };
 
 export const getMe = async (userId: string): Promise<MeResponse> => {
@@ -121,6 +132,12 @@ export const getCalendarView = async (userId: string): Promise<CalendarView | nu
 
 // Dernier choix gagnant : un appareil revenu du hors-ligne n'écrase pas un choix plus récent.
 export const updatePreferences = async (userId: string, input: PreferencesInput): Promise<void> => {
+  if (input.homeOrganizationId) {
+    const spaces = await listSpaces(userId);
+    if (!spaces.some((s) => s.organizationId === input.homeOrganizationId && s.kind !== "personal")) throw invalid();
+    const data = { homeOrganizationId: input.homeOrganizationId };
+    await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, ...data }, update: data });
+  }
   if (input.homeTone !== undefined || input.sessionTone !== undefined) {
     const data = { homeTone: input.homeTone, sessionTone: input.sessionTone };
     await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, ...data }, update: data });

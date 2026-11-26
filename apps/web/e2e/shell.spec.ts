@@ -11,13 +11,12 @@ test("l'ossature tient sur téléphone : en-tête allégé, barre basse lisible,
   const name = `Ossature${info.project.name === "desktop" ? "Bureau" : "Mobile"}`;
   await createCoachSpace(page, name);
   await page.goto("/suivi", { waitUntil: "networkidle" });
-  const phone = page.viewportSize()!.width < 768;
   const header = page.locator("header.app-header");
 
   // Un seul espace : son nom tronqué n'encombre plus l'en-tête du téléphone. Il se lit dans le menu.
   const space = header.getByText(`Coaching ${name}`, { exact: true });
-  if (phone) await expect(space).toBeHidden();
-  else await expect(space).toBeVisible();
+  await expect(space).toBeVisible();
+  await expect(header.getByRole("link", { name: m.brand.coach })).toBeVisible();
   await page.getByRole("button", { name: m.nav.reglages, exact: true }).click();
   const menu = page.getByRole("menu");
   await expect(menu.getByText(`Coaching ${name}`, { exact: true })).toBeVisible();

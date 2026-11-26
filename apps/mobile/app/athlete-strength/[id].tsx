@@ -9,7 +9,7 @@ import { api } from "../../src/lib/api";
 import { localIsoDate } from "../../src/lib/dates";
 import { errorMessage } from "../../src/lib/errors";
 import { personalAthleteOf } from "../../src/lib/personal-space";
-import { useActiveSpace, useCoachAthleteFile, useExercises } from "../../src/lib/queries";
+import { useTrainingSpace, useCoachAthleteFile, useExercises } from "../../src/lib/queries";
 import { buildStrengthTest, buildWorkingReference, strengthTestBody } from "../../src/lib/strength-form";
 import { Button, Card, Field, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
@@ -289,7 +289,7 @@ const StrengthScreen = ({ orgId, athleteId }: { orgId: string; athleteId: string
 
 export default function AthleteStrength() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { orgId, me, space: active } = useActiveSpace();
+  const { orgId, me, space: active } = useTrainingSpace();
   if (me.isPending)
     return (
       <StackScreen title={m.strength.manage}>

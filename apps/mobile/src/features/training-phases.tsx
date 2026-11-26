@@ -7,13 +7,13 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 import { api } from "../lib/api";
 import { localIsoDate } from "../lib/dates";
-import { useActiveSpace } from "../lib/queries";
+import { useTrainingSpace } from "../lib/queries";
 import { Button, Card, SectionTitle, T, Tag } from "../ui/primitives";
 import { ErrorState, LoadingState } from "../ui/states";
 import { color, space, usePalette } from "../ui/theme";
 
 export function useTrainingPhases(query: TrainingPhaseQuery) {
-  const { orgId, me, space: active } = useActiveSpace();
+  const { orgId, me, space: active } = useTrainingSpace();
   return useQuery({
     queryKey: ["training-phases", orgId, me.data?.id, active?.role, query],
     queryFn: () => api.trainingPhases(orgId, query),
@@ -101,7 +101,7 @@ function PhaseRows({ phases, from, to, today, actions }: PhaseListProps) {
   );
 }
 export function NativeCalendarPhases({ from, to, groupId }: { from: string; to: string; groupId?: string }) {
-  const { space: active } = useActiveSpace();
+  const { space: active } = useTrainingSpace();
   const phases = useTrainingPhases({ from, to, groupId });
   const router = useRouter();
   const today = localIsoDate();

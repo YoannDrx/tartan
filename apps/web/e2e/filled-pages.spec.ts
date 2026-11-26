@@ -72,8 +72,8 @@ test("pages remplies : mes vidéos, une vidéo, progrès, actualisation des char
   });
 
   // Côté athlète, dans le club.
-  await page.goto("/accueil");
-  await page.getByLabel(m.settings.switchSpace).selectOption(club.organizationId);
+  await page.goto("/reglages");
+  await page.locator(`a[href$="espace=${club.organizationId}"]`).click();
   await expect(page.getByRole("heading", { name: /^Salut/ })).toBeVisible();
 
   await page.goto("/mes-videos");
@@ -92,7 +92,7 @@ test("pages remplies : mes vidéos, une vidéo, progrès, actualisation des char
 
   // Côté coach, dans son espace : la page d'actualisation des charges d'une séance publiée.
   await page.goto("/accueil");
-  await page.getByLabel(m.settings.switchSpace).selectOption(own.organizationId);
+  await expect(page.getByRole("link", { name: m.brand.coach })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
   const sessionId = await sql(async (client) => {
     const { rows } = await client.query<{ id: string }>(

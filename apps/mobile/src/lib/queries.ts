@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, monthRange, shiftMonthKey } from "@tartan/domain";
+import { useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { api, fetchCoachAthleteFile } from "./api";
 import { localIsoDate } from "./dates";
@@ -20,6 +21,17 @@ export const useActiveSpace = () => {
   const space = me.data ? pickSpace(me.data.spaces, activeOrgId) : null;
   return { me, space, orgId: space?.organizationId ?? "" };
 };
+
+// Un lien de séance peut désigner le carnet du titulaire. Il ne sélectionne jamais un autre club.
+export function useTrainingSpace(personalTool = false) {
+  const active = useActiveSpace();
+  const { carnet } = useLocalSearchParams<{ carnet?: string }>();
+  const notebook =
+    active.space?.role === "athlete" && ((personalTool && carnet !== "0") || carnet === "1")
+      ? active.me.data?.spaces.find((s) => s.kind === "personal")
+      : null;
+  return notebook ? { ...active, space: notebook, orgId: notebook.organizationId } : active;
+}
 
 export const useToday = (orgId: string) =>
   useQuery({ queryKey: ["today", orgId], queryFn: () => api.today(orgId), enabled: Boolean(orgId) });

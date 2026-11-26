@@ -39,7 +39,7 @@ import { deniesCachedAccess, errorMessage } from "../../src/lib/errors";
 import { PHASE_ORDER, phaseSegments, preciseTimecode, segmentAt, type PhaseSegment } from "../../src/lib/phases";
 import { defaultSpeed, playerRate, speedsFor } from "../../src/lib/playback";
 import { playbackSource, shouldFallBackToHls } from "../../src/lib/playback-source";
-import { useActiveSpace, useVideo } from "../../src/lib/queries";
+import { useTrainingSpace, useVideo } from "../../src/lib/queries";
 import { drawingFrom, videoAspect } from "../../src/lib/video-drawing-draft";
 import { sheetForRemark, type SheetHeight } from "../../src/lib/video-immersive";
 import {
@@ -682,7 +682,7 @@ const Player = ({
 
 export default function VideoAnalysis() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { me, orgId, space: active } = useActiveSpace();
+  const { me, orgId, space: active } = useTrainingSpace();
   const video = useVideo(orgId, id);
   const [attempt, setAttempt] = useState(0);
   const [mp4Failed, setMp4Failed] = useState(false);

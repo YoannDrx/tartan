@@ -1,4 +1,4 @@
-import type { CellStatus } from "@tartan/contracts";
+import type { AthleteToday, CellStatus } from "@tartan/contracts";
 import { addDays, startOfWeek } from "./status";
 
 // La série de régularité de l'athlète, en semaines : celles où il a rendu chacune de ses séances.
@@ -17,6 +17,16 @@ export type Regularity = {
 };
 
 const isValidated = (status: CellStatus) => status === "done" || status === "partial";
+
+// Les deux carnets donnent chacun un état par jour, avec la même priorité que la journée serveur.
+export function combinedWeek(club: AthleteToday["week"], notebook?: AthleteToday["week"]) {
+  if (!notebook) return club;
+  const priority = ["rest", "done", "planned", "missed", "partial", "today"] as const;
+  return club.map((day) => {
+    const other = notebook.find((entry) => entry.date === day.date);
+    return other && priority.indexOf(other.status) > priority.indexOf(day.status) ? other : day;
+  });
+}
 
 export const regularity = (entries: readonly RegularityEntry[], today: string): Regularity => {
   const byWeek = new Map<string, RegularityEntry[]>();

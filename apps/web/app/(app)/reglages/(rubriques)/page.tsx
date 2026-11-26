@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { AnchorRedirect } from "@/features/settings/anchor-redirect";
 import { ProfileSheet } from "@/features/settings/profil/profile-sheet";
 import { requireRubric } from "@/features/settings/rubric-access";
+import { MyClubs } from "@/features/settings/my-clubs";
 import { SettingsIndex } from "@/features/settings/settings-index";
 import { THEME_COOKIE, themePreference } from "@/features/shell/theme";
 import { listReports } from "@/server/comm.service";
@@ -38,6 +39,7 @@ export default async function ReglagesPage() {
   return (
     <>
       <AnchorRedirect role={role} />
+      <MyClubs spaces={me.spaces} />
       <SettingsIndex
         role={role}
         spaceName={space.organizationName}

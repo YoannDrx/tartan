@@ -35,11 +35,11 @@ test("changer d'espace : rôle et données de chaque espace, aucune fuite, cooki
   const joined = me.spaces.find((space) => space.role === "athlete")!;
   expect(joined.organizationName).toBe("Coaching Voisin");
   const cookie = async () => (await page.context().cookies()).find((c) => c.name === SPACE_COOKIE)?.value;
-  const switcher = page.getByLabel(m.settings.switchSpace);
+  const brand = page.getByRole("link", { name: m.brand.coach });
 
   // Vers son propre espace : le suivi du coach, rien de l'espace du voisin.
   await page.goto("/accueil");
-  await switcher.selectOption(own.organizationId);
+  await expect(brand).toBeVisible();
   await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
   expect(await cookie()).toBe(own.organizationId);
 
@@ -51,7 +51,7 @@ test("changer d'espace : rôle et données de chaque espace, aucune fuite, cooki
   await expect(name).toHaveText(own.organizationName);
   const nameBox = (await name.boundingBox())!;
   expect(nameBox.width).toBeGreaterThanOrEqual(56);
-  const target = (await switcher.boundingBox())!;
+  const target = (await brand.boundingBox())!;
   expect(target.height).toBeGreaterThanOrEqual(44);
   expect(target.width).toBeGreaterThanOrEqual(96);
   expect(target.x + target.width).toBeLessThanOrEqual(390);
@@ -60,7 +60,11 @@ test("changer d'espace : rôle et données de chaque espace, aucune fuite, cooki
   await expect(page.getByText("Coaching Voisin", { exact: true })).toHaveCount(0);
 
   // Vers l'espace où il est athlète : l'accueil de l'athlète, et le suivi lui est fermé.
-  await switcher.selectOption(joined.organizationId);
+  await page.goto("/reglages");
+  const clubRow = page.getByRole("listitem").filter({ hasText: joined.organizationName });
+  await clubRow.getByRole("button", { name: m.brand.makeUsual }).click();
+  await expect(clubRow.getByText(m.brand.usual)).toBeVisible();
+  await clubRow.getByRole("link", { name: m.brand.openClub }).click();
   await expect(page.getByRole("heading", { name: /^Salut/ })).toBeVisible();
   expect(await cookie()).toBe(joined.organizationId);
   await page.goto("/suivi");
@@ -79,7 +83,7 @@ test("changer d'espace : rôle et données de chaque espace, aucune fuite, cooki
   const response = await page.goto("/accueil");
   expect(response?.status()).toBeLessThan(400);
   await expect(page).toHaveURL(/\/(aujourdhui|suivi)/);
-  await expect(page.getByLabel(m.settings.switchSpace)).not.toHaveValue(forged);
+  await expect(page.getByRole("link", { name: m.brand.athlete })).toBeVisible();
   await expect(page.getByText("Coaching Tiers", { exact: true })).toHaveCount(0);
   expect((await page.request.get(`/api/v1/orgs/${forged}/athletes`)).status()).toBe(403);
   await Promise.all([otherContext.close(), third.close()]);

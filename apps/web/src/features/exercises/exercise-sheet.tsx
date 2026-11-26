@@ -28,7 +28,15 @@ const sourceLink = (media: Media | null) => {
 };
 
 /** Le contenu d'une fiche : le geste d'abord (ou la vidéo du coach), le guide concis, puis la prescription. */
-export const ExerciseDetail = ({ exercise, variants }: { exercise: ExerciseSummary; variants?: GuideVariants }) => {
+export const ExerciseDetail = ({
+  exercise,
+  variants,
+  basePath,
+}: {
+  exercise: ExerciseSummary;
+  variants?: GuideVariants;
+  basePath?: string;
+}) => {
   const media = exercise.media as Media | null;
   const source = sourceLink(media);
   const prescription = formatPrescription(exercise.defaultPrescription);
@@ -44,7 +52,7 @@ export const ExerciseDetail = ({ exercise, variants }: { exercise: ExerciseSumma
           className="h-auto w-full max-w-[488px] rounded-card"
         />
       )}
-      {exercise.guide ? <MovementGuide guide={exercise.guide} variants={variants} /> : null}
+      {exercise.guide ? <MovementGuide guide={exercise.guide} variants={variants} basePath={basePath} /> : null}
       {media?.kind === "youtube" || media?.kind === "instagram" ? (
         <ExternalVideo media={media} title={exercise.name} />
       ) : media?.kind === "upload" && media.streamUrl ? (

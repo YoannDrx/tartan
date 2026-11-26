@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { errorMessage } from "../src/lib/errors";
 import { api } from "../src/lib/api";
-import { useActiveSpace } from "../src/lib/queries";
+import { useTrainingSpace } from "../src/lib/queries";
 import { Button, T } from "../src/ui/primitives";
 import { StackScreen } from "../src/ui/screen";
 import { ErrorState, LoadingState } from "../src/ui/states";
@@ -179,7 +179,7 @@ function ProposalList({ orgId, userId }: { orgId: string; userId: string }) {
 }
 
 export default function PlannerProposalsScreen() {
-  const { me, space: activeSpace, orgId } = useActiveSpace();
+  const { me, space: activeSpace, orgId } = useTrainingSpace(true);
   if (!me.data)
     return (
       <StackScreen title={t.recent}>

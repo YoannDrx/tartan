@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PlannerConsent, PlannerConsentWithdraw } from "@/features/planner/planner-consent";
 import { PlannerUnavailable } from "@/features/planner/planner-unavailable";
 import { WebPlanner } from "@/features/planner/web-planner";
-import { requireSpace, orNotFound } from "@/features/shell/space";
+import { requireResourceSpace, orNotFound } from "@/features/shell/space";
 import { AppError } from "@/lib/errors";
 import { hasAiConsent } from "@/server/ai/consent.service";
 import { getPlannerProposal } from "@/server/ai/proposal.service";
@@ -24,7 +24,7 @@ export default async function PlannerPage({
 }: {
   searchParams: Promise<{ proposition?: string; date?: string; groupe?: string }>;
 }) {
-  const { actor, organizationId, space, personal } = await requireSpace();
+  const { actor, organizationId, space, personal } = await requireResourceSpace();
   if (!space.aiPlannerEnabled) return <PlannerUnavailable space={space} />;
   if (!(await hasAiConsent(actor.userId))) return <PlannerConsent />;
   const params = await searchParams;

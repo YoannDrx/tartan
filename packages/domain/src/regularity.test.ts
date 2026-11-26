@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { regularity, type RegularityEntry } from "./regularity";
+import { combinedWeek, regularity, type RegularityEntry } from "./regularity";
 
 // Le jeudi 12 novembre 2026 ; les lundis des semaines : 9, 2 novembre, 26 et 19 octobre.
 const TODAY = "2026-11-12";
@@ -55,4 +55,22 @@ describe("série de régularité", () => {
   it("sans aucune séance, rien", () => {
     expect(regularity([], TODAY)).toEqual({ weeks: 0, planned: 0, validated: 0 });
   });
+});
+
+it("réunit les séances du club et du carnet pour chaque jour de la semaine", () => {
+  expect(
+    combinedWeek(
+      [
+        { date: "2026-11-25", status: "rest" },
+        { date: "2026-11-26", status: "planned" },
+      ],
+      [
+        { date: "2026-11-25", status: "done" },
+        { date: "2026-11-26", status: "done" },
+      ],
+    ),
+  ).toEqual([
+    { date: "2026-11-25", status: "done" },
+    { date: "2026-11-26", status: "planned" },
+  ]);
 });

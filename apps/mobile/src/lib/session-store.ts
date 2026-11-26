@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { authClient, clearSessionCookie } from "./auth-client";
 import { forgetPushToken, stopPushOnDevice } from "./notifications";
 import { clearPersistedData } from "./query-client";
+import { useSpaceStore } from "./space-store";
 import { useOpQueue } from "./sync/op-queue";
 
 type SessionState = {
@@ -28,6 +29,7 @@ export const useSession = create<SessionState>((set, get) => ({
     await useOpQueue.getState().detach();
     await stopPushOnDevice();
     await clearSessionCookie().catch(() => undefined);
+    useSpaceStore.setState({ activeOrgId: null });
     await clearPersistedData();
     set({ status: "signed-out" });
   },

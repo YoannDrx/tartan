@@ -3,7 +3,6 @@
 import {
   CalendarDays,
   ChartNoAxesColumn,
-  ChevronDown,
   Dumbbell,
   House,
   Megaphone,
@@ -15,8 +14,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useTransition, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { type ReactNode } from "react";
 import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
@@ -31,7 +30,6 @@ import { UpdateWatcher } from "./update-watcher";
 import { InstallBanner } from "./install-banner";
 import { SatisfactionQuestion } from "./satisfaction";
 import { SettingsMenu, type Account } from "./settings-menu";
-import { switchSpaceAction } from "./shell.action";
 
 type Item = { href: string; label: string; icon: LucideIcon; mobile: boolean };
 
@@ -48,8 +46,9 @@ const athleteItems: Item[] = [
   { href: "/aujourdhui", label: m.nav.aujourdhui, icon: House, mobile: true },
   { href: "/calendrier", label: m.nav.calendrier, icon: CalendarDays, mobile: true },
   { href: "/progres", label: m.nav.progres, icon: TrendingUp, mobile: true },
-  { href: "/mes-videos", label: m.nav.mesSauts, icon: Video, mobile: true },
-  { href: "/annonces", label: m.nav.annonces, icon: Megaphone, mobile: true },
+  { href: "/mes-videos", label: m.nav.videos, icon: Video, mobile: true },
+  { href: "/exercices", label: m.nav.exercices, icon: Dumbbell, mobile: true },
+  { href: "/annonces", label: m.nav.annonces, icon: Megaphone, mobile: false },
 ];
 
 // L'athlète autonome, dans son espace personnel : ses rubriques d'athlète, la bibliothèque, et « Planifier », qui ouvre
@@ -63,57 +62,8 @@ const personalItems: Item[] = [
   { href: "/seances/nouvelle", label: w.personal.nav.plan, icon: SquarePen, mobile: false },
 ];
 
-const spaceLabel = (s: SpaceSummary): string =>
-  s.isDemo
-    ? w.demoSpace.switcherLabel(s.organizationName)
-    : s.kind === "personal"
-      ? s.organizationName
-      : `${s.organizationName} (${m.roles[s.role]})`;
-
-const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: SpaceSummary }) => {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  // Un seul espace : sur téléphone, son nom tronqué n'apprend rien. Il est dans le menu des réglages.
-  if (spaces.length < 2) {
-    return <span className="hidden truncate text-[14px] text-fg-muted tablet:inline">{current.organizationName}</span>;
-  }
-  // Le nom de l'espace reste lisible à 390 px : tronqué proprement, jamais réduit à un chevron (audit G6).
-  // La liste native garde le choix au clavier et au lecteur d'écran ; elle couvre la pastille, qui n'est qu'un reflet.
-  return (
-    <label
-      title={current.organizationName}
-      className="relative flex min-h-11 min-w-[104px] max-w-40 flex-1 items-center gap-1 rounded-[10px] border border-control-line px-3 text-[14px] font-medium hover:border-fg-muted has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-(--ctx-focus) tablet:w-56 tablet:max-w-56 tablet:flex-none"
-    >
-      <span className="sr-only">{m.settings.switchSpace}</span>
-      <span aria-hidden="true" data-testid="space-name" className="min-w-0 flex-1 truncate">
-        {current.organizationName}
-      </span>
-      <ChevronDown aria-hidden className="size-4 shrink-0" />
-      <select
-        disabled={pending}
-        className="absolute -inset-px cursor-pointer appearance-none opacity-0 disabled:cursor-wait"
-        value={current.organizationId}
-        onChange={(e) =>
-          start(async () => {
-            await switchSpaceAction({ organizationId: e.target.value });
-            router.push("/accueil");
-            router.refresh();
-          })
-        }
-      >
-        {spaces.map((s) => (
-          <option key={s.organizationId} value={s.organizationId}>
-            {spaceLabel(s)}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-};
-
 export const AppShell = ({
   staff,
-  spaces,
   space,
   account,
   admin,
@@ -123,7 +73,6 @@ export const AppShell = ({
   children,
 }: {
   staff: boolean;
-  spaces: SpaceSummary[];
   space: SpaceSummary;
   account: Account;
   admin: boolean;
@@ -132,7 +81,7 @@ export const AppShell = ({
   billingAlert?: "past_due" | null;
   children: ReactNode;
 }) => {
-  const pathname = usePathname();
+  const pathname = usePathname().replace(/^\/(carnet|club)(?=\/)/, "");
   const work = worldFor(pathname) === "world-work";
   const selectedClass = "bg-accent text-on-accent";
   const barClass = work ? "tartan-band" : "on-card bg-card";
@@ -156,16 +105,19 @@ export const AppShell = ({
       <header className={cn("app-header sticky z-30", barClass)}>
         <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-2 px-4 tablet:gap-4 desktop:px-6">
           {/* Sur téléphone, l'icône seule : la place revient au nom de l'espace (audit G6). */}
-          <Link
-            href="/accueil"
-            aria-label={w.shell.home}
-            className="inline-flex min-h-11 min-w-11 shrink-0 items-center"
-          >
+          <Link href="/accueil" className="flex min-h-11 min-w-24 items-center gap-2">
             <span className="tablet:hidden">
               <LogoMark size={32} />
+              <span className="sr-only">{m.brand.name} </span>
             </span>
             <span className="max-tablet:hidden">
               <Logo height={28} onDark />
+            </span>
+            <span className="flex min-w-0 flex-col leading-tight">
+              <strong>{staff ? m.roles.coach : m.roles.athlete}</strong>{" "}
+              <span data-testid="space-name" className="max-w-32 truncate text-[13px]">
+                {space.organizationName}
+              </span>
             </span>
           </Link>
           <nav aria-label={w.shell.mainNav} className="hidden flex-1 items-center gap-1 desktop:flex">
@@ -184,7 +136,6 @@ export const AppShell = ({
             ))}
           </nav>
           <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 tablet:flex-initial tablet:gap-2">
-            <SpaceSwitcher spaces={spaces} current={space} />
             {/* Les rubriques hors de la barre d'onglets (§ 10.3) restent à portée de doigt. */}
             {items
               .filter((item) => !item.mobile)

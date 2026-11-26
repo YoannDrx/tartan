@@ -11,6 +11,7 @@ flows:
   - coach-publication-message.yml
   - session-thread.yml
   - sync-review.yml
+  - athlete-notebook.yml
 executionOrder:
   continueOnFailure: true
   flowsOrder:
@@ -24,3 +25,4 @@ executionOrder:
     - coach-publication-message
     - session-thread
     - sync-review
+    - athlete-notebook

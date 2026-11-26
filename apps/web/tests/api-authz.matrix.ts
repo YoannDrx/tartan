@@ -834,7 +834,7 @@ export const MATRICE: Row[] = [
   { route: "GET /api/v1/orgs/[orgId]/analysis", ...membres, call: () => ({ query: WEEK }) },
 
   // Exercices et séances.
-  { route: "GET /api/v1/orgs/[orgId]/exercises", ...encadrants },
+  { route: "GET /api/v1/orgs/[orgId]/exercises", ...membres },
   {
     route: "POST /api/v1/orgs/[orgId]/exercises",
     ...encadrants,
@@ -848,7 +848,7 @@ export const MATRICE: Row[] = [
   },
   {
     route: "GET /api/v1/orgs/[orgId]/exercises/[exerciseId]",
-    ...encadrants,
+    ...membres,
     call: (w) => ({ params: { exerciseId: w.exerciseId } }),
   },
   {

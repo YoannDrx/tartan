@@ -99,7 +99,7 @@ describe("listes d'exercices du coach", () => {
     await setFavorite(w.owner, w.org, w.own.id, true);
     expect(await status(listExerciseLists(w.athlete.userId, w.org))).toBe(403);
     expect(await status(searchExercises(w.athlete.userId, w.org, { filter: { kind: "list", listId: id } }))).toBe(403);
-    expect(await status(getExerciseSheet(w.athlete.userId, w.org, w.own.id))).toBe(403);
+    expect(await getExerciseSheet(w.athlete.userId, w.org, w.own.id)).toMatchObject({ favorite: false, listIds: [] });
     const stranger = w.other.owner.userId;
     expect(await status(listExerciseLists(stranger, w.org))).toBe(403);
     expect(await listExerciseLists(stranger, w.other.organizationId)).toEqual([]);

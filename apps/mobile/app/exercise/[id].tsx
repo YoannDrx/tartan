@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { exerciseCategory, exerciseMovement, exerciseEquipment, type ExerciseSummary } from "@tartan/contracts";
-import { instagramUrl, parseYouTubeUrl } from "@tartan/domain";
+import { canIn, instagramUrl, parseYouTubeUrl } from "@tartan/domain";
 import { m, exerciseClassificationLabel } from "@tartan/i18n";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Image, View } from "react-native";
 import { pilotImages } from "../../src/features/pilot-images";
@@ -12,7 +12,7 @@ import { MovementGuideDisclosure } from "../../src/features/exercise-guide";
 import { saveExercise } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
 import { buildExerciseInput, type ExerciseDraft, NUMBER_FIELDS, type NumberField } from "../../src/lib/exercise-form";
-import { useActiveSpace, useExercises, useExerciseVideos } from "../../src/lib/queries";
+import { useTrainingSpace, useExercises, useExerciseVideos } from "../../src/lib/queries";
 import { Button, Card, Chip, Divider, Field, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
@@ -67,6 +67,7 @@ const draftFrom = (exercise: ExerciseSummary | null): ExerciseDraft => {
 // Mêmes règles que la liste des vidéos : le serveur ne renvoie que les athlètes visibles par ce membre.
 const LinkedVideos = ({ orgId, exerciseId }: { orgId: string; exerciseId: string }) => {
   const router = useRouter();
+  const { space: origin } = useTrainingSpace(true);
   const videos = useExerciseVideos(orgId, exerciseId);
   return (
     <View style={{ gap: space.sm }}>
@@ -85,7 +86,16 @@ const LinkedVideos = ({ orgId, exerciseId }: { orgId: string; exerciseId: string
           {videos.data.map((video, i) => (
             <View key={video.id}>
               {i > 0 ? <Divider /> : null}
-              <VideoRow video={video} showAthlete onPress={() => router.push(`/video/${video.id}`)} />
+              <VideoRow
+                video={video}
+                showAthlete
+                onPress={() =>
+                  router.push({
+                    pathname: "/video/[id]",
+                    params: { id: video.id, carnet: origin?.kind === "personal" ? "1" : undefined },
+                  })
+                }
+              />
             </View>
           ))}
         </ListSurface>
@@ -366,8 +376,9 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
 
 export default function ExerciseEdit() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { orgId } = useActiveSpace();
+  const { orgId, space: origin } = useTrainingSpace(true);
   const exercises = useExercises(orgId);
+  if (origin && !canIn(origin.kind ?? "coach", origin.role, "editExercises")) return <Redirect href="/bibliotheque" />;
   if (id === "new") return <ExerciseForm orgId={orgId} exercise={null} />;
   if (exercises.isPending) {
     return (

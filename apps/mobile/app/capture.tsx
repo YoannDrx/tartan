@@ -27,7 +27,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { chooseCaptureFps, type CaptureChoice } from "../src/lib/capture-fps";
 import { captureVideoInput } from "../src/lib/capture-input";
 import { deniesCachedAccess } from "../src/lib/errors";
-import { useActiveSpace, useAthletes, useSessionDetail } from "../src/lib/queries";
+import { useTrainingSpace, useAthletes, useSessionDetail } from "../src/lib/queries";
 import { submitJumpAttempt } from "../src/lib/sync/op-queue";
 import { useUploads } from "../src/lib/upload/upload-queue";
 import { Camera as CameraIcon, Images, Minus, Plus, Square, X } from "../src/ui/icons";
@@ -306,7 +306,7 @@ const CameraModal = ({
 
 export default function Capture() {
   const params = useLocalSearchParams<{ sessionId?: string; exerciseId?: string }>();
-  const { me, orgId, space: active } = useActiveSpace();
+  const { me, orgId, space: active } = useTrainingSpace();
   const ownVideo = active?.role === "athlete";
   const athletes = useAthletes(orgId, Boolean(active) && !ownVideo);
   const linkedSession = useSessionDetail(ownVideo ? orgId : "", params.sessionId);

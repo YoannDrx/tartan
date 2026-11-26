@@ -16,7 +16,7 @@ import {
 } from "./month-calendar";
 import { useCalendarView } from "../lib/calendar-view";
 import { localIsoDate } from "../lib/dates";
-import { useActiveSpace, useCoachCalendar, useGroups, usePrefetchMonths } from "../lib/queries";
+import { useTrainingSpace, useCoachCalendar, useGroups, usePrefetchMonths } from "../lib/queries";
 import { Button, Chip, Tag, ActivityTag } from "../ui/primitives";
 import { TabScreen } from "../ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../ui/states";
@@ -27,7 +27,7 @@ import { NativeCalendarPhases } from "./training-phases";
 // personnel de l'athlète autonome (« Planifier ») : ni groupe ni destinataires, ses brouillons et ses séances
 // publiées ; une séance publiée s'ouvre comme il la fera, un brouillon dans le constructeur.
 export function PlanningScreen() {
-  const { orgId, space: activeSpace } = useActiveSpace();
+  const { orgId, space: activeSpace } = useTrainingSpace(true);
   const personal = isPersonalSpace(activeSpace);
   const { view, setView } = useCalendarView();
   const isMonth = view === "month";
@@ -79,7 +79,11 @@ export function PlanningScreen() {
         ),
         onPress: () =>
           router.push(
-            s.publishedAt ? (personal ? `/session/${s.id}` : `/coach-session/${s.id}`) : `/session-builder/${s.id}`,
+            s.publishedAt
+              ? personal
+                ? `/session/${s.id}?carnet=1`
+                : `/coach-session/${s.id}`
+              : `/session-builder/${s.id}`,
           ),
         accessibilityLabel: `${s.title}, ${detail}`,
       };

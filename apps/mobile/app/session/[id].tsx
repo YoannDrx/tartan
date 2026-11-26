@@ -18,7 +18,7 @@ import { Alert, BackHandler, Pressable, Vibration, View } from "react-native";
 import { ExerciseVideo, parseMedia, SPEEDS } from "../../src/features/media";
 import { MovementGuideDisclosure } from "../../src/features/exercise-guide";
 import { recordValidation, ValidationSheet, type ValidationTarget } from "../../src/features/validation-sheet";
-import { useActiveSpace, useSessionDetail, useToday } from "../../src/lib/queries";
+import { useTrainingSpace, useSessionDetail, useToday } from "../../src/lib/queries";
 import { useSessionProgress } from "../../src/lib/session-progress";
 import { useRestReminder } from "../../src/lib/use-rest-reminder";
 import { deniesCachedAccess } from "../../src/lib/errors";
@@ -174,7 +174,7 @@ const flatten = (blocks: { items: ResolvedItem[] }[]): ResolvedItem[] => blocks.
 export default function SessionMode() {
   const { id, i } = useLocalSearchParams<{ id: string; i?: string }>();
   const router = useRouter();
-  const { me, orgId, space: active } = useActiveSpace();
+  const { me, orgId, space: active } = useTrainingSpace();
   const detail = useSessionDetail(orgId, id);
   const today = useToday(orgId);
   const items = useMemo(() => flatten(detail.data?.blocks ?? []), [detail.data?.blocks]);
@@ -288,7 +288,7 @@ export default function SessionMode() {
             compact
             variant="secondary"
             label={m.progression.setsTitle}
-            onPress={() => router.push(`/session-sets/${id}` as never)}
+            onPress={() => router.push(`/session-sets/${id}${active?.kind === "personal" ? "?carnet=1" : ""}` as never)}
           />
         ) : undefined
       }
@@ -422,6 +422,7 @@ export default function SessionMode() {
             router.push({
               pathname: "/capture",
               params: {
+                carnet: active?.kind === "personal" ? "1" : undefined,
                 sessionId: session.id,
                 ...(item.exerciseId ? { exerciseId: item.exerciseId } : {}),
               },

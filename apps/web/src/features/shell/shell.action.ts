@@ -5,7 +5,7 @@ import { z } from "zod";
 import { uuid } from "@tartan/contracts";
 import { forbidden } from "@/lib/errors";
 import { authAction } from "@/lib/safe-action";
-import { listSpaces } from "@/server/me.service";
+import { listSpaces, updatePreferences } from "@/server/me.service";
 import { answerSatisfaction } from "@/server/satisfaction.service";
 import { writeSpaceCookie } from "./space";
 import { spaceAction } from "./space-action";
@@ -16,6 +16,13 @@ export const switchSpaceAction = authAction
     const spaces = await listSpaces(ctx.actor.userId, { includeDemo: true });
     if (!spaces.some((s) => s.organizationId === parsedInput.organizationId)) throw forbidden();
     await writeSpaceCookie(parsedInput.organizationId);
+    revalidatePath("/", "layout");
+  });
+
+export const chooseHomeAction = authAction
+  .inputSchema(z.object({ organizationId: uuid }))
+  .action(async ({ parsedInput, ctx }) => {
+    await updatePreferences(ctx.actor.userId, { homeOrganizationId: parsedInput.organizationId });
     revalidatePath("/", "layout");
   });
 

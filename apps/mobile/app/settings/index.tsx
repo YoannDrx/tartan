@@ -1,6 +1,8 @@
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { Alert, Pressable, View } from "react-native";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "../../src/lib/api";
 import { LinkRow } from "../../src/features/settings-rows";
 import { config } from "../../src/lib/config";
 import { useActiveSpace } from "../../src/lib/queries";
@@ -27,6 +29,11 @@ export default function Settings() {
   const signOut = useSession((s) => s.signOut);
   const theme = useThemePreference((state) => state.preference);
   const setActive = useSpaceStore((s) => s.setActive);
+  const client = useQueryClient();
+  const home = useMutation({
+    mutationFn: api.updatePreferences,
+    onSuccess: (data) => client.setQueryData(["me"], data),
+  });
   const pendingOps = useOpQueue((s) => s.items.length);
   const pendingUploads = useOwnUploads().length;
 
@@ -58,6 +65,8 @@ export default function Settings() {
   }
 
   const data = me.data;
+  const clubs = data.spaces.filter((s) => s.kind !== "personal" && !s.isDemo);
+  const standalone = clubs.every((club) => club.role !== "athlete") && data.spaces.find((s) => s.kind === "personal");
   const name = [data.firstName, data.lastName].filter(Boolean).join(" ") || data.email;
   const athleteOnly = data.spaces.length > 0 && data.spaces.every((s) => s.role === "athlete");
   const summary = (rubric: SettingsRubric): string => {
@@ -125,11 +134,11 @@ export default function Settings() {
         </View>
       ))}
 
-      {data.spaces.length > 1 ? (
+      {clubs.length > 0 ? (
         <View style={{ gap: space.sm }}>
-          <SectionTitle>{t.spacesTitle}</SectionTitle>
+          <SectionTitle>{m.brand.clubs}</SectionTitle>
           <ListSurface>
-            {data.spaces.map((s, i) => (
+            {clubs.map((s, i) => (
               <View key={s.organizationId}>
                 {i > 0 ? <Divider /> : null}
                 <Pressable
@@ -163,12 +172,32 @@ export default function Settings() {
                     />
                   ) : null}
                 </Pressable>
+                {i === 0 ? (
+                  <T variant="caption">{m.brand.usual}</T>
+                ) : (
+                  <Button
+                    label={m.brand.makeUsual}
+                    disabled={home.isPending}
+                    onPress={() => home.mutate({ homeOrganizationId: s.organizationId })}
+                  />
+                )}
               </View>
             ))}
           </ListSurface>
+          {standalone && (
+            <Button
+              label={m.brand.notebook}
+              variant="secondary"
+              onPress={() => {
+                setActive(standalone.organizationId);
+                router.replace(homeFor(standalone) ?? "/");
+              }}
+            />
+          )}
         </View>
       ) : null}
 
+      {home.isError && <ErrorState error={home.error} onRetry={() => home.reset()} />}
       <View style={{ gap: space.sm }}>
         <Button testID="sign-out" label={m.common.signOut} variant="secondary" onPress={confirmSignOut} />
         <T variant="caption" tone="muted" style={{ textAlign: "center" }}>

@@ -97,7 +97,7 @@ describe("fiche d'exercice", () => {
     await prisma.exercise.delete({ where: { id: shared.id } });
   });
 
-  it("refuse un exercice supprimé, d'un autre espace ou un athlète", async () => {
+  it("autorise la lecture à un athlète et refuse les exercices supprimés ou étrangers", async () => {
     const { org, lea, exercise } = await setting();
     const removed = await makeExercise(org.organizationId, "Retiré", new Date());
     const elsewhere = await makeOrg("Autre");
@@ -105,7 +105,18 @@ describe("fiche d'exercice", () => {
     await expect(getExercise(elsewhere.owner.userId, elsewhere.organizationId, exercise.id)).rejects.toMatchObject({
       status: 404,
     });
-    await expect(getExercise(lea.userId, org.organizationId, exercise.id)).rejects.toMatchObject({ status: 403 });
+    await expect(getExercise(lea.userId, org.organizationId, exercise.id)).resolves.toMatchObject({ id: exercise.id });
+  });
+
+  it("garde le média téléversé du coach privé à la consultation du catalogue par un athlète", async () => {
+    const { org, lea, exercise } = await setting();
+    await prisma.exerciseMedia.create({
+      data: { exerciseId: exercise.id, kind: "upload", muxPlaybackId: "private-training-example" },
+    });
+    expect((await getExercise(lea.userId, org.organizationId, exercise.id)).media).toBeNull();
+    expect((await getExercise(org.owner.userId, org.organizationId, exercise.id)).media).toMatchObject({
+      kind: "upload",
+    });
   });
 
   it("limite le lien athlète aux exercices de sa séance attribuée", async () => {

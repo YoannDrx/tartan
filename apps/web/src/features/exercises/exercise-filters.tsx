@@ -37,8 +37,10 @@ export const FilterChips = ({
   lists,
   onChange,
   after,
+  showLists = true,
   scroll = false,
 }: {
+  showLists?: boolean;
   scroll?: boolean;
   filter: ExerciseFilter;
   lists: ExerciseList[];
@@ -60,7 +62,7 @@ export const FilterChips = ({
     <div role="group" aria-label={t.filters.label} className="flex flex-col gap-2">
       <div className={row(scroll)}>
         {chip({ kind: "all" }, t.filters.all, "all")}
-        {chip({ kind: "favorites" }, t.filters.favorites, "favorites")}
+        {showLists && chip({ kind: "favorites" }, t.filters.favorites, "favorites")}
         {lists
           .filter((list) => !list.isFavorites)
           .map((list) =>

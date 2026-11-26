@@ -143,6 +143,9 @@ export const NativeSessionBuilder = ({
   const phaseAthletes = form.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
   const planningKey = phasePlanningKey(form.date, phaseGroups, phaseAthletes);
   const [phaseReady, setPhaseReady] = useState<PhasePlanningReadiness>({ key: "", ready: false });
+  const personalReviewPending = Boolean(
+    self && context.phasesEnabled && (phaseReady.key !== planningKey || !phaseReady.ready),
+  );
   const acceptPhaseReview = useCallback((state: PhasePlanningReadiness) => {
     setPhaseReady(state);
     if (!state.ready || !state.review) return;
@@ -694,7 +697,7 @@ export const NativeSessionBuilder = ({
     return (
       <StackScreen world="work" title={m.nativeBuilder.deleted}>
         {error ? <T accessibilityRole="alert">{error}</T> : null}
-        <Button label={m.nav.calendrier} onPress={() => router.replace("/(coach)/planning")} />
+        <Button label={m.nav.calendrier} onPress={() => router.replace(self ? "/agenda" : "/(coach)/planning")} />
       </StackScreen>
     );
   if (!ready && stored)
@@ -734,7 +737,11 @@ export const NativeSessionBuilder = ({
         {stored.value.pending && !stored.value.form.id ? (
           <>
             <T>{m.nativeBuilder.unknownCreation}</T>
-            <Button variant="secondary" label={m.nav.calendrier} onPress={() => router.push("/(coach)/planning")} />
+            <Button
+              variant="secondary"
+              label={m.nav.calendrier}
+              onPress={() => router.push(self ? "/agenda" : "/(coach)/planning")}
+            />
           </>
         ) : (
           <Button
@@ -1079,7 +1086,11 @@ export const NativeSessionBuilder = ({
           </T>
         ) : null}
         {stale && !form.id ? (
-          <Button variant="secondary" label={m.nav.calendrier} onPress={() => router.push("/(coach)/planning")} />
+          <Button
+            variant="secondary"
+            label={m.nav.calendrier}
+            onPress={() => router.push(self ? "/agenda" : "/(coach)/planning")}
+          />
         ) : null}
         {stale && form.id ? (
           <Button variant="secondary" label={m.nativeBuilder.reload} onPress={() => void reloadCurrent()} />
@@ -1087,7 +1098,7 @@ export const NativeSessionBuilder = ({
 
         <Button
           label={publishedAt ? m.common.save : m.builder.publish}
-          disabled={busy || stale || !online || !verified || localState === "conflict"}
+          disabled={busy || stale || !online || !verified || localState === "conflict" || personalReviewPending}
           testID="builder-review"
           onPress={review}
         />
@@ -1255,7 +1266,7 @@ export const NativeSessionBuilder = ({
             <Button
               label={publishedAt ? m.common.save : m.builder.publish}
               loading={busy}
-              disabled={!online || !verified || stale || localState === "conflict"}
+              disabled={!online || !verified || stale || localState === "conflict" || personalReviewPending}
               testID="builder-confirm"
               onPress={() => void submit(true)}
             />

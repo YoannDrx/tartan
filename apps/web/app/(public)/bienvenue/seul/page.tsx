@@ -23,6 +23,8 @@ export default async function SoloWelcomePage({ searchParams }: { searchParams: 
     );
   const me = await getMe(actor.userId);
   const personal = me.spaces.find((space) => space.kind === "personal");
+  if (personal && planner && me.spaces.some((s) => s.role === "athlete" && s.kind !== "personal"))
+    redirect("/planificateur");
   if (personal) redirect(`${planner ? "/planificateur" : "/aujourdhui"}?espace=${personal.organizationId}`);
   if ((await ageStatusOfUser(actor.userId)) === "minor") redirect("/confirmer-age");
   if (!(await canCreatePersonalSpace())) redirect("/bienvenue");

@@ -22,10 +22,12 @@ import { onErr } from "../shared";
 export const ConsentSwitches = ({
   health,
   video,
+  organizationId,
   parentalPending,
 }: {
   health: boolean;
   video: boolean;
+  organizationId: string;
   parentalPending: boolean;
 }) => {
   const router = useRouter();
@@ -50,14 +52,18 @@ export const ConsentSwitches = ({
         detail={m.settings.healthConsentDetail}
         checked={health}
         disabled={isPending}
-        onChange={(e) => (e.target.checked ? execute({ kind: "health", granted: true }) : setConfirming("health"))}
+        onChange={(e) =>
+          e.target.checked ? execute({ organizationId, kind: "health", granted: true }) : setConfirming("health")
+        }
       />
       <CheckRow
         label={m.settings.videoConsent}
         detail={m.settings.videoConsentDetail}
         checked={video}
         disabled={isPending}
-        onChange={(e) => (e.target.checked ? execute({ kind: "video", granted: true }) : setConfirming("video"))}
+        onChange={(e) =>
+          e.target.checked ? execute({ organizationId, kind: "video", granted: true }) : setConfirming("video")
+        }
       />
       {/* Retirer efface pour de bon : la décision se confirme, et le texte dit exactement ce qui part. */}
       <ConfirmDialog
@@ -67,7 +73,7 @@ export const ConsentSwitches = ({
         description={confirming === "health" ? m.settings.healthRevokeDetail : m.settings.videoRevokeDetail}
         confirmLabel={m.settings.revokeConsent}
         onConfirm={() => {
-          if (confirming) execute({ kind: confirming, granted: false });
+          if (confirming) execute({ organizationId, kind: confirming, granted: false });
           setConfirming(null);
         }}
       />

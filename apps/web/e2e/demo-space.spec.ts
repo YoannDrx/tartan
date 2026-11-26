@@ -56,8 +56,7 @@ test("un coach neuf ouvre la démonstration, la parcourt, revient à son espace 
   await expect(banner(page)).toBeVisible({ timeout: 180_000 });
   await expect(page).toHaveURL(/\/suivi/);
   await expect(page.getByText(lea.firstName, { exact: false }).first()).toBeVisible();
-  const switcher = page.getByLabel(m.settings.switchSpace);
-  await expect(switcher.locator("option:checked")).toHaveText(d.switcherLabel(DEMO_SPACE_NAME));
+  await expect(page.getByTestId("space-name")).toHaveText(DEMO_SPACE_NAME);
   // Ni tour de piste, ni carte des premiers pas : la démonstration naît remplie.
   await expect(page.getByRole("dialog", { name: w.onboarding.tour.title })).toHaveCount(0);
   await expect(page.getByRole("region", { name: m.home.guidedTitle })).toHaveCount(0);

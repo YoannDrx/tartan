@@ -9,7 +9,7 @@ import { View } from "react-native";
 import { NativeTrainingAnalysis } from "../src/features/training-analysis";
 import { api } from "../src/lib/api";
 import { localIsoDate } from "../src/lib/dates";
-import { useActiveSpace } from "../src/lib/queries";
+import { useTrainingSpace } from "../src/lib/queries";
 import { Button, Field, T } from "../src/ui/primitives";
 import { StackScreen } from "../src/ui/screen";
 import { ErrorState, LoadingState } from "../src/ui/states";
@@ -183,7 +183,7 @@ function AnalysisPanel({
   );
 }
 export default function TrainingAnalysisScreen() {
-  const { orgId, space: active, me } = useActiveSpace();
+  const { orgId, space: active, me } = useTrainingSpace();
   const params = useLocalSearchParams<{ target?: string }>();
   return (
     <StackScreen title={t.title} world="work">

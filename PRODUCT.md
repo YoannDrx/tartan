@@ -32,6 +32,12 @@ Les vidéos athlètes sont privées à l'athlète et aux coachs habilités ; le 
 
 La vente web précède les stores ; les bêtas natives sur invitation suivent la mise à niveau et la recette physique. Android utilise un compte organisation, sans repli automatique vers un compte personnel. Adultes en France, sans messagerie générale, montres, mineurs ni bibliothèque communautaire publique. Le déroulé et les critères de fin sont dans `docs/plans/web.md`, l'état des preuves et les réserves dans `docs/ETAT.md`.
 
+## Accueil connecté et entraînement personnel
+
+Le bandeau affiche « Tartan Coach » pour les encadrants et « Tartan Athlète » pour les pratiquants. Le club figure en second. Les personnes qui appartiennent à plusieurs clubs peuvent les ouvrir depuis « Mes clubs » dans les réglages et choisir leur accueil habituel.
+
+Un athlète du club retrouve dans sa journée et son calendrier les séances prescrites et ses propres séances. Son planificateur utilise son carnet, ses quotas et ses accords. Il consulte les guides d'exercices et les vidéos auxquelles il a accès. Les propositions, mesures et vidéos personnelles restent dans le carnet. Le partage volontaire et révocable de l'historique détermine les éléments accessibles à son coach.
+
 ## Décision du 14 novembre 2026
 
 Après l'audit du 14 novembre, le fondateur confirme :

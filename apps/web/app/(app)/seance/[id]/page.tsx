@@ -58,7 +58,7 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
               {session.coachNote}
             </p>
           ) : null}
-          {!validated && session.date > todayIso() ? (
+          {!personal && !validated && session.date > todayIso() ? (
             <AttendanceQuestion sessionId={id} current={session.attendance} />
           ) : null}
           {!validated && session.date <= todayIso() ? (
@@ -69,7 +69,7 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
                 organizationId={organizationId}
                 healthConsent={today.healthConsent}
               />
-              {session.hasAutonomous ? <TodayAbsence sessionId={id} current={session.attendance} /> : null}
+              {!personal && session.hasAutonomous ? <TodayAbsence sessionId={id} current={session.attendance} /> : null}
             </div>
           ) : null}
           <Button asChild size="lg" variant={validated || session.date <= todayIso() ? "secondary" : "primary"}>

@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/states";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { TrainingAnalysisView } from "@/features/analysis/training-analysis";
-import { requireSpace, orNotFound } from "@/features/shell/space";
+import { requireResourceSpace, orNotFound } from "@/features/shell/space";
 import { getTrainingAnalysis, getTrainingAnalysisContext } from "@/server/training-analysis.service";
 export const metadata = { title: m.analysis.title };
 export default async function AnalysisPage({
@@ -15,7 +15,7 @@ export default async function AnalysisPage({
 }: {
   searchParams: Promise<{ period?: string; target?: string; from?: string; to?: string; rangePhase?: string }>;
 }) {
-  const { actor, organizationId, space } = await requireSpace();
+  const { actor, organizationId, space, clubSpace } = await requireResourceSpace();
   if (!space.progressionEnabled) return <p>{m.progression.disabled}</p>;
   const context = await getTrainingAnalysisContext(actor.userId, organizationId);
   const search = await searchParams;
@@ -44,6 +44,7 @@ export default async function AnalysisPage({
     <div className="flex w-full min-w-0 flex-col gap-4">
       <PageHeader title={m.analysis.title} />
       <form className="grid items-end gap-3 tablet:grid-cols-[1fr_1fr_auto] desktop:max-w-[880px]">
+        {space.kind === "personal" && clubSpace.kind !== "personal" && <input type="hidden" name="carnet" value="1" />}
         {phase ? (
           <>
             <input type="hidden" name="rangePhase" value={phase.id} />
