@@ -120,7 +120,11 @@ export const AppShell = ({
 
   return (
     <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
-      <header ref={measureHeader} className={cn("app-header sticky z-30", barClass)}>
+      <header
+        ref={measureHeader}
+        data-tab-page={items.some((item) => item.href === pathname) || undefined}
+        className={cn("app-header sticky z-30", barClass)}
+      >
         <div className="mx-auto flex min-h-14 max-w-[1440px] flex-wrap items-center gap-x-2 px-4 tablet:flex-nowrap tablet:gap-4 desktop:px-6">
           {/* Sur téléphone, l'icône seule : la place revient au nom de l'espace (audit G6). */}
           <Link href={staff ? "/suivi" : "/aujourdhui"} className="flex min-h-11 min-w-24 items-center gap-2">

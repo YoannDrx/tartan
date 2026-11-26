@@ -912,9 +912,9 @@
   }
 }
 
-html:has(.app-header)::view-transition-group(*),
-html:has(.app-header)::view-transition-old(*),
-html:has(.app-header)::view-transition-new(*) {
+html:has(.app-header[data-tab-page])::view-transition-group(*),
+html:has(.app-header[data-tab-page])::view-transition-old(*),
+html:has(.app-header[data-tab-page])::view-transition-new(*) {
   animation: none;
 }
 
