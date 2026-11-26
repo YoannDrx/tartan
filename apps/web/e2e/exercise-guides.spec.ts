@@ -164,7 +164,13 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
         .getByText(snatch.guide!.concise!.steps[0]!, { exact: true }),
     ).toBeVisible();
     await inspect(athlete.page, "mode");
-    expect((await athlete.page.request.get(`${root}/exercises`)).status()).toBe(403);
+    const catalogue = await athlete.page.request.get(`${root}/exercises`);
+    expect(catalogue.ok()).toBe(true);
+    expect(await catalogue.json()).toContainEqual(expect.objectContaining({ id: snatch.id }));
+    const create = await athlete.page.request.post(`${root}/exercises`, {
+      data: { name: "Exercice ajouté par l’athlète", category: "strength" },
+    });
+    expect(create.status()).toBe(403);
   } finally {
     await athlete.context.close();
   }

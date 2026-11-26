@@ -4,7 +4,7 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 
 ## Codex, accueil par rôle et carnets personnels · 26 novembre 2026
 
-Branche `feat/accueil-coach-athlete`. La migration additive ajoute la préférence de club au profil. Une notification ouvre temporairement son club. Les services existants vérifient chaque accès au club ou au carnet, y compris la validation et les consentements. Le scénario Playwright `ai-planner-athlete` et le flux Maestro `athlete-notebook` couvrent le retour dans l’application avec deux séances le même jour. Les anciennes API mobiles restent disponibles.
+Branche `feat/accueil-coach-athlete`. La migration additive ajoute la préférence de club au profil. Une notification ouvre temporairement son club. Les services existants vérifient chaque accès au club ou au carnet, y compris la validation et les consentements. Le scénario Playwright `ai-planner-athlete` et le flux Maestro `athlete-notebook` couvrent le retour dans l’application avec deux séances le même jour. Les anciennes API mobiles restent disponibles. Les deux rapports Maestro locaux confirment le parcours. Sur iOS, le test traite la demande système d’enregistrement du mot de passe et centre les boutons de validation au-dessus des onglets.
 
 ## Codex, consignes et fin de séance · 25 novembre 2026
 

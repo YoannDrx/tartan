@@ -4,10 +4,17 @@ env:
 ---
 - runScript: scripts/notebook-fixture.js
 - runFlow: flows/_sign-in.yml
-- scrollUntilVisible:
-    element:
-      id: personal-planner
-    timeout: 30000
+# iOS peut présenter sa demande d’enregistrement du mot de passe après le retour dans la journée.
+- retry:
+    maxRetries: 2
+    commands:
+      - tapOn:
+          text: "Plus tard|Not Now"
+          optional: true
+      - scrollUntilVisible:
+          element:
+            id: personal-planner
+          timeout: 30000
 - tapOn:
     id: personal-planner
 - tapOn:
@@ -68,6 +75,7 @@ env:
 - scrollUntilVisible:
     element:
       id: validate-session-${output.clubId}
+    centerElement: true
 - tapOn:
     id: validate-session-${output.clubId}
 - extendedWaitUntil:
@@ -79,6 +87,7 @@ env:
 - scrollUntilVisible:
     element:
       id: validate-session-${output.personalId}
+    centerElement: true
 - tapOn:
     id: validate-session-${output.personalId}
 - extendedWaitUntil:

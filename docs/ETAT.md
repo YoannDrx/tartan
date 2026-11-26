@@ -6,7 +6,7 @@ Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p
 
 ## Accueil coach ou athlète · 26 novembre 2026
 
-L’accueil ouvre le suivi du coach ou la journée de l’athlète. Le club habituel se choisit dans les réglages. La journée et le calendrier réunissent les séances prescrites et personnelles avec leur provenance. L’athlète consulte la bibliothèque du club et retrouve son planificateur, ses modèles, ses records et ses vidéos dans son carnet personnel. Testé sur le build web avec Playwright, le parcours de double validation passe sur les profils ordinateur et mobile avec un prestataire IA simulé. L’accueil passe les contrôles de débordement, d’accessibilité et de mouvement réduit à 390, 768 et 1440 px. La recette sur les téléphones du fondateur reste à faire.
+L’accueil ouvre le suivi du coach ou la journée de l’athlète. Le club habituel se choisit dans les réglages. La journée et le calendrier réunissent les séances prescrites et personnelles avec leur provenance. L’athlète consulte la bibliothèque du club et retrouve son planificateur, ses modèles, ses records et ses vidéos dans son carnet personnel. Testé sur le build web avec Playwright, le parcours de double validation passe sur les profils ordinateur et mobile avec un prestataire IA simulé. L’accueil passe les contrôles de débordement, d’accessibilité et de mouvement réduit à 390, 768 et 1440 px. Le flux Maestro de double validation passe en local sur simulateur iOS 26.3 et sur émulateur Android. Après relance de l’app, le serveur retrouve les deux validations dans leurs espaces respectifs. La recette sur les téléphones du fondateur reste à faire.
 
 ## Séance athlète, vocaux et repères de piste · 25 novembre 2026
 

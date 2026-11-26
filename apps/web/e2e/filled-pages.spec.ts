@@ -72,7 +72,6 @@ test("pages remplies : mes vidéos, une vidéo, progrès, actualisation des char
   });
 
   // Côté athlète, dans le club.
-  await page.goto("/accueil");
   await page.goto("/reglages");
   await page.locator(`a[href$="espace=${club.organizationId}"]`).click();
   await expect(page.getByRole("heading", { name: /^Salut/ })).toBeVisible();
