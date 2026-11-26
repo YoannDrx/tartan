@@ -7,6 +7,8 @@ import { ExerciseDetail, SheetActions } from "@/features/exercises/exercise-shee
 import { orNotFound, requireResourceSpace } from "@/features/shell/space";
 import { VideoList } from "@/features/videos/video-list";
 import { videoEnabled } from "@/lib/mux";
+import { listFilming } from "@/server/exercise-filming.service";
+import { FilmingForm } from "@/features/exercises/filming-form";
 import { getExerciseSheet } from "@/server/exercise.service";
 import { listExerciseLists } from "@/server/exercise-list.service";
 import { listVideos } from "@/server/video.service";
@@ -25,9 +27,10 @@ export default async function ExercisePage({
   const { modifier } = await searchParams;
   const exercise = await orNotFound(() => getExerciseSheet(actor.userId, organizationId, id));
   // Le service applique le périmètre du membre, le consentement vidéo et les blocages : rien n'est refiltré ici.
-  const [videos, lists] = await Promise.all([
+  const [videos, lists, filming] = await Promise.all([
     listVideos(actor.userId, organizationId, { exerciseId: exercise.id }),
     planner ? listExerciseLists(actor.userId, organizationId) : [],
+    staff ? listFilming(actor.userId, organizationId, id) : [],
   ]);
   const family = exercise.family ? m.exerciseGuide.families[exercise.family] : null;
   return (
@@ -72,6 +75,12 @@ export default async function ExercisePage({
           />
         </section>
         <section className="flex flex-col gap-2">
+          {staff && (
+            <FilmingForm
+              key={`${id}-${filming[0]?.revision ?? 0}`}
+              note={filming[0] ?? { exerciseId: id, filmed: false, comment: "", revision: 0 }}
+            />
+          )}
           <h2 className="t-section">{m.exercises.linkedVideos}</h2>
           {videos.length === 0 ? (
             <EmptyState rubric="exercices">{m.exercises.linkedVideosEmpty}</EmptyState>

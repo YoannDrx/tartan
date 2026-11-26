@@ -295,22 +295,32 @@ function OpenThread({
       ) : null}
       {view ? (
         <div className="grid gap-2 border-t border-card-line pt-3">
-          <Field label={t.write}>
-            {(attrs) => (
-              <Textarea
-                {...attrs}
-                rows={2}
-                className="min-h-14"
-                maxLength={2000}
-                value={text}
-                disabled={sending}
-                onChange={(event) => {
-                  setText(event.target.value);
-                  setSendError(false);
-                }}
-              />
-            )}
-          </Field>
+          <div className="rounded-control border border-card-line bg-card p-2 focus-within:border-current">
+            <Field label={t.write}>
+              {(attrs) => (
+                <Textarea
+                  {...attrs}
+                  rows={2}
+                  className="min-h-14 border-0"
+                  maxLength={2000}
+                  value={text}
+                  disabled={sending}
+                  onChange={(event) => {
+                    setText(event.target.value);
+                    setSendError(false);
+                  }}
+                />
+              )}
+            </Field>
+            <VoiceRecorder
+              label={t.attachAudio}
+              saveLabel={t.sendAudio}
+              savedMessage={t.sent}
+              recordLabel={t.record}
+              onSave={sendAudio}
+              onPendingChange={setVoicePending}
+            />
+          </div>
           {text.trim() ? (
             <Button disabled={sending} size="sm" className="justify-self-start" onClick={() => void sendText()}>
               <Send aria-hidden className="size-4" />
@@ -318,14 +328,6 @@ function OpenThread({
             </Button>
           ) : null}
           {sendError ? <p role="alert">{t.sendError}</p> : null}
-          <VoiceRecorder
-            label={t.attachAudio}
-            saveLabel={t.sendAudio}
-            savedMessage={t.sent}
-            recordLabel={t.record}
-            onSave={sendAudio}
-            onPendingChange={setVoicePending}
-          />
         </div>
       ) : null}
     </div>

@@ -64,11 +64,11 @@ export const SettingsMenu = ({
           aria-label={m.nav.reglages}
           data-testid="account-menu"
           className={cn(
-            "relative inline-flex size-11 shrink-0 items-center justify-center rounded-full data-[state=open]:bg-raise",
+            "relative inline-flex size-16 shrink-0 items-center justify-center rounded-full data-[state=open]:bg-raise",
             active ? "bg-accent text-on-accent" : "text-fg hover:bg-raise",
           )}
         >
-          <Avatar person={person} size="sm" />
+          <Avatar person={person} size="lg" />
           <span className="absolute bottom-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-card text-fg">
             <Settings aria-hidden className="size-3" />
           </span>

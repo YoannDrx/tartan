@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { api } from "../src/lib/api";
 import { localIsoDate } from "../src/lib/dates";
@@ -15,15 +16,36 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const client = useQueryClient();
   const p = usePalette();
-  const inbox = useQuery({ queryKey: ["notifications"], queryFn: () => api.notifications() });
+  const [filter, setFilter] = useState<"unread" | "read">("unread");
+  const inbox = useInfiniteQuery({
+    queryKey: ["notifications", "inbox", filter],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => api.notifications(pageParam, filter),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+  });
+  const items = inbox.data?.pages.flatMap((page) => page.items) ?? [];
+  const unreadCount = inbox.data?.pages[0]?.unread ?? 0;
   const refresh = () => client.invalidateQueries({ queryKey: ["notifications"] });
   const read = useMutation({ mutationFn: api.markNotificationsRead, onSettled: refresh });
   return (
     <StackScreen title={m.inbox.title} onBack={() => router.back()}>
+      <View style={{ flexDirection: "row", gap: space.sm }}>
+        <Button
+          label={m.inbox.unreadCount(unreadCount)}
+          variant={filter === "unread" ? "primary" : "secondary"}
+          onPress={() => setFilter("unread")}
+        />
+        <Button
+          label={m.inbox.readTab}
+          variant={filter === "read" ? "primary" : "secondary"}
+          onPress={() => setFilter("read")}
+        />
+      </View>
+      {read.isError && <ErrorState error={read.error} onRetry={() => read.reset()} />}
       {inbox.isPending ? <LoadingState /> : null}
       {inbox.isError ? <ErrorState error={inbox.error} onRetry={() => void inbox.refetch()} /> : null}
-      {inbox.data?.items.length === 0 ? <EmptyState body={m.inbox.empty} pose="run" /> : null}
-      {inbox.data && inbox.data.unread > 0 ? (
+      {inbox.data && items.length === 0 ? <EmptyState body={m.inbox.empty} pose="run" /> : null}
+      {inbox.data && unreadCount > 0 ? (
         <Button
           label={m.inbox.markAll}
           variant="secondary"
@@ -32,9 +54,9 @@ export default function NotificationsScreen() {
           onPress={() => read.mutate({ all: true })}
         />
       ) : null}
-      {inbox.data && inbox.data.items.length > 0 ? (
+      {inbox.data && items.length > 0 ? (
         <ListSurface>
-          {inbox.data.items.map((item, index) => {
+          {items.map((item, index) => {
             const unread = item.readAt === null;
             return (
               <View key={item.id}>
@@ -65,11 +87,23 @@ export default function NotificationsScreen() {
                   </View>
                   {unread ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.link }} /> : null}
                 </Pressable>
+                {unread && (
+                  <Button
+                    compact
+                    variant="secondary"
+                    disabled={read.isPending}
+                    label={m.inbox.markOne}
+                    onPress={() => read.mutate({ ids: [item.id] })}
+                  />
+                )}
               </View>
             );
           })}
         </ListSurface>
       ) : null}
+      {inbox.hasNextPage && (
+        <Button label={m.inbox.more} disabled={inbox.isFetchingNextPage} onPress={() => void inbox.fetchNextPage()} />
+      )}
     </StackScreen>
   );
 }

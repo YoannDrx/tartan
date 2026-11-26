@@ -128,6 +128,16 @@ export const applyCatalogMuxEvent = async (
 
 // Les vidéos prêtes des fiches demandées, une par vue, profil d'abord. La lecture passe par un jeton signé ; sans clé
 // de signature (un poste de développement), la vidéo est annoncée sans adresse de lecture.
+export const playableCatalogKeys = async (keys: string[]) => {
+  if (!keys.length || !env().MUX_SIGNING_KEY_ID) return new Set<string>();
+  const rows = await prisma.catalogMedia.findMany({
+    where: { catalogKey: { in: keys }, status: "ready", muxPlaybackId: { not: null } },
+    distinct: ["catalogKey"],
+    select: { catalogKey: true },
+  });
+  return new Set(rows.map((row) => row.catalogKey));
+};
+
 export const catalogVideos = async (catalogKeys: readonly string[]): Promise<Map<string, CatalogVideo[]>> => {
   const keys = [...new Set(catalogKeys)];
   const result = new Map<string, CatalogVideo[]>();

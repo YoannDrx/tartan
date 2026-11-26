@@ -75,7 +75,7 @@ async function checkLegacyGuide(page: Page, pilot: string) {
 
 // La vidéo d'une fiche commune : le fondateur la dépose depuis la console, puis toute fiche du catalogue propose le
 // geste animé ou la vidéo.
-test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose à côté du geste animé", async ({
+test("le fondateur dépose la vidéo d'une fiche commune, qui conserve son illustration en attendant une vidéo lisible", async ({
   page,
 }, info) => {
   test.setTimeout(240_000);
@@ -200,7 +200,7 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await expect(side.getByText(t.status.ready)).toBeVisible();
   await expect(side.getByRole("button", { name: t.remove(m.exerciseGuide.motion.views.side) })).toBeVisible();
 
-  // La fiche du catalogue propose maintenant le geste animé, puis la vidéo.
+  // Cette recette sans clé de lecture garde les illustrations pendant que la vidéo reste indisponible.
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByLabel(m.exercises.search, { exact: true }).fill(NAME);
@@ -217,15 +217,7 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await expect(dialog.locator('img[src$="/back-squat-v1.webp"]')).toBeVisible();
   await choice.getByRole("button", { name: media.motion, exact: true }).click();
   await expect(dialog.locator("svg[data-view]").first()).toBeVisible();
-  await choice.getByRole("button", { name: media.video, exact: true }).click();
-  await expect(choice.getByRole("button", { name: media.video, exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(dialog.locator("svg[data-view]")).toHaveCount(0);
-  // Sans clé de signature Mux sur ce poste, la vidéo est annoncée mais pas lisible : la fiche le dit.
-  await expect(dialog.getByRole("status").filter({ hasText: media.videoUnavailable })).toBeVisible();
+  await expect(choice.getByRole("button", { name: media.video, exact: true })).toHaveCount(0);
+  await expect(dialog.locator("video")).toHaveCount(0);
   await inspect(page);
-  if (info.project.name === "desktop")
-    await page.screenshot({ path: info.outputPath("fiche-video.png"), fullPage: true });
-  await choice.getByRole("button", { name: media.motion, exact: true }).click();
-  await expect(dialog.getByText(media.videoUnavailable)).toHaveCount(0);
-  await expect(dialog.locator("svg").first()).toBeVisible();
 });

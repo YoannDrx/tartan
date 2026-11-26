@@ -14,9 +14,12 @@ env:
       - scrollUntilVisible:
           element:
             id: personal-planner
+          centerElement: true
           timeout: 30000
+- waitForAnimationToEnd
 - tapOn:
     id: personal-planner
+    retryTapIfNoChange: true
 - tapOn:
     id: ai-consent-accept
     optional: true

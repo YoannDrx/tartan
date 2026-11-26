@@ -31,6 +31,7 @@ export const SCREENS: Screen[] = [
   { path: "/mobile/contact", roles: ["public"], proof: ["mobile-legal.spec.ts"] },
   // Entrée, compte et liens reçus
   { path: "/installation", roles: ["public"], proof: ["admin-console.spec.ts"] },
+  { path: "/mobile/portrait", roles: ["public"], proof: ["avatar.spec.ts"] },
   { path: "/installation/[etat]", roles: ["public"], proof: ["admin-console.spec.ts"] },
   { path: "/admin/testeurs", roles: ["admin"], proof: ["admin-console.spec.ts", "tests/beta-testers.test.ts"] },
   { path: "/connexion", roles: ["public"], proof: ["password.spec.ts", "age-confirmation.spec.ts"] },

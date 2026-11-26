@@ -22,19 +22,28 @@ env:
     visible:
       id: avatar-current
     timeout: 15000
-- assertVisible:
-    id: avatar-library
-- assertVisible:
-    id: avatar-camera
-- assertVisible: "Le groupe"
-- assertVisible:
-    id: avatar-preset-athlete-highJump
+- scrollUntilVisible:
+    element:
+      id: avatar-library
+- scrollUntilVisible:
+    element:
+      id: avatar-camera
+- scrollUntilVisible:
+    element:
+      text: "Le groupe"
+- scrollUntilVisible:
+    element:
+      id: avatar-preset-athlete-highJump
 - scrollUntilVisible:
     element:
       id: avatar-preset-animal-fox
 - assertVisible: "Animaux"
 - tapOn:
     id: avatar-preset-animal-fox
+- scrollUntilVisible:
+    element:
+      id: avatar-notice
+    direction: UP
 - extendedWaitUntil:
     visible: "Avatar enregistré."
     timeout: 15000
@@ -43,9 +52,16 @@ env:
       id: avatar-current
     direction: UP
 - assertVisible: "Avatar de .*Renard"
+- scrollUntilVisible:
+    element:
+      id: avatar-initials
 - tapOn:
     id: avatar-initials
 - extendedWaitUntil:
     visible: "Tes initiales s'affichent à nouveau."
     timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: avatar-current
+    direction: UP
 - assertVisible: "Initiales de .*"

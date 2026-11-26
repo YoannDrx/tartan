@@ -36,6 +36,7 @@ export const useTabBarOptions = () => {
       };
   return {
     headerShown: false,
+    animation: "none",
     tabBarActiveTintColor: bar.selectedText,
     tabBarInactiveTintColor: bar.text,
     tabBarActiveBackgroundColor: bar.selection,

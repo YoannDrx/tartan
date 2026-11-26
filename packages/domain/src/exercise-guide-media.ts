@@ -6,8 +6,11 @@ export const guideMediaModes = (
   hasPhoto = Boolean(guide.illustration.photo),
 ) => {
   const modes: ("motion" | "photo" | "video")[] = [];
+  if (guide.illustration.videos?.some((video) => video.streamUrl)) {
+    modes.push("video");
+    return modes;
+  }
   if (hasMotion) modes.push("motion");
   if (hasPhoto) modes.push("photo");
-  if (guide.illustration.videos?.length) modes.push("video");
   return modes;
 };

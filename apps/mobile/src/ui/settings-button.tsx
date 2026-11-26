@@ -5,7 +5,6 @@ import { useMe } from "../lib/queries";
 import { Avatar } from "./avatar";
 import { Settings } from "./icons";
 import { IconButton } from "./primitives";
-import { TOUCH } from "./theme";
 
 // L'entrée des réglages, en haut de chaque onglet : l'avatar de la personne connectée, comme dans l'en-tête du web.
 // Le bouton garde son nom (« Ouvrir les réglages ») ; l'avatar est décoratif.
@@ -31,8 +30,8 @@ export const SettingsButton = () => {
       accessibilityLabel={m.mobile.a11y.openSettings}
       onPress={() => router.push("/settings")}
       style={({ pressed }) => ({
-        width: TOUCH,
-        height: TOUCH,
+        width: 80,
+        height: 80,
         alignItems: "center",
         justifyContent: "center",
         opacity: pressed ? 0.7 : 1,
@@ -46,7 +45,7 @@ export const SettingsButton = () => {
           avatarUrl: me.data.avatarUrl,
           avatarPreset: me.data.avatarPreset,
         }}
-        size="md"
+        size="header"
       />
     </Pressable>
   );

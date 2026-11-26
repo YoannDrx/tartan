@@ -5,6 +5,7 @@ import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { onErr } from "@/features/settings/shared";
 import { cn } from "@/lib/cn";
 import { NOTIFICATIONS_READ_EVENT } from "./notification-bell";
 import { markNotificationsReadAction } from "./notifications.action";
@@ -14,6 +15,7 @@ export type InboxRow = { id: string; text: string; href: string | null; when: st
 export const NotificationList = ({ rows, unread }: { rows: InboxRow[]; unread: number }) => {
   const router = useRouter();
   const mark = useAction(markNotificationsReadAction, {
+    onError: onErr,
     onSuccess: () => {
       window.dispatchEvent(new Event(NOTIFICATIONS_READ_EVENT));
       router.refresh();
@@ -42,7 +44,7 @@ export const NotificationList = ({ rows, unread }: { rows: InboxRow[]; unread: n
           );
           const rowClass = "flex min-h-11 items-center gap-3 px-4 py-2.5 text-inherit no-underline";
           return (
-            <li key={row.id}>
+            <li key={row.id} className="flex flex-wrap items-center justify-between gap-1">
               {row.href ? (
                 <Link
                   href={row.href}
@@ -53,6 +55,16 @@ export const NotificationList = ({ rows, unread }: { rows: InboxRow[]; unread: n
                 </Link>
               ) : (
                 <div className={rowClass}>{content}</div>
+              )}
+              {row.unread && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={mark.isPending}
+                  onClick={() => mark.execute({ ids: [row.id] })}
+                >
+                  {m.inbox.markOne}
+                </Button>
               )}
             </li>
           );

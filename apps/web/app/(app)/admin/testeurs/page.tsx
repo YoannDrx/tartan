@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
+import { BetaLink } from "@/features/admin/beta-link";
+import { currentApk, publishApk, stagedApk } from "@/server/beta-apk.service";
 import { AdminNav } from "@/features/admin/console-ui";
 import { requireActor } from "@/lib/session";
 import { changeBeta, inviteBeta, listBeta } from "@/server/beta-testers.service";
@@ -28,13 +30,47 @@ async function change(form: FormData) {
   );
   revalidatePath(page);
 }
+async function publish(form: FormData) {
+  "use server";
+  await publishApk(
+    await requireActor(),
+    z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .parse(form.get("digest")),
+  );
+  revalidatePath(page);
+}
 export default async function TestersPage() {
-  const rows = await listBeta(await requireActor());
+  const actor = await requireActor();
+  const rows = await listBeta(actor);
+  const [current, staged] = await Promise.all([
+    currentApk(),
+    stagedApk(actor)
+      .then((candidate) => ({ candidate, failed: false }))
+      .catch(() => ({ candidate: null, failed: true })),
+  ]);
+  const { candidate } = staged;
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader title={t.title} />
       <AdminNav current={page} />
       {env().BETA_INVITES_ENABLED !== "true" && <p>{t.disabled}</p>}
+      {staged.failed && <p role="status">{t.badApk}</p>}
+      {current && (
+        <p>
+          {t.latest} · {current.version} {current.build || ""}
+        </p>
+      )}
+      {candidate && candidate.build > (current?.build ?? 0) && (
+        <form action={publish}>
+          <p>
+            {t.candidate} · {candidate.version} ({candidate.build})
+          </p>
+          <input type="hidden" name="digest" value={candidate.digest} />
+          <Button type="submit">{t.publish}</Button>
+        </form>
+      )}
       <form action={invite} className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
           {t.email}
@@ -74,6 +110,30 @@ export default async function TestersPage() {
                   {t.android} · {r.android}
                 </p>
               )}
+              {r.url && <BetaLink url={r.url} />}
+              {(
+                [
+                  [t.opened, r.openedAt],
+                  [t.downloaded, r.apkAt],
+                  [t.appleOpened, r.appleAt],
+                ] as const
+              ).map(
+                ([label, date]) =>
+                  date && (
+                    <p key={label}>
+                      {label} · {date.toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}
+                    </p>
+                  ),
+              )}
+              {r.installations.map((device) => (
+                <p key={device.installationId}>
+                  {device.model ?? device.platform} · {device.platform} {device.os} · {device.appVersion} (
+                  {device.build})<br />
+                  {t.firstSeen} · {device.firstSeenAt.toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}
+                  <br />
+                  {t.lastSeen} · {device.lastSeenAt.toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}
+                </p>
+              ))}
               <form action={change} className="flex flex-wrap gap-2">
                 <input type="hidden" name="id" value={r.id} />
                 <input type="hidden" name="version" value={r.version} />

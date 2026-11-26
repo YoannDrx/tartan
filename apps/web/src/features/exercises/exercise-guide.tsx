@@ -82,10 +82,12 @@ export const MovementGuide = ({
   guide,
   variants,
   basePath = "/exercices",
+  hideIllustration = false,
 }: {
   guide: ExerciseGuide;
   variants?: GuideVariants;
   basePath?: string;
+  hideIllustration?: boolean;
 }) => {
   const text = shownText(guide);
   const concise = guide.concise;
@@ -99,10 +101,12 @@ export const MovementGuide = ({
     // Assez large (la fiche sur ordinateur), le geste tient à gauche et le texte se lit à côté ; plus étroit (téléphone,
     // aperçu du constructeur, séance de l'athlète), le geste passe au-dessus.
     <section aria-label={m.exerciseGuide.title} className="@container min-w-0">
-      <div className="grid gap-5 @3xl:grid-cols-2 @3xl:items-start @3xl:gap-8">
-        <div className="min-w-0 @3xl:sticky @3xl:top-24">
-          <Illustration guide={guide} />
-        </div>
+      <div className={hideIllustration ? "grid gap-5" : "grid gap-5 @3xl:grid-cols-2 @3xl:items-start @3xl:gap-8"}>
+        {!hideIllustration && (
+          <div className="min-w-0 @3xl:sticky @3xl:top-24">
+            <Illustration guide={guide} />
+          </div>
+        )}
         <div className="flex min-w-0 flex-col gap-5">
           <p className="text-[17px] font-semibold leading-snug">{text.objective}</p>
           <div className="min-w-0">

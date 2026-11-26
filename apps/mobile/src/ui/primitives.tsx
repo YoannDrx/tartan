@@ -347,7 +347,11 @@ export const Field = forwardRef<TextInput, FieldProps>(
               style,
             ]}
           />
-          {accessory ? <View style={{ position: "absolute", right: 2, top: 2 }}>{accessory}</View> : null}
+          {accessory ? (
+            <View style={{ position: "absolute", right: 2, ...(rest.multiline ? { bottom: 2 } : { top: 2 }) }}>
+              {accessory}
+            </View>
+          ) : null}
         </View>
         {hint && !error ? (
           <T variant="caption" tone="muted">

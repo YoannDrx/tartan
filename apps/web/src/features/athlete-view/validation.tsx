@@ -215,21 +215,6 @@ export const QuickValidate = ({
             {m.validation.finish}
           </Button>
           <ConfirmedRecords records={records} />
-          {status === "done" ? (
-            queued ? (
-              <p className="t-caption font-normal text-soft">{m.sessionVoice.offline}</p>
-            ) : healthConsent ? (
-              <SessionDebrief
-                personal={personal}
-                organizationId={organizationId}
-                sessionId={session.id}
-                initial={Boolean(session.log?.hasVoiceDebrief)}
-                onPendingChange={setVoicePending}
-              />
-            ) : (
-              <p className="t-caption font-normal text-soft">{m.sessionVoice.consentHint}</p>
-            )
-          ) : null}
           {healthConsent ? <RpeScale value={rpe} onChange={setRpe} /> : null}
           <Field label={m.validation.duration}>
             {(a) => (
@@ -244,17 +229,35 @@ export const QuickValidate = ({
               />
             )}
           </Field>
-          <Field label={m.validation.comment}>
-            {(a) => (
-              <Textarea
-                {...a}
-                className="min-h-11"
-                placeholder={m.validation.commentPlaceholder}
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-              />
-            )}
-          </Field>
+          <div className="grid gap-1 rounded-control border border-card-line p-2">
+            {" "}
+            <Field label={m.validation.comment}>
+              {(a) => (
+                <Textarea
+                  {...a}
+                  className="min-h-11 border-0"
+                  placeholder={m.validation.commentPlaceholder}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                />
+              )}
+            </Field>{" "}
+            {status === "done" ? (
+              queued ? (
+                <p className="t-caption font-normal text-soft">{m.sessionVoice.offline}</p>
+              ) : healthConsent ? (
+                <SessionDebrief
+                  personal={personal}
+                  organizationId={organizationId}
+                  sessionId={session.id}
+                  initial={Boolean(session.log?.hasVoiceDebrief)}
+                  onPendingChange={setVoicePending}
+                />
+              ) : (
+                <p className="t-caption font-normal text-soft">{m.sessionVoice.consentHint}</p>
+              )
+            ) : null}
+          </div>
           {healthConsent ? (
             <div className="flex flex-col gap-3">
               <Button

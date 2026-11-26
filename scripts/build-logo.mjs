@@ -52,16 +52,6 @@ const bare = ({ fill = WHITE, accent = LEMON, small = false, margin = 0, backgro
     `${background ? rect(-margin, -margin, 160 + 2 * margin, 160 + 2 * margin, background) : ""}${glyph({ fill, accent, small })}`,
   );
 
-// Le logotype : l'icône, un tiers de sa largeur de blanc, puis « Tartan ».
-const lockup = ({ background = BRICK, text = INK } = {}) => {
-  const logotype = font.getPath("Tartan", 160 + 160 / 3, 124, 150);
-  const width = Math.ceil(logotype.getBoundingBox().x2) + 8;
-  return svg(
-    `0 0 ${width} 160`,
-    `<defs><clipPath id="c"><rect width="160" height="160" rx="36"/></clipPath></defs>\n<g clip-path="url(#c)">${rect(0, 0, 160, 160, background)}${glyph()}</g>\n<path fill="${text}" d="${logotype.toPathData(2)}"/>`,
-  );
-};
-
 // Le mot « Tartan » dont le T est la marque (en-tête du site, décision du fondateur du 23 novembre 2026). La marque
 // prend la hauteur des capitales de Barlow Condensed Bold, pied de la ligne d'arrivée sur la ligne de base, et
 // « artan » la suit à la même distance que ses lettres entre elles : les bras carrés de la marque ne laissent pas le
@@ -92,17 +82,22 @@ const wordmark = () => {
     `<g transform="${at}">${glyph({ accent: "none" })}</g>\n<path fill="${WHITE}" d="${rest.toPathData(2)}"/>`,
   );
   const line = svg(viewBox, `<g transform="${at}">${rect(57.6, 121.6, 44.8, 12.8, LEMON)}</g>`);
-  return { letters, line, width, height };
+  const artwork = (fill, accent) =>
+    `<g transform="${at}">${glyph({ fill, accent })}</g><path fill="${fill}" d="${rest.toPathData(2)}"/>`;
+  return { letters, line, width, height, artwork, viewBox };
 };
+
+const word = wordmark();
+const lockup = ({ text = INK, accent = text === WHITE ? LEMON : INK } = {}) =>
+  svg(word.viewBox, word.artwork(text, accent));
 
 // L'image de partage : le logotype et la promesse sur la piste, entre deux lignes de couloir.
 const share = () => {
-  const name = font.getPath("Tartan", 392, 318, 230);
   const line = font.getPath("La préparation physique du coach et de son groupe", 96, 462, 50);
   const lane = (y) => rect(0, y, 1200, 6, WHITE);
   return svg(
     "0 0 1200 630",
-    `${rect(0, 0, 1200, 630, BRICK)}${lane(60)}${lane(78)}${lane(552)}${lane(570)}\n<g transform="translate(96 134) scale(1.5)">${glyph()}</g>\n<path fill="${WHITE}" d="${name.toPathData(2)}"/>\n<path fill="${WHITE}" d="${line.toPathData(2)}"/>`,
+    `${rect(0, 0, 1200, 630, BRICK)}${lane(60)}${lane(78)}${lane(552)}${lane(570)}\n<svg x="96" y="150" width="720" height="189" viewBox="${word.viewBox}">${word.artwork(WHITE, LEMON)}</svg>\n<path fill="${WHITE}" d="${line.toPathData(2)}"/>`,
   );
 };
 
@@ -121,10 +116,9 @@ writeFileSync(path.join(brand, "icon.svg"), icon());
 writeFileSync(path.join(brand, "icon-small.svg"), icon({ small: true }));
 writeFileSync(path.join(brand, "icon-mono.svg"), icon({ background: INK }));
 writeFileSync(path.join(brand, "logo.svg"), lockup());
-writeFileSync(path.join(brand, "logo-mono.svg"), lockup({ background: INK }));
+writeFileSync(path.join(brand, "logo-mono.svg"), lockup({ text: INK, accent: INK }));
 writeFileSync(path.join(brand, "logo-on-dark.svg"), lockup({ text: WHITE }));
 writeFileSync(path.join(web, "favicon.svg"), icon({ small: true }));
-const word = wordmark();
 writeFileSync(path.join(brand, "wordmark-letters.svg"), word.letters);
 writeFileSync(path.join(brand, "wordmark-line.svg"), word.line);
 console.log(`Mot « Tartan » : ${word.width} × ${word.height}.`);
@@ -144,6 +138,19 @@ await sharp(Buffer.from(lockup({ text: WHITE })), { density: 300 })
   .png()
   .toFile(path.join(brand, "logo-email.png"));
 await sharp(Buffer.from(share()), { density: 150 }).resize(1200, 630).flatten({ background: BRICK }).png().toFile(path.join(brand, "og.png"));
+
+await sharp(Buffer.from(lockup({ text: WHITE })), { density: 300 })
+  .resize({ width: 512 })
+  .png()
+  .toFile(path.join(brand, "logo-stripe.png"));
+await sharp(Buffer.from(lockup({ text: WHITE })), { density: 300 })
+  .resize({ width: 816 })
+  .png()
+  .toFile(path.join(mobile, "wordmark-light.png"));
+await sharp(Buffer.from(lockup()), { density: 300 })
+  .resize({ width: 816 })
+  .png()
+  .toFile(path.join(mobile, "wordmark-dark.png"));
 
 // iOS : carré plein (le système arrondit), plus les variantes sombre et teintée d'iOS 18.
 await opaque(icon({ rounded: false }), 1024, BRICK, path.join(mobile, "icon-ios.png"));

@@ -197,3 +197,29 @@ test("une photo recadrée au clavier s'affiche partout ; un avatar animal, puis 
   await expect(page.getByRole("button", { name: t.logo.replace })).toBeVisible();
   await expect(page.getByRole("heading", { name: m.settings.logo })).toBeVisible();
 });
+
+test("le portrait mobile renvoie la photo détourée après confirmation", async ({ page }) => {
+  await page.addInitScript(() => {
+    const portraitMessages: { kind: string; image?: string }[] = [];
+    Object.assign(window, {
+      portraitMessages,
+      ReactNativeWebView: { postMessage: (raw: string) => portraitMessages.push(JSON.parse(raw)) },
+    });
+  });
+  await page.goto("/mobile/portrait");
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, "portraitMessages").length)).toBe(1);
+  await page.evaluate(async () => {
+    const img = await createImageBitmap(await (await fetch("/exercise-photos/seated-dumbbell-press-v1.webp")).blob());
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext("2d")!.drawImage(img, 0, 0);
+    window.dispatchEvent(new MessageEvent("message", { data: canvas.toDataURL("image/jpeg") }));
+  });
+  const dialog = page.getByRole("dialog", { name: t.crop.title });
+  await dialog.getByLabel(t.crop.background).selectOption({ label: t.crop.track });
+  await expect(dialog.getByRole("button", { name: t.crop.save, exact: true })).toBeEnabled({ timeout: 45000 });
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  await dialog.getByRole("button", { name: t.crop.save, exact: true }).click();
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, "portraitMessages").at(-1)?.kind)).toBe("save");
+});

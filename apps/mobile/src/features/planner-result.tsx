@@ -29,7 +29,8 @@ import {
   type PlannerDraftWarning,
 } from "../lib/planner-flow";
 import type { PlannerStreamState } from "../lib/planner-stream";
-import { Button, Field, SectionTitle, T } from "../ui/primitives";
+import { Mic, Square } from "../ui/icons";
+import { Button, Field, IconButton, SectionTitle, T } from "../ui/primitives";
 import { StackScreen } from "../ui/screen";
 import { space } from "../ui/theme";
 import { PlannerDraftReview, type Picking } from "./planner-draft-review";
@@ -665,12 +666,14 @@ export function NativePlannerResult({
                     editable={!running}
                     error={reply.length > PLANNER_TEXT_LIMIT ? t.textLimit(reply.length, PLANNER_TEXT_LIMIT) : null}
                     onChangeText={setReply}
-                  />
-                  <Button
-                    variant="secondary"
-                    label={mic.recording ? m.aiPlanner.stopDictation : m.aiPlanner.dictateReply}
-                    disabled={!mic.recording && mic.busy}
-                    onPress={mic.recording ? mic.stop : mic.start}
+                    accessory={
+                      <IconButton
+                        icon={mic.recording ? Square : Mic}
+                        label={mic.recording ? m.aiPlanner.stopDictation : m.aiPlanner.dictateReply}
+                        disabled={!mic.recording && mic.busy}
+                        onPress={mic.recording ? mic.stop : mic.start}
+                      />
+                    }
                   />
                   {mic.canCheck ? <Button label={m.aiPlanner.checkTranscription} onPress={mic.check} /> : null}
                   {mic.status || mic.error ? <T accessibilityLiveRegion="polite">{mic.error || mic.status}</T> : null}

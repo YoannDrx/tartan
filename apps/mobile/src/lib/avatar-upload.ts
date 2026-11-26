@@ -1,7 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { loadImage } from "react-native-nitro-image";
 import { api } from "./api";
-import { AVATAR_QUALITY, fileUri, planSquare } from "./avatar-photo";
+import { AVATAR_QUALITY, fileUri } from "./avatar-photo";
 
 // Choisir une photo, la recadrer en carré avec l'éditeur du téléphone (déplacer, zoomer), la réduire puis l'envoyer.
 // Aucune dépendance ajoutée : le recadrage est celui d'`expo-image-picker`, la réduction celle de
@@ -12,7 +12,7 @@ export type PickOutcome =
 
 const PICKER: ImagePicker.ImagePickerOptions = {
   mediaTypes: ["images"],
-  allowsEditing: true,
+  allowsEditing: false,
   aspect: [1, 1],
   quality: 1,
   exif: false,
@@ -30,12 +30,15 @@ export const pickAvatarPhoto = async (from: "library" | "camera"): Promise<PickO
     const asset = result.assets[0];
     if (!asset) return { kind: "unreadable" };
     const image = await loadImage({ filePath: asset.uri });
-    const plan = planSquare(image.width, image.height);
-    if (!plan) return { kind: "unreadable" };
-    const square = plan.crop
-      ? await image.cropAsync(plan.crop.startX, plan.crop.startY, plan.crop.endX, plan.crop.endY)
-      : image;
-    const sized = plan.resizeTo ? await square.resizeAsync(plan.resizeTo, plan.resizeTo) : square;
+    if (!image.width || !image.height) return { kind: "unreadable" };
+    const scale = Math.min(1, 1400 / Math.max(image.width, image.height));
+    const sized =
+      scale < 1
+        ? await image.resizeAsync(
+            Math.max(1, Math.round(image.width * scale)),
+            Math.max(1, Math.round(image.height * scale)),
+          )
+        : image;
     const path = await sized.saveToTemporaryFileAsync("jpg", AVATAR_QUALITY);
     return { kind: "picked", uri: fileUri(path) };
   } catch {
@@ -46,6 +49,10 @@ export const pickAvatarPhoto = async (from: "library" | "camera"): Promise<PickO
 export const uploadAvatarPhoto = (uri: string) => {
   const form = new FormData();
   // Le `fetch` de React Native lit le fichier lui-même à partir de son chemin.
-  form.append("file", { uri, name: "avatar.jpg", type: "image/jpeg" } as unknown as Blob);
+  form.append("file", {
+    uri,
+    name: uri.endsWith(".webp") ? "avatar.webp" : "avatar.jpg",
+    type: uri.endsWith(".webp") ? "image/webp" : "image/jpeg",
+  } as unknown as Blob);
   return api.uploadAvatar(form);
 };

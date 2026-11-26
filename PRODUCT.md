@@ -34,7 +34,7 @@ La vente web précède les stores ; les bêtas natives sur invitation suivent la
 
 ## Accueil connecté et entraînement personnel
 
-Le bandeau affiche « Tartan Coach » pour les encadrants et « Tartan Athlète » pour les pratiquants. Le club figure en second. Les personnes qui appartiennent à plusieurs clubs peuvent les ouvrir depuis « Mes clubs » dans les réglages et choisir leur accueil habituel.
+Le bandeau affiche « Tartan Coach » pour les encadrants et « Tartan Athlète » pour les pratiquants. Le club figure en second. Le sélecteur du bandeau apparaît pour les personnes qui ont plusieurs espaces. Le dernier choix manuel détermine leur prochain accueil. Un athlète invité dans un seul club accède directement à sa journée et à son carnet intégré.
 
 Un athlète du club retrouve dans sa journée et son calendrier les séances prescrites et ses propres séances. Son planificateur utilise son carnet, ses quotas et ses accords. Il consulte les guides d'exercices et les vidéos auxquelles il a accès. Les propositions, mesures et vidéos personnelles restent dans le carnet. Le partage volontaire et révocable de l'historique détermine les éléments accessibles à son coach.
 

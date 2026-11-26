@@ -100,6 +100,9 @@ importers:
       expo-apple-authentication:
         specifier: ~55.0.16
         version: 55.0.17(expo@55.0.32)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))
+      expo-application:
+        specifier: ~55.0.19
+        version: 55.0.19(expo@55.0.32)
       expo-asset:
         specifier: ~55.0.20
         version: 55.0.20(expo@55.0.32)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
@@ -242,6 +245,9 @@ importers:
       '@hookform/resolvers':
         specifier: 7.0.1
         version: 7.0.1(@standard-schema/spec@1.1.0)(ajv@8.20.0)(react-hook-form@7.91.0(@types/react@19.2.18)(react@19.2.8))(valibot@1.4.2(typescript@5.9.3))(zod@4.6.7)
+      '@mediapipe/tasks-vision':
+        specifier: 0.10.32
+        version: 0.10.32
       '@mux/mux-node':
         specifier: 15.5.0
         version: 15.5.0
@@ -1931,6 +1937,9 @@ packages:
 
   '@levischuck/tiny-cbor@0.2.11':
     resolution: {integrity: sha512-llBRm4dT4Z89aRsm6u2oEZ8tfwL/2l6BwpZ7JcyieouniDECM5AqNgr/y08zalEIvW3RSK4upYyybDcmjXqAow==}
+
+  '@mediapipe/tasks-vision@0.10.32':
+    resolution: {integrity: sha512-3tiAZnmKloYnRXYoO3dKltTUGnqeCwzC4lV03uY0vCsE+aveJTyEVQyZHOlQGQNsjK+gRHzkf9q08C99Qm2K0Q==}
 
   '@mux/mux-node@15.5.0':
     resolution: {integrity: sha512-qd63UDRZkXmSjr0YEyEjTIqx+PwRh1e3sQ1X8H35W07OEKN84q9FTnV7Xi3c6l0ARbvhXsWzeXN3hv4bU2zFqQ==}
@@ -10241,6 +10250,8 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.6.0
 
   '@levischuck/tiny-cbor@0.2.11': {}
+
+  '@mediapipe/tasks-vision@0.10.32': {}
 
   '@mux/mux-node@15.5.0': {}
 

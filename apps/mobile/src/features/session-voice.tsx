@@ -16,7 +16,7 @@ import { createNativeDictationRecorder } from "../lib/planner-recording";
 import { DictationController, PLANNER_RECORDING_SECONDS, type DictationState } from "../lib/planner-recording-core";
 import { useSession } from "../lib/session-store";
 import { Mic, Pause, Play } from "../ui/icons";
-import { Button, T } from "../ui/primitives";
+import { Button, IconButton, T } from "../ui/primitives";
 import { space } from "../ui/theme";
 
 // Le téléphone a une seule sortie et un seul micro, même si plusieurs fils sont ouverts.
@@ -259,20 +259,22 @@ export function VoiceCapture({
   return (
     <View style={{ gap: space.sm }}>
       {state === "idle" ? (
-        <Button
-          variant="secondary"
-          icon={Mic}
-          disabled={!online || sending || otherMicActive}
-          label={recordLabel}
-          onPress={() => {
-            if (useVoiceMic.getState().owner || !control.current) return;
-            useVoiceMic.setState({ owner: micId.current, recording: true });
-            pauseCurrentVoice?.();
-            setError("");
-            setSeconds(0);
-            void control.current?.start();
-          }}
-        />
+        <View style={{ alignSelf: "flex-end" }}>
+          <IconButton
+            tone="filled"
+            icon={Mic}
+            disabled={!online || sending || otherMicActive}
+            label={recordLabel}
+            onPress={() => {
+              if (useVoiceMic.getState().owner || !control.current) return;
+              useVoiceMic.setState({ owner: micId.current, recording: true });
+              pauseCurrentVoice?.();
+              setError("");
+              setSeconds(0);
+              void control.current?.start();
+            }}
+          />
+        </View>
       ) : state === "recording" ? (
         <Button label={`${t.stop} · ${seconds} ${m.units.seconds}`} onPress={() => void control.current?.finish()} />
       ) : preview ? (

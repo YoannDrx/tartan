@@ -149,6 +149,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           backgroundColor: BRICK,
           image: "./assets/brand/splash.png",
           imageWidth: 240,
+          ios: { image: "./assets/brand/wordmark-light.png", imageWidth: 240 },
           resizeMode: "contain",
         },
       ],

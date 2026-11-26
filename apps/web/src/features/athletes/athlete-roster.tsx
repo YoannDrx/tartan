@@ -52,7 +52,7 @@ export const AthleteRoster = ({
         <table className="w-full border-separate border-spacing-0 desktop:table-fixed [&>tbody:last-of-type>tr:last-child>td]:border-b-0">
           <caption className="sr-only">{m.athletes.title}</caption>
           <thead className="max-tablet:sr-only">
-            <tr className="[&>th]:sticky [&>th]:top-[calc(var(--offline-bar-height,0px)+58px)] [&>th]:z-10 [&>th]:border-b [&>th]:border-card-line [&>th]:bg-card">
+            <tr className="[&>th]:sticky [&>th]:top-[calc(var(--offline-bar-height,0px)+var(--app-header-height,58px))] [&>th]:z-10 [&>th]:border-b [&>th]:border-card-line [&>th]:bg-card">
               <th scope="col" className="t-col px-4 py-2 text-left">
                 {m.coach.athleteCol}
               </th>

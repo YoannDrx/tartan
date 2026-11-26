@@ -3,7 +3,7 @@ import { m } from "@tartan/i18n";
 import { useFocusEffect, usePathname, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Image, Pressable, RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
+import { Linking, Image, Pressable, RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsOnline } from "../lib/network";
 import { useOpQueue } from "../lib/sync/op-queue";
@@ -12,8 +12,12 @@ import { useOwnUploads } from "../lib/upload/upload-queue";
 import { ArrowLeft, CloudOff, CloudUpload, Repeat, X } from "./icons";
 import { Button, IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
 import { SettingsButton } from "./settings-button";
+import { useQuery } from "@tanstack/react-query";
+import { reportClientVersion } from "../lib/notifications";
+import * as Updates from "expo-updates";
+import { SpaceSwitcher } from "./space-switcher";
 import { useActiveSpace } from "../lib/queries";
-import { homeFor, useSpaceStore } from "../lib/space-store";
+import { homeFor } from "../lib/space-store";
 import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./theme";
 
 // La barre d'état suit le fond de l'écran au premier plan : encre sur la craie et le soleil, claire ailleurs.
@@ -125,32 +129,41 @@ const TabInner = ({
     if (!refreshing) setPulled(false);
   }, [refreshing]);
   const { me, space: active } = useActiveSpace();
-  const home = me.data?.spaces[0];
-  const setActive = useSpaceStore((s) => s.setActive);
+  const update = useQuery({
+    queryKey: ["beta-update", me.data?.id],
+    queryFn: async () => (await reportClientVersion()) ?? null,
+    enabled: Updates.channel === "beta" && Boolean(me.data?.id),
+    refetchInterval: 15 * 60_000,
+  });
+
   const titleRow = (
     <>
-      {active && home && (
+      {active && (
         <Pressable
           accessibilityRole="link"
-          onPress={() => {
-            setActive(home.organizationId);
-            router.replace(homeFor(home) ?? "/");
-          }}
+          accessibilityLabel={`${active.role === "athlete" ? m.brand.athlete : m.brand.coach}, ${active.organizationName}`}
+          onPress={() => router.replace(homeFor(active) ?? "/")}
           style={{ minHeight: 44, flexDirection: "row", gap: space.sm, alignItems: "center" }}
         >
           <Image
             accessibilityIgnoresInvertColors
-            source={require("../../assets/brand/icon-ios.png")}
-            style={{ width: 32, height: 32 }}
+            source={
+              p.work || p.dark
+                ? require("../../assets/brand/wordmark-light.png")
+                : require("../../assets/brand/wordmark-dark.png")
+            }
+            resizeMode="contain"
+            style={{ width: 100, height: 28 }}
           />
           <View style={{ flex: 1 }}>
-            <T variant="smallStrong">{active.role === "athlete" ? m.brand.athlete : m.brand.coach}</T>
+            <T variant="smallStrong">{active.role === "athlete" ? m.roles.athlete : m.roles.coach}</T>
             <T variant="caption" numberOfLines={1}>
               {active.organizationName}
             </T>
           </View>
         </Pressable>
       )}
+      <SpaceSwitcher />
       <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
         <View style={{ flex: 1, gap: 2 }}>
           <ScreenTitle title={title} plain={p.work} />
@@ -213,6 +226,12 @@ const TabInner = ({
         {...scrollProps}
       >
         {p.work ? <Scene scene="piste">{bandHeader}</Scene> : header}
+        {update.data && (
+          <Button
+            label={m.brand.apkUpdate(update.data.version)}
+            onPress={() => void Linking.openURL(update.data!.url)}
+          />
+        )}
         <SyncBanner />
         {children}
       </ScrollView>

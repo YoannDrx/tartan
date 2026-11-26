@@ -12,7 +12,7 @@ import { submitValidation, useOpQueue } from "../lib/sync/op-queue";
 import { StatusGlyph } from "../ui/status";
 import { Button, Chip, Field, T } from "../ui/primitives";
 import { Sheet } from "../ui/sheet";
-import { space } from "../ui/theme";
+import { radius, space, usePalette } from "../ui/theme";
 import { ValidationBurst } from "./validation-burst";
 
 type Sets = SessionLogInput["sets"];
@@ -152,6 +152,7 @@ export const ValidationSheet = ({
   const [rpe, setRpe] = useState<number | null>(initialFeedback.rpe ?? null);
   const [duration, setDuration] = useState(initialFeedback.durationMin ? String(initialFeedback.durationMin) : "");
   const [durationError, setDurationError] = useState<string | null>(null);
+  const palette = usePalette();
   const [comment, setComment] = useState(initialFeedback.comment ?? "");
   const [painOn, setPainOn] = useState(Boolean(initialFeedback.pain));
   const [area, setArea] = useState<BodyArea | null>(initialFeedback.pain?.bodyArea ?? null);
@@ -279,25 +280,6 @@ export const ValidationSheet = ({
         </T>
       ) : null}
       <ConfirmedRecords records={receipt?.records ?? []} />
-      {status === "done" && !personal && healthConsent ? (
-        pendingStatus ? (
-          <T variant="caption">{m.sessionVoice.offline}</T>
-        ) : (
-          <>
-            <VoiceEditor
-              orgId={target.orgId}
-              sessionId={target.sessionId}
-              hasDebrief={hasDebrief}
-              onBusyChange={setRootBusy}
-              onChange={(saved) => setHasDebrief(!!saved)}
-            />
-            <ThreadDisclosure
-              target={{ orgId: target.orgId, sessionId: target.sessionId }}
-              onBusyChange={setThreadBusy}
-            />
-          </>
-        )
-      ) : null}
       {healthConsent ? (
         <View style={{ gap: space.sm }}>
           <View
@@ -325,14 +307,37 @@ export const ValidationSheet = ({
         maxLength={3}
       />
 
-      <Field
-        label={personal ? m.mobile.solo.comment : m.validation.comment}
-        value={comment}
-        onChangeText={setComment}
-        multiline
-        maxLength={1000}
-        placeholder={m.validation.commentPlaceholder}
-      />
+      <View style={{ padding: space.sm, borderWidth: 1, borderColor: palette.border, borderRadius: radius.card }}>
+        {" "}
+        <Field
+          style={{ borderWidth: 0 }}
+          label={personal ? m.mobile.solo.comment : m.validation.comment}
+          value={comment}
+          onChangeText={setComment}
+          multiline
+          maxLength={1000}
+          placeholder={m.validation.commentPlaceholder}
+        />{" "}
+        {status === "done" && !personal && healthConsent ? (
+          pendingStatus ? (
+            <T variant="caption">{m.sessionVoice.offline}</T>
+          ) : (
+            <>
+              <VoiceEditor
+                orgId={target.orgId}
+                sessionId={target.sessionId}
+                hasDebrief={hasDebrief}
+                onBusyChange={setRootBusy}
+                onChange={(saved) => setHasDebrief(!!saved)}
+              />
+              <ThreadDisclosure
+                target={{ orgId: target.orgId, sessionId: target.sessionId }}
+                onBusyChange={setThreadBusy}
+              />
+            </>
+          )
+        ) : null}
+      </View>
 
       {healthConsent ? (
         <View style={{ gap: space.md }}>

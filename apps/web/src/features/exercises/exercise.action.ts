@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   exerciseFilter,
+  filmingNote,
   exerciseInput,
   exerciseListInput,
   exerciseListName,
@@ -11,6 +12,7 @@ import {
   uuid,
 } from "@tartan/contracts";
 import { z } from "zod";
+import { saveFilming } from "@/server/exercise-filming.service";
 import { spaceAction } from "@/features/shell/space-action";
 import {
   createExerciseVideoUpload,
@@ -36,6 +38,12 @@ const refresh = (exerciseId?: string) => {
   revalidatePath("/exercices");
   if (exerciseId) revalidatePath(`/exercices/${exerciseId}`);
 };
+
+export const saveFilmingAction = spaceAction.inputSchema(filmingNote).action(async ({ parsedInput, ctx }) => {
+  const saved = await saveFilming(ctx.userId, ctx.organizationId, parsedInput);
+  refresh(saved.exerciseId);
+  return saved;
+});
 
 export const saveExerciseAction = spaceAction.inputSchema(exerciseInput).action(async ({ parsedInput, ctx }) => {
   const saved = await saveExercise(ctx.userId, ctx.organizationId, parsedInput);

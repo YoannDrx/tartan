@@ -868,6 +868,17 @@ export const MATRICE: Row[] = [
     },
   },
   // Listes du coach : chaque persona d'encadrement agit sur la sienne ; personne d'autre n'y accède.
+  { route: "GET /api/v1/orgs/[orgId]/exercise-filming", ...encadrants },
+  {
+    route: "PUT /api/v1/orgs/[orgId]/exercise-filming",
+    ...encadrants,
+    call: async (w) => {
+      const note = await prisma.exerciseFilming.findUnique({
+        where: { organizationId_exerciseId: { organizationId: w.org, exerciseId: w.exerciseId } },
+      });
+      return { body: { exerciseId: w.exerciseId, revision: note?.revision ?? 0, filmed: true, comment: "À revoir" } };
+    },
+  },
   { route: "GET /api/v1/orgs/[orgId]/exercise-lists", ...encadrants },
   {
     route: "POST /api/v1/orgs/[orgId]/exercise-lists",

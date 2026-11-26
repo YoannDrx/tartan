@@ -41,6 +41,10 @@ test("centre de notifications : compteur, lecture d'une ligne, tout marquer comm
 
   // Tout marquer comme lu : plus de bouton, plus de compteur.
   await page.goto("/notifications");
+  await page.getByRole("button", { name: m.inbox.markOne }).first().click();
+  await expect.poll(() => unread(page.request)).toBe(1);
+  await page.getByRole("link", { name: m.inbox.readTab, exact: true }).click();
+  await expect(page.getByRole("link", { name: /Malik a publié une annonce/ })).toBeVisible();
   await page.getByRole("button", { name: m.inbox.markAll }).click();
   await expect(page.getByRole("button", { name: m.inbox.markAll })).toHaveCount(0);
   await expect(page.getByText(`, ${m.inbox.unread}`)).toHaveCount(0);

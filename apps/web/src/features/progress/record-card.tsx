@@ -47,7 +47,7 @@ export const recordCardImage = async (card: {
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", padding: "72px 80px 0", gap: 28 }}>
-        <img src={dataUri(logo.toString())} height={72} width={258} alt="" />
+        <img src={dataUri(logo.toString())} height={72} width={274} alt="" />
         <div style={{ display: "flex", fontSize: 44, marginTop: 56 }}>{m.recordCard.label}</div>
         <div
           style={{

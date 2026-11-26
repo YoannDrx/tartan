@@ -24,6 +24,13 @@ export const profile = {
   },
   crop: {
     title: "Recadrer la photo",
+    background: "Fond du portrait",
+    original: "Décor d’origine",
+    ink: "Encre",
+    track: "Piste",
+    white: "Blanc",
+    processing: "Détourage en cours…",
+    failed: "Le détourage a échoué sur cet appareil. Tu peux réessayer ou garder le décor d’origine.",
     titleLogo: "Recadrer le logo",
     detail:
       "Fais glisser la photo pour la placer dans le cercle. Au clavier : les flèches la déplacent, plus et moins zooment.",

@@ -19,11 +19,12 @@ import {
 } from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
+import { Mic, Square } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TrackLine } from "@/components/track";
-import { Button } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { usePlannerDictation } from "./web-dictation";
@@ -626,17 +627,27 @@ export function PlannerResult({
                 send();
               }}
             >
-              <Field label={t.answer} hint={t.answerHint} className="w-full">
-                {(a) => <Textarea {...a} value={reply} disabled={running} onChange={(e) => setReply(e.target.value)} />}
-              </Field>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={!mic.recording && mic.busy}
-                onClick={mic.recording ? mic.stop : mic.start}
-              >
-                {mic.recording ? t.dictation.stop : m.aiPlanner.dictateReply}
-              </Button>
+              <div className="grid w-full gap-1 rounded-control border border-card-line p-2">
+                <Field label={t.answer} hint={t.answerHint} className="w-full">
+                  {(a) => (
+                    <Textarea
+                      {...a}
+                      className="border-0"
+                      value={reply}
+                      disabled={running}
+                      onChange={(e) => setReply(e.target.value)}
+                    />
+                  )}
+                </Field>
+                <IconButton
+                  className="justify-self-end"
+                  label={mic.recording ? t.dictation.stop : m.aiPlanner.dictateReply}
+                  disabled={!mic.recording && mic.busy}
+                  onClick={mic.recording ? mic.stop : mic.start}
+                >
+                  {mic.recording ? <Square aria-hidden className="size-4" /> : <Mic aria-hidden className="size-4" />}
+                </IconButton>
+              </div>
               {mic.canRecover ? (
                 <Button type="button" onClick={mic.recover}>
                   {t.dictation.recover}

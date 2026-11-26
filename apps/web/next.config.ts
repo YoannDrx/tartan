@@ -56,6 +56,15 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
         ],
       },
+      {
+        source: "/portrait/runtime/worker.js",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'",
+          },
+        ],
+      },
       // Un service worker à jour doit être vu tout de suite.
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }] },
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },

@@ -6,6 +6,14 @@ import { uuid } from "./session";
 
 // Les listes d'exercices du coach, communes au web et à l'app native.
 
+export const filmingNote = z.object({
+  exerciseId: uuid,
+  filmed: z.boolean(),
+  comment: z.string().trim().max(2000),
+  revision: z.number().int().nonnegative(),
+});
+export type FilmingNote = z.infer<typeof filmingNote>;
+
 export const exerciseListName = z.string().trim().min(1, "Donne un nom à la liste").max(60);
 
 export const exerciseListInput = z.object({ name: exerciseListName });

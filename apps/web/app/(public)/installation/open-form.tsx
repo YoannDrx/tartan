@@ -16,6 +16,7 @@ export function OpenBetaForm() {
   if (!token) return <p>{w.admin.testers.unavailable}</p>;
   return (
     <form action={openBeta}>
+      <p className="mb-3">{w.admin.testers.tracking}</p>
       <input type="hidden" name="token" value={token} />
       <Button type="submit">{w.admin.testers.readLink}</Button>
     </form>
