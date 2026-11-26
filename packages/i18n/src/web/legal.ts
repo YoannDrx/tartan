@@ -31,8 +31,8 @@ export const legal = {
       "Identité et compte (nom, e-mail, date de naissance, photo) : pour fournir le service. Base : le contrat.",
       "Entraînement (séances, validations, charges, records) : pour le suivi entre le coach et l'athlète. Base : le contrat.",
       "Les consignes vocales du coach accompagnent les exercices dans les séances attribuées. Les enregistrements de brouillon sans séance ni modèle sont supprimés après 30 jours.",
-      "Le débrief vocal de fin de séance est facultatif. Seuls l’athlète et les coachs habilités à son suivi peuvent l’écouter. Les vocaux de séance sont conservés dans la base de Tartan et ne font pas l’objet d’une transcription.",
-      "Santé (blessures, douleurs, effort ressenti et débriefs vocaux) : uniquement avec ton consentement explicite et séparé, révocable à tout moment dans les réglages, pour chaque espace. Sans lui, l'app fonctionne et ces champs restent masqués. Base : ton consentement explicite.",
+      "Les échanges sur un exercice et le débrief de fin de séance sont facultatifs. Les réponses écrites et vocales sont visibles par l’athlète et les coachs habilités à son suivi. Tartan conserve les vocaux dans sa base privée. Si tu demandes la transcription de ton propre vocal, Tartan te demande ton accord avant de l’envoyer à OpenAI. Le texte est lisible par les mêmes personnes que le vocal.",
+      "Santé (blessures, douleurs, effort ressenti et échanges de débrief) : uniquement avec ton consentement explicite et séparé, révocable à tout moment dans les réglages, pour chaque espace. Sans lui, l'app fonctionne et ces champs restent masqués. Base : ton consentement explicite.",
       "Vidéos de saut : uniquement avec ton consentement. Visibles par tes coachs et par toi, jamais publiques, jamais partagées au groupe par défaut. Base : ton consentement.",
       "Données techniques (jetons de notification, journaux d'erreurs sans donnée de santé) : pour faire fonctionner et sécuriser le service. Base : notre intérêt légitime.",
       "Mesure d'audience (pages vues sans jeton ni identifiant, provenance, pays, appareil, navigateur) : statistiques agrégées pour améliorer le service, sans cookie tiers ni donnée de santé. Base : notre intérêt légitime.",
@@ -52,7 +52,7 @@ export const legal = {
       "Santé : ton effort ressenti, tes douleurs, tes blessures et tes débriefs vocaux de cet espace sont effacés aussitôt, après confirmation. Vidéos : elles sont masquées aussitôt, puis effacées au bout de 30 jours, sauf si tu redonnes ton accord entre-temps. Le retrait ne remet pas en cause ce qui a été fait avant lui, et les exports déjà réalisés restent chez leurs détenteurs.",
     location: "Où vont tes données",
     locationDetail:
-      "La base de données et l'exécution du service sont à Francfort. Les vidéos sont stockées et diffusées par Mux, aux États-Unis. Sous-traitants : Vercel, Neon, Mux, Expo, Resend, Sentry (suivi des erreurs, sans contenu d'entraînement ni de santé), Stripe, OpenAI (planificateur IA) et GitHub (copie de sauvegarde chiffrée). Certains sont établis aux États-Unis : les transferts sont encadrés par leurs clauses contractuelles types.",
+      "La base de données et l'exécution du service sont à Francfort. Les vidéos sont stockées et diffusées par Mux, aux États-Unis. Sous-traitants : Vercel, Neon, Mux, Expo, Resend, Sentry (suivi des erreurs, sans contenu d'entraînement ni de santé), Stripe, OpenAI (planificateur IA et transcriptions demandées par les auteurs) et GitHub (copie de sauvegarde chiffrée). Certains sont établis aux États-Unis : les transferts sont encadrés par leurs clauses contractuelles types.",
     retention: "Combien de temps",
     retentionDetail:
       "Tes données restent tant que ton compte est actif. Un athlète retiré d'un espace, ou qui le quitte, voit sa fiche et ses données d'entraînement de cet espace supprimées. Les vidéos suivent la durée de conservation de l'offre de l'espace.",

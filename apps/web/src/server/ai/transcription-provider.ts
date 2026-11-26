@@ -32,11 +32,14 @@ const CONTEXT = "Dictée d'une séance de préparation physique pour l'athlétis
 
 // Le workflow réserve le quota avant cet appel. Aucun stockage audio, aucune
 // consigne privée ajoutée au prompt et aucune relance payante automatique.
-export function openAiTranscriptionProvider(fetcher: typeof fetch = fetch): PlannerTranscriptionProvider {
+export function openAiTranscriptionProvider(
+  fetcher: typeof fetch = fetch,
+  purpose: "planner" | "session" = "planner",
+): PlannerTranscriptionProvider {
   return {
     async transcribe(audio, library = []) {
       const settings = env();
-      if (!plannerServerEnabled(settings)) throw new PlannerProviderError("disabled");
+      if (purpose === "planner" && !plannerServerEnabled(settings)) throw new PlannerProviderError("disabled");
       const key = settings.OPENAI_API_KEY ?? settings.OPEN_AI_API_KEY;
       if (!key || !plannerAudioIsWithinLimits(audio.bytes.byteLength, audio.durationSeconds))
         throw new PlannerProviderError("configuration");
@@ -46,15 +49,16 @@ export function openAiTranscriptionProvider(fetcher: typeof fetch = fetch): Plan
       body.set("response_format", "json");
       // gpt-transcribe, le défaut, prend la langue dans languages[], les termes attendus dans keywords[] et le
       // contexte libre dans prompt. Les modèles historiques, arrêtés le 26 février 2027, n'ont que language et prompt.
+      const context = purpose === "planner" ? CONTEXT : "Échange entre un coach et un athlète au sujet d’une séance.";
       const terms = [...new Set([...library.map(keyword).filter(Boolean), ...vocabulary])];
       if (settings.AI_TRANSCRIPTION_MODEL.startsWith("gpt-transcribe")) {
         body.set("languages[]", "fr");
         for (const word of terms.slice(0, 60)) body.append("keywords[]", word);
-        body.set("prompt", CONTEXT);
+        body.set("prompt", context);
       } else {
         // Les modèles historiques n'ont qu'un prompt court : le lexique commun suffit.
         body.set("language", "fr");
-        body.set("prompt", `${CONTEXT} Vocabulaire possible : ${terms.slice(0, 24).join(", ")}.`);
+        body.set("prompt", `${context} Vocabulaire possible : ${terms.slice(0, 24).join(", ")}.`);
       }
       let response: Response;
       try {

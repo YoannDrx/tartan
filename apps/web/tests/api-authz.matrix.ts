@@ -9,7 +9,7 @@ import { learnExerciseTermAlias } from "@/server/ai/alias.service";
 import { createPlannerProposal, preparePlannerDrafts } from "@/server/ai/proposal.service";
 import { transcribePlannerAudio } from "@/server/ai/transcription.service";
 import { addCoachNote } from "@/server/athlete.service";
-import { logSession } from "@/server/athlete-view.service";
+import { getAthleteSession, logSession } from "@/server/athlete-view.service";
 import { addComment } from "@/server/comm.service";
 import { unsubscribeUrl } from "@/server/email-preferences.service";
 import { saveExercise } from "@/server/exercise.service";
@@ -156,7 +156,7 @@ export const buildWorld = async (planner: PlannerMode) => {
   });
   const audio = new Uint8Array(await readFile(new URL("./fixtures/planner-audio/silence.m4a", import.meta.url)));
   const clip = await prisma.coachVoiceInstruction.create({
-    data: { organizationId: org, createdBy: owner, bytes: audio, mimeType: "audio/mp4" },
+    data: { organizationId: org, createdBy: owner, bytes: audio, mimeType: "audio/mp4", transcript: "Garde la même amplitude." },
     select: { id: true },
   });
   const voiceSession = await saveScheduledSession(owner, org, {
@@ -290,6 +290,7 @@ export const buildWorld = async (planner: PlannerMode) => {
     unsubscribeToken: unsubscribeUrl(p.athleteAutreGroupe.userId, "digest").split("/").pop()!,
     audio,
     voiceClipId: clip.id,
+    voiceItemRef: (await getAthleteSession(p.athlete.userId, org, voiceSession.id)).blocks[0]!.items[0]!.ref,
     voiceSessionId: voiceSession.id,
     proposals: new Map<string, ReadyProposal>(),
     transcriptions: new Map<string, string>(),
@@ -631,6 +632,41 @@ export const MATRICE: Row[] = [
     ...membres,
     adjoint: 404,
     call: (w) => ({ params: { clipId: w.voiceClipId }, query: { sessionId: w.voiceSessionId } }),
+  },
+  {
+    route: "GET /api/v1/orgs/[orgId]/sessions/[sessionId]/thread",
+    ...membres,
+    adjoint: 403,
+    call: (w) => ({ params: { sessionId: w.voiceSessionId }, query: { athleteId: w.athleteId } }),
+  },
+  {
+    route: "POST /api/v1/orgs/[orgId]/sessions/[sessionId]/thread",
+    ...membres,
+    adjoint: 403,
+    athlete: 201,
+    coach: 201,
+    proprietaire: 201,
+    call: (w) => ({
+      params: { sessionId: w.voiceSessionId },
+      query: { athleteId: w.athleteId },
+      body: { clientId: randomUUID(), text: "Retour sur la séance" },
+    }),
+  },
+  {
+    route: "GET /api/v1/orgs/[orgId]/sessions/[sessionId]/thread/[messageId]/audio",
+    ...membres,
+    adjoint: 403,
+    call: (w) => ({ params: { sessionId: w.voiceSessionId, messageId: "root" }, query: { athleteId: w.athleteId } }),
+  },
+  {
+    route: "POST /api/v1/orgs/[orgId]/sessions/[sessionId]/thread/[messageId]/transcript",
+    ...encadrantsDuGroupe,
+    coach: 403,
+    call: (w) => ({
+      params: { sessionId: w.voiceSessionId, messageId: "root" },
+      query: { athleteId: w.athleteId, itemRef: w.voiceItemRef },
+      body: { consent: true, version: w.voiceClipId },
+    }),
   },
   {
     route: "GET /api/v1/orgs/[orgId]/sessions/[sessionId]/voice-debrief",

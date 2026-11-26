@@ -47,11 +47,13 @@ const Demo = ({ item, speed }: { item: ResolvedItem; speed: number }) => {
 };
 
 export const SessionMode = ({
+  personal,
   session,
   organizationId,
   healthConsent,
   tone,
 }: {
+  personal: boolean;
   session: AthleteSessionDetail;
   organizationId: string;
   healthConsent: boolean;
@@ -261,17 +263,13 @@ export const SessionMode = ({
           </div>
         ) : null}
 
-        {item.prescription.notes || item.cues.length || item.prescription.coachVoiceId || item.guide ? (
+        {item.prescription.notes || item.cues.length || item.guide ? (
           <section className="flex flex-col gap-3 rounded-card border border-card-line bg-card-raised p-4 tablet:px-6">
             <h2 className="t-section">{m.sessionMode.cues}</h2>
             {item.prescription.notes ? (
               <p className="whitespace-pre-line break-words">{item.prescription.notes}</p>
             ) : null}
-            <ExerciseVoice
-              organizationId={organizationId}
-              sessionId={session.id}
-              clipId={item.prescription.coachVoiceId}
-            />
+
             {item.cues.length ? (
               <ul className="flex list-disc flex-col gap-2 pl-5">
                 {item.cues.map((cue, i) => (
@@ -283,6 +281,15 @@ export const SessionMode = ({
           </section>
         ) : null}
 
+        {!recovery ? (
+          <ExerciseVoice
+            organizationId={organizationId}
+            sessionId={session.id}
+            itemRef={item.ref}
+            personal={personal}
+            clipId={item.prescription.coachVoiceId}
+          />
+        ) : null}
         {!recovery ? (
           <section className="flex flex-col gap-3 rounded-card border border-card-line p-4 tablet:px-6">
             <div className="flex items-baseline justify-between">
@@ -413,6 +420,7 @@ export const SessionMode = ({
             <>
               <h2 className="t-h2">{m.validation.title}</h2>
               <QuickValidate
+                personal={personal}
                 tone={tone}
                 session={session}
                 organizationId={organizationId}
