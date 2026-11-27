@@ -50,6 +50,12 @@ const expectLoaded = async (image: ReturnType<Page["locator"]>) => {
     .toBeGreaterThan(0);
 };
 
+// Le « + » posé sur le bord du portrait ouvre le menu ; « Choisir un avatar » ouvre la galerie.
+const openGallery = async (page: Page) => {
+  await page.getByRole("button", { name: t.avatar.change }).click();
+  await page.getByRole("menuitem", { name: t.avatar.choose }).click();
+};
+
 test.beforeEach(({}, info) => {
   test.skip(info.project.name !== "desktop", "largeurs explicites et contexte tactile : un seul projet suffit");
 });
@@ -72,7 +78,7 @@ test("une photo recadrée au clavier s'affiche partout ; un avatar animal, puis 
   await expect(phone.getByRole("img", { name: t.alt.initials("Lison Test") })).toBeVisible();
   await expectAccessible(phone);
 
-  await phone.locator('input[type="file"]').setInputFiles(await landscapePhoto(phone));
+  await phone.getByLabel(t.avatar.upload, { exact: true }).setInputFiles(await landscapePhoto(phone));
   const dialog = phone.getByRole("dialog", { name: t.crop.title });
   await expect(dialog).toBeVisible();
   await expect(crop(phone)).toHaveAttribute("data-crop", "0,0,100,0");
@@ -132,7 +138,7 @@ test("une photo recadrée au clavier s'affiche partout ; un avatar animal, puis 
   // Le coach choisit un animal. Sur téléphone, la galerie tient en une colonne de quatre.
   await page.setViewportSize(PHONE);
   await page.goto("/reglages/profil", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: t.avatar.choose }).click();
+  await openGallery(page);
   const gallery = page.getByRole("dialog", { name: t.gallery.title });
   await expect(gallery.getByRole("group", { name: t.gallery.animals }).getByRole("radio")).toHaveCount(12);
   await expect(gallery.getByRole("group", { name: t.gallery.group }).getByRole("radio")).toHaveCount(6);
@@ -151,16 +157,37 @@ test("une photo recadrée au clavier s'affiche partout ; un avatar animal, puis 
   await expect(page.getByText("Avatar Coach", { exact: true })).toBeVisible();
   await expect(page.locator("main p").filter({ hasText: "Avatar Coach" }).locator("svg")).toHaveCount(1);
 
-  // Retour aux initiales.
+  // Retour aux initiales par la poubelle : l'aperçu change tout de suite, le serveur après cinq secondes.
   await page.goto("/reglages/profil", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: t.avatar.initials }).click();
-  await expect(page.getByText(t.avatar.initialsSaved)).toBeVisible();
+  await page.getByRole("button", { name: t.avatar.removePreset }).click();
+  await expect(page.getByText(t.avatar.presetRemoved)).toBeVisible();
+  await expect(page.getByRole("button", { name: t.avatar.undo })).toBeFocused();
   await expect(page.getByRole("img", { name: t.alt.initials("Avatar Coach") })).toHaveAttribute("data-initials", "AC");
-  await expect(page.getByRole("button", { name: t.avatar.initials })).toHaveCount(0);
+  await expect(page.getByText(t.avatar.initialsSaved)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: t.avatar.undo })).toHaveCount(0);
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByRole("img", { name: t.alt.initials("Avatar Coach") })).toBeVisible();
+  await expect(page.getByRole("button", { name: t.avatar.removePreset })).toHaveCount(0);
+
+  // L'athlète touche sa photo pour la recadrer, puis renonce.
+  await phone.goto("/reglages/profil", { waitUntil: "networkidle" });
+  await phone.getByRole("button", { name: t.avatar.recrop }).click();
+  await expect(phone.getByRole("dialog", { name: t.crop.title })).toBeVisible();
+  await phone.getByRole("button", { name: t.crop.cancel }).click();
+  // Elle supprime sa photo puis se ravise : rien n'est parti, la photo reste.
+  await phone.getByRole("button", { name: t.avatar.removePhoto }).click();
+  await expect(phone.getByText(t.avatar.photoRemoved)).toBeVisible();
+  await expect(phone.getByRole("img", { name: t.alt.initials("Lison Test") })).toBeVisible();
+  await phone.getByRole("button", { name: t.avatar.undo }).click();
+  await expect(phone.getByRole("button", { name: t.avatar.removePhoto })).toBeFocused();
+  await expectLoaded(phone.getByRole("img", { name: t.alt.photo("Lison Test") }));
+  await phone.waitForTimeout(6000);
+  await phone.reload({ waitUntil: "networkidle" });
+  await expectLoaded(phone.getByRole("img", { name: t.alt.photo("Lison Test") }));
+  expect(await sqlQuery("SELECT 1 FROM external_deletions WHERE external_ref = $1", [photoUrl])).toEqual([]);
 
   // L'athlète passe de sa photo à un animal : l'ancienne photo part en file de suppression.
-  await phone.goto("/reglages/profil", { waitUntil: "networkidle" });
-  await phone.getByRole("button", { name: t.avatar.choose }).click();
+  await openGallery(phone);
   await phone
     .getByRole("dialog", { name: t.gallery.title })
     .locator("label")
@@ -177,11 +204,11 @@ test("une photo recadrée au clavier s'affiche partout ; un avatar animal, puis 
   // En mouvement réduit, le recadrage et la galerie s'ouvrent sans rien animer.
   await phone.emulateMedia({ reducedMotion: "reduce" });
   await phone.reload({ waitUntil: "networkidle" });
-  await phone.locator('input[type="file"]').setInputFiles(await landscapePhoto(phone));
+  await phone.getByLabel(t.avatar.upload, { exact: true }).setInputFiles(await landscapePhoto(phone));
   await expect(phone.getByRole("dialog", { name: t.crop.title })).toBeVisible();
   await expectNoMotion(phone);
   await phone.getByRole("button", { name: t.crop.cancel }).click();
-  await phone.getByRole("button", { name: t.avatar.choose }).click();
+  await openGallery(phone);
   await expect(phone.getByRole("dialog", { name: t.gallery.title })).toBeVisible();
   await expectNoMotion(phone);
   await athlete.context.close();
