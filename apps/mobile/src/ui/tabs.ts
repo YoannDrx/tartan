@@ -1,9 +1,13 @@
 import { usePathname } from "expo-router";
 import { tokens } from "@tartan/design-tokens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { playFeedback } from "../lib/feedback";
 import { palettes, radius, space, textStyles, themedWorld, useWorkTheme, type WorldName } from "./theme";
 
 const BAR_HEIGHT = 64;
+
+// Toucher un onglet se sent : retour « select » (son discret et haptique de sélection).
+export const tabListeners = { tabPress: () => playFeedback("select") } as const;
 
 // Le fond natif d'un onglet prend la couleur de son monde : le changement de rubrique est franc, sans éclair.
 export const useWorldScene = () => {

@@ -13,6 +13,7 @@ import { ActivityPicto } from "@/components/pictos";
 import { categoryColors } from "@/lib/activity-colors";
 import { ExerciseVoice } from "@/features/sessions/session-voice";
 import { cn } from "@/lib/cn";
+import { playFeedback, unlockFeedback } from "@/lib/feedback";
 import { MovementGuideDisclosure } from "@/features/exercises/exercise-guide";
 import { QuickValidate } from "./validation";
 
@@ -72,7 +73,6 @@ export const SessionMode = ({
   const [cue, setCue] = useState("");
   const seen = useRef(new Set<string>());
   const heading = useRef<HTMLHeadingElement>(null);
-  const audio = useRef<AudioContext | null>(null);
   const restLeft = restEnd === null ? null : Math.max(0, Math.ceil((restEnd - now) / 1000));
   const startRest = (seconds: number | null | undefined) => setRestEnd(seconds ? Date.now() + seconds * 1000 : null);
   const go = useCallback(
@@ -105,22 +105,10 @@ export const SessionMode = ({
     const tick = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(tick);
   }, [restEnd]);
-  // Fin du repos : vibration, signal court et annonce ; une récupération de circuit enchaîne sur l'étape suivante.
+  // Fin du repos : deux bips, vibration et annonce ; une récupération de circuit enchaîne sur l'étape suivante.
   useEffect(() => {
     if (restEnd === null || now < restEnd) return;
-    navigator.vibrate?.(300);
-    try {
-      const context = audio.current;
-      if (context) {
-        const tone = context.createOscillator();
-        tone.frequency.value = 880;
-        tone.connect(context.destination);
-        tone.start();
-        tone.stop(context.currentTime + 0.2);
-      }
-    } catch {
-      // Son indisponible : la vibration et l'annonce suffisent.
-    }
+    playFeedback("restEnd");
     // eslint-disable-next-line react-hooks/set-state-in-effect -- la fin du repos est un événement du minuteur
     setAnnounce(m.sessionMode.restOver);
     setRestEnd(null);
@@ -149,14 +137,7 @@ export const SessionMode = ({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- démarrage voulu à l'arrivée sur l'étape
     if (step?.kind === "recovery") startRest(step.prescription.duration_s);
   }, [index, items]);
-  const unlockSound = () => {
-    if (audio.current) return;
-    try {
-      audio.current = new AudioContext();
-    } catch {
-      audio.current = null;
-    }
-  };
+  const unlockSound = unlockFeedback;
 
   const item = items[index];
   const sets = Object.entries(checked)
@@ -312,6 +293,7 @@ export const SessionMode = ({
                     aria-label={
                       planned ? undefined : done ? m.sessionMode.setDone(i + 1) : m.sessionMode.setTodo(i + 1)
                     }
+                    data-feedback={done ? "tap" : "setDone"}
                     onClick={() => {
                       unlockSound();
                       setChecked({ ...checked, [key]: !done });

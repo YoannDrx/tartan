@@ -3,7 +3,8 @@ import { useActiveSpace } from "../../src/lib/queries";
 import { api } from "../../src/lib/api";
 import { encouragementLabels as labels, encouragementTones, m } from "@tartan/i18n";
 import { View } from "react-native";
-import { Chip, SectionTitle, T } from "../../src/ui/primitives";
+import { useSoundPreference } from "../../src/lib/feedback";
+import { Button, Chip, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { space } from "../../src/ui/theme";
 import { themePreferences, useThemePreference } from "../../src/ui/theme-preference";
@@ -18,6 +19,8 @@ export default function AppearanceSettings() {
   });
   const theme = useThemePreference((state) => state.preference);
   const setTheme = useThemePreference((state) => state.setPreference);
+  const sounds = useSoundPreference((state) => state.enabled);
+  const setSounds = useSoundPreference((state) => state.setEnabled);
   return (
     <StackScreen title={m.account.settings.rubrics.apparence.title}>
       <View style={{ gap: space.sm }}>
@@ -36,6 +39,36 @@ export default function AppearanceSettings() {
               onPress={() => setTheme(option)}
             />
           ))}
+        </View>
+      </View>
+      <View style={{ gap: space.sm }}>
+        <SectionTitle>{m.appearance.sounds.title}</SectionTitle>
+        <T variant="caption" tone="muted">
+          {m.appearance.sounds.hint}
+        </T>
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel={m.appearance.sounds.label}
+          style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}
+        >
+          {([true, false] as const).map((option) => (
+            <Chip
+              key={String(option)}
+              testID={`sounds-${option ? "on" : "off"}`}
+              tall
+              label={option ? m.appearance.sounds.on : m.appearance.sounds.off}
+              active={sounds === option}
+              onPress={() => setSounds(option)}
+            />
+          ))}
+          <Button
+            compact
+            variant="ghost"
+            feedback="success"
+            label={m.appearance.sounds.test}
+            disabled={!sounds}
+            onPress={() => undefined}
+          />
         </View>
       </View>
       <SectionTitle>{labels.title}</SectionTitle>

@@ -18,6 +18,7 @@ import { toast } from "@/components/ui/toast";
 import { StatusIcon } from "@/components/status-cell";
 import { Victory } from "@/components/victory";
 import { cn } from "@/lib/cn";
+import { playFeedback } from "@/lib/feedback";
 import { newClientId, pendingStatusFor, sendValidation } from "./validation-queue";
 
 type Status = "done" | "partial";
@@ -129,6 +130,8 @@ export const QuickValidate = ({
       toast.error(res.message);
       return false;
     }
+    // Séance validée : l'arpège, sauf pour un simple complément de détails.
+    if (!extra.withDetails) playFeedback("success");
     if (!extra.withDetails) markInstallOpportunity();
     const celebration = res.state === "sent" ? celebrationFromResponse(res.data) : null;
     if (celebration) {

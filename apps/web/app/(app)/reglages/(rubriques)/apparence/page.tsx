@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import { w } from "@tartan/i18n/web";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { ThemeChoice } from "@/features/settings/apparence/theme-choice";
+import { SoundChoice } from "@/features/settings/apparence/sound-choice";
 import { requireRubric } from "@/features/settings/rubric-access";
 import { THEME_COOKIE, themePreference } from "@/features/shell/theme";
 
@@ -32,6 +33,9 @@ export default async function ApparencePage() {
     <Sheet>
       <SheetSection id="apparence" title={w.settings.apparence.section}>
         <ThemeChoice initial={theme} />
+      </SheetSection>
+      <SheetSection id="sons" title={m.appearance.sounds.title}>
+        <SoundChoice />
       </SheetSection>
       <SheetSection id="encouragements" title={labels.title}>
         <form action={save} className="flex flex-col items-start gap-3">

@@ -4157,6 +4157,14 @@ export const fr = {
     system: "Automatique",
     light: "Clair",
     dark: "Sombre",
+    sounds: {
+      title: "Sons et vibrations",
+      hint: "Un son discret confirme chaque geste : série cochée, séance validée, fin de récupération. Sur cet appareil.",
+      label: "Sons",
+      on: "Activés",
+      off: "Coupés",
+      test: "Écouter",
+    },
   },
   install: {
     pushOn: "Notifications activées sur cet appareil.",

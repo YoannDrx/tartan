@@ -11,6 +11,7 @@ import { z } from "zod";
 import { create } from "zustand";
 import { sessionHeaders } from "../lib/api";
 import { config } from "../lib/config";
+import { holdFeedback } from "../lib/feedback-hold";
 import { useIsOnline } from "../lib/network";
 import { createNativeDictationRecorder } from "../lib/planner-recording";
 import { DictationController, PLANNER_RECORDING_SECONDS, type DictationState } from "../lib/planner-recording-core";
@@ -47,6 +48,8 @@ export function VoicePlayer({
   const [error, setError] = useState(false);
   const playingUrl = useRef("");
   const sequence = useRef(0);
+  // Pendant l'écoute d'un vocal, les sons de l'app se taisent.
+  useEffect(() => (status.playing ? holdFeedback() : undefined), [status.playing]);
   const pause = useCallback(() => {
     sequence.current++;
     try {

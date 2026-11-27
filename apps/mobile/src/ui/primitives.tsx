@@ -1,5 +1,6 @@
 import { ChevronRight } from "./icons";
-import { tokens } from "@tartan/design-tokens";
+import { tokens, type FeedbackCue } from "@tartan/design-tokens";
+import { playFeedback } from "../lib/feedback";
 import { m } from "@tartan/i18n";
 import type { SessionType } from "@tartan/contracts";
 import type { LucideIcon } from "lucide-react-native";
@@ -75,11 +76,14 @@ type ButtonProps = {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   testID?: string;
+  // Retour sensoriel de la pression (`lib/feedback.ts`) : « tap » par défaut.
+  feedback?: FeedbackCue;
 };
 
 export const Button = ({
   label,
   onPress,
+  feedback = "tap",
   variant = "primary",
   icon: Icon,
   loading,
@@ -108,7 +112,13 @@ export const Button = ({
   return (
     <Pressable
       testID={testID}
-      onPress={onPress}
+      onPress={
+        onPress &&
+        (() => {
+          playFeedback(feedback);
+          onPress();
+        })
+      }
       disabled={off}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
@@ -134,6 +144,8 @@ export const Button = ({
           justifyContent: "center",
           gap: space.sm,
           opacity: off ? 0.55 : pressed ? 0.85 : 1,
+          // La pression se sent : le bouton s'enfonce un instant.
+          transform: [{ scale: pressed && !off ? 0.97 : 1 }],
           overflow: "hidden",
         },
         style,
@@ -188,7 +200,13 @@ export const IconButton = ({
   return (
     <Pressable
       testID={testID}
-      onPress={onPress}
+      onPress={
+        onPress &&
+        (() => {
+          playFeedback("tap");
+          onPress();
+        })
+      }
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -202,6 +220,7 @@ export const IconButton = ({
         alignItems: "center",
         justifyContent: "center",
         opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
+        transform: [{ scale: pressed && !disabled ? 0.94 : 1 }],
       })}
     >
       <Icon size={20} color={fg} strokeWidth={2.2} accessibilityElementsHidden importantForAccessibility="no" />
@@ -226,7 +245,13 @@ export const Chip = ({ label, active, onPress, accessibilityLabel, minWidth, tal
   return (
     <Pressable
       testID={testID}
-      onPress={onPress}
+      onPress={
+        onPress &&
+        (() => {
+          playFeedback("select");
+          onPress();
+        })
+      }
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected: Boolean(active) }}
@@ -242,6 +267,7 @@ export const Chip = ({ label, active, onPress, accessibilityLabel, minWidth, tal
         alignItems: "center",
         justifyContent: "center",
         opacity: pressed ? 0.8 : 1,
+        transform: [{ scale: pressed ? 0.96 : 1 }],
       })}
     >
       <Text

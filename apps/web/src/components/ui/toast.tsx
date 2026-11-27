@@ -4,6 +4,7 @@ import { m } from "@tartan/i18n";
 import { Check, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { create } from "zustand";
+import { playFeedback } from "@/lib/feedback";
 
 type Toast = { id: number; message: string; tone: "ok" | "error" };
 
@@ -37,7 +38,10 @@ export const useToastShown = () => useToasts((s) => s.items.length > 0);
 
 export const toast = {
   ok: (message: string) => useToasts.getState().push({ message, tone: "ok" }),
-  error: (message: string) => useToasts.getState().push({ message, tone: "error" }),
+  error: (message: string) => {
+    playFeedback("error");
+    useToasts.getState().push({ message, tone: "error" });
+  },
 };
 
 export const ToastHost = () => {

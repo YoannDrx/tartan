@@ -14,13 +14,14 @@ import {
 import { encouragement, m } from "@tartan/i18n";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, BackHandler, Pressable, Vibration, View } from "react-native";
+import { Alert, BackHandler, Pressable, View } from "react-native";
 import { ExerciseVideo, parseMedia, SPEEDS } from "../../src/features/media";
 import { MovementGuideDisclosure } from "../../src/features/exercise-guide";
 import { recordValidation, ValidationSheet, type ValidationTarget } from "../../src/features/validation-sheet";
 import { useTrainingSpace, useSessionDetail, useToday } from "../../src/lib/queries";
 import { useSessionProgress } from "../../src/lib/session-progress";
 import { useRestReminder } from "../../src/lib/use-rest-reminder";
+import { playFeedback } from "../../src/lib/feedback";
 import { deniesCachedAccess } from "../../src/lib/errors";
 import { ArrowRight, Check, Timer } from "../../src/ui/icons";
 import { Button, Chip, T, Tag } from "../../src/ui/primitives";
@@ -45,7 +46,7 @@ const RestTimer = ({ seconds }: { seconds: number }) => {
       setNow(current);
       if (current >= endAt) {
         setEndAt(null);
-        Vibration.vibrate(400);
+        playFeedback("restEnd");
       }
     }, 250);
     return () => clearInterval(tick);
@@ -118,7 +119,11 @@ const SetButton = ({
   return (
     <Pressable
       testID={`set-${index}`}
-      onPress={onPress}
+      onPress={() => {
+        // Cocher une série : la quinte et un retour haptique franc ; décocher reste discret.
+        playFeedback(done ? "tap" : "setDone");
+        onPress();
+      }}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: done }}
       accessibilityLabel={

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
@@ -26,6 +26,7 @@ import { useAction } from "next-safe-action/hooks";
 import { onErr } from "@/features/settings/shared";
 import { ACTIVE_TAB } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
+import { installFeedback } from "@/lib/feedback";
 import { worldFor } from "@/lib/world";
 import { DemoSpaceBanner } from "@/features/demo-space/demo-space-banner";
 import { NotificationBell } from "@/features/notifications/notification-bell";
@@ -98,6 +99,8 @@ export const AppShell = ({
 }) => {
   const choices = selectableSpaces(spaces);
   const router = useRouter();
+  // Sons et vibrations des gestes, posés une fois pour toute l'app connectée.
+  useEffect(() => installFeedback(), []);
   const choose = useAction(chooseHomeAction, { onError: onErr, onSuccess: () => router.replace("/accueil") });
   const pathname = usePathname().replace(/^\/(carnet|club)(?=\/)/, "");
   const work = worldFor(pathname) === "world-work";
@@ -165,6 +168,7 @@ export const AppShell = ({
               <Link
                 key={item.href}
                 href={item.href}
+                data-feedback="select"
                 aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
                   "inline-flex min-h-11 items-center rounded-full px-3.5 font-medium no-underline transition-colors",
@@ -185,6 +189,7 @@ export const AppShell = ({
                   <Link
                     key={item.href}
                     href={item.href}
+                    data-feedback="select"
                     aria-label={item.label}
                     aria-current={isActive(item.href) ? "page" : undefined}
                     className={cn(
@@ -243,6 +248,7 @@ export const AppShell = ({
               <Link
                 key={item.href}
                 href={item.href}
+                data-feedback="select"
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[12px] leading-none no-underline",
