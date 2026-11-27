@@ -6,6 +6,10 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 
 Branche `feat/portrait-actions`. La suppression reste côté client pendant cinq secondes : l'aperçu montre les initiales, puis `setAvatarPresetAction({ preset: null })` (web) ou `updateProfile` (natif) part à l'échéance, au démontage, à `pagehide` ou au passage en arrière-plan. Aucun changement serveur ni migration : la photo n'est mise en file de suppression qu'à l'envoi. Les boutons sont placés à 45° sur le cercle (85,355 % du côté) ; en natif, la taille vient de `onLayout`, `ui/avatar.tsx` n'est pas modifié. La galerie native est passée dans la feuille du « + » (`avatar-choose`). Identifiants gardés : `avatar-library`, `avatar-camera`, `avatar-initials` (la poubelle) ; nouveaux : `avatar-add`, `avatar-undo`, `avatar-recrop`.
 
+## Claude, relecture des PR 187 à 209 · 27 novembre 2026
+
+Branche `fix/relecture-codex-novembre`. Relecture de sécurité des 134 commits de Codex : droits, carnets, consentement santé, vocaux, transcription, migrations. Aucun défaut grave. La transcription des vocaux de séance ignorait `AI_PLANNER_ENABLED=false` : l'arrêt global coupe désormais aussi cet appel au prestataire. Elle n'est toujours décomptée d'aucun quota d'espace, seulement bornée par auteur (30 en dix minutes) et par vocal. Restent ouverts, sans correctif ici : une proposition dupliquée ne peut pas être ajustée (409, opération payée cherchée sous l'identifiant de la copie), un ajustement refusé reste dans les messages envoyés au modèle, une réinvitation bêta est ignorée sans message tant que le nettoyage Apple ou Play n'est pas fait, et la note de tournage n'est pas reportée lors de la personnalisation d'une fiche.
+
 ## Codex, espaces, exercices et diffusion bêta · 26 novembre 2026
 
 Branche `feat/navigation-notifications-beta`. Deux migrations additives portent les notes de tournage par club et le suivi des testeurs. L’éditeur photo partage le recadrage web avec les WebView natives. Le modèle Selfie Segmenter v1 de Google et son moteur s’exécutent sur l’appareil. Le générateur produit désormais le même mot-symbole pour les e-mails, les applications et Stripe. La préparation d’un APK et sa publication sont décrites dans `docs/reference/fiches-stores.md`. Le build 28 sert déjà la bonne icône sur App Store Connect. Les bundles Expo et le parcours navigateur des deux séances ont été vérifiés. La PR ne diffuse aucun nouveau binaire. Les tests de navigation vérifient l’affichage immédiat des rubriques connectées et conservent le contrôle du fondu sur le site public. La liste des athlètes mesure la hauteur réelle du bandeau pour aligner ses colonnes pendant le défilement. Sur iOS, la recette des deux séances centre le bouton de création au-dessus de la barre d’onglets. La recherche d’exercice utilise la touche du clavier prévue pour valider la saisie.
@@ -428,7 +432,6 @@ Vérifié : domaine, suite web (1982), types et lint mobile. Non vérifié : le 
 À savoir : les parcours Maestro qui franchissent minuit à Paris échouent sur les données « du jour » créées au début du job ; relancer. À 386 px, le sélecteur d'espace de l'en-tête n'affiche aucun nom.
 Suite conseillée : gestes en production après la PR 136, puis lot 2.
 
-
 ## 2026-11-15, Claude, F1 (matrice des écrans)
 Fait (PR `test/matrice-ecrans`, empilée sur les tracés) : `e2e/screens.ts`, `tests/screen-matrix.test.ts` (toute page listée, preuve qui ouvre chaque écran à paramètre), `e2e/screen-matrix.spec.ts` (balayage à trois largeurs, projet desktop seul) ; `expectAccessible` passe la règle `target-size` à part et ignore les cibles recouvertes par une barre fixe ou collante.
 Vérifié : balayage et `exercise-guides` sur le build de production en local (3,1 min) ; test de matrice.
@@ -513,10 +516,8 @@ La PR 127 échoue sur l'attente de cinq secondes du bouton de fermeture, après 
 ## 2026-11-14, Codex, F9 vidéo : intégration du setup complet
 Reprise de la PR 127 avec le correctif commun de la PR 126 : catalogue groupé, graine complète et attente bornée du constructeur. La dernière CI échouait uniquement sur ce premier constructeur. Aucun contrôle vidéo retiré ; nouvelle CI de la tête requise.
 
-
 ## 2026-11-14, Codex, reprise F9 après diagnostic du catalogue
 Reprise autorisée de la PR 126. La trace du premier constructeur montre une réponse lente et, dans l’assemblage final, une expiration P2028 de l’installation initiale du catalogue. Ajouts communs groupés dans la même transaction ; graine complétée avec les 150 fiches avant les parcours. Attente de l’écran bornée à 30 s ; aucun clic automatique de reprise ni assertion supprimée. Les contrôles du code commun et l’installation/reprise de la graine passent ; CI de cette tête requise avant fusion.
-
 
 ## 2026-11-14, Codex, diagnostic final des deux échecs natifs
 La trace finale confirme un HTTP 500 P2028 après 27,3 s sur le contexte du constructeur : l’installation initiale du catalogue, encore séquentielle, expire. L’insertion groupée et la graine complète corrigent ce chemin ; aucun délai de transaction supplémentaire ajouté. Le second échec est propre à la recette IA : le bouton final est entièrement visible et actif dans la capture et l’arbre d’accessibilité, mais `centerElement` exige une position impossible en bas de page. Centrage retiré de cette seule recherche, clic et création effective du brouillon toujours exigés. Rejeu ciblé local réussi en 3 min 12 sur iPhone simulé, création effective du brouillon vérifiée par le parcours ; CI complète encore requise.
@@ -527,12 +528,10 @@ La CI native reste rouge sur l’ouverture du constructeur simple, y compris apr
 ## 2026-11-14, Codex, assemblage final des PR 124 et 126–129
 Les quatre lots natifs sont réunis dans la PR 124 avec main, sans conflit de code ; les journaux et les preuves d’exploitation sont conservés. Les PR d’origine ciblent main et restent ouvertes jusqu’à leur validation et à l’intégration finale. Autorisation de fusion et nettoyage Git déjà donnée par le fondateur ; aucune protection désactivée. Derniers correctifs : première confirmation de lien iOS éprouvée sur simulateur neuf, révision de circuit sous contention reproduite puis corrigée. CI complète de chaque tête et de l’assemblage suivie dans les PR ; preuve de déploiement à ajouter dans la PR 124 après observation. Inscriptions fermées, aucune qualification IA ni validation de téléphone déduite de ces fusions.
 
-
 ## 2026-11-14, Codex, F1 : sauvegarde de main et restauration vérifiées
 Après fusion de la PR 125, production `4b2004b` saine, version attendue et journaux ciblés sans erreur. Workflow de sauvegarde main `43552436123` réussi : copie privée de 03 h 36 UTC, 382 745 octets relus à l’identique. Restauration locale isolée en 0,37 s : 83 tables, 51 migrations et 150 guides approuvés, aucune migration échouée ni contrainte non validée. Base, fichier chiffré et secrets temporaires retirés ; preuves conservées hors dépôt public. Cette recette Blob ne remplace pas la restauration Neon isolée encore attendue.
 ## 2026-11-14, Codex, F9 : sauvegarde de circuit sous contention
 Reprise autorisée de `feat/native-planner-modes`. La CI montre un constructeur encore en chargement au seuil de 15 s et une révision réellement refusée par Prisma (`P2028`). La sauvegarde dispose désormais de 30 s, comme la publication groupée, sans retirer les verrous, le contrôle de version ni le gel historique. Test PostgreSQL avec verrou concurrent : échec reproduit sur l’ancien délai (5 509 ms), réussite après correction et prescriptions précédentes inchangées. Les 39 tests ciblés circuits/identité/prescriptions passent. Attentes natives bornées à 30 s au chargement et 45 s après sauvegarde, assertions et contrôle serveur conservés. Suite complète et CI à rejouer ; aucun gain de performance sur téléphone revendiqué.
-
 
 ## 2026-11-14, Codex, état du plan et dépendances des PR
 Réconciliation d’ETAT : distinction des lots de finalisation et des anciennes actions F1–F17, retirant les lignes de produit copiées par erreur dans le tableau du fondateur. Statut actuel des guides approuvés, D-U-N-S envoyé, incident réparé et qualification IA encore insuffisante. Historique du journal conservé. PR 123–129 prêtes à revue, toutes autorisées à fusionner CI verte ; vérifications en cours. Aucun statut « éprouvé » déduit d’un test simulé. Après rétablissement, l’accès lecture seule de sauvegarde GitHub a également été corrigé ; export Blob relancé, résultat à confirmer.
@@ -557,7 +556,6 @@ Limites : bundle Hermes intégré au binaire simulateur existant, pas de nouvell
 ## 2026-11-14, Codex, F9 : reprise de la branche vidéo native
 Reprise autorisée de `feat/native-video-collaboration` pour intégrer le correctif de première ouverture iOS de la PR 126 et main. La trace de la PR 127 échoue au même endroit, avant livraison du lien ; toutes les autres étapes de sa recette passent. Aucun changement de vidéo, nouvelle CI requise.
 
-
 ## 2026-11-13, Codex, F9 : vidéo collaborative native
 
 Codé sur `feat/native-video-collaboration`, après le lot guides : bibliothèque paginée commune, filtres athlète/traitement/revue, capture privée sans identité athlète fournie par le client et rattachement depuis la séance. Clé idempotente conservée dans la file durable, y compris après migration des anciennes entrées. Réponses horodatées, partage explicite au groupe et révocation, revue coach et suppression selon les permissions renvoyées par le serveur. Nouvelles routes natives réutilisant les services existants ; refus d'accès masquant les anciennes données en cache.
@@ -566,10 +564,8 @@ Non éprouvé : upload Mux depuis le natif, reprise sur téléphone, partage/com
 ## 2026-11-14, Codex, F9 : réactivation après confirmation iOS
 La seconde trace (PR 127) précise le problème du premier lien : l’app reste sur son accueil après « Open » ; dans la PR 126, SpringBoard ne livre UIOpenURLAction qu’à la réactivation suivante. Après cette confirmation uniquement, Maestro remet désormais l’app au premier plan sans l’arrêter ni effacer sa session (`launchApp`, `stopApp: false`). Rejeu sur simulateur iPhone 16e neuf réussi en 1 min 49, avec confirmation « Open » et réactivation effectivement exécutées, puis les mêmes assertions des sept étapes et du guide. Aucun changement applicatif ni preuve sur appareil physique.
 
-
 ## 2026-11-14, Codex, F9 : délai du premier lien iOS
 Reprise autorisée de `feat/native-completion`. La trace CI montre le dialogue système accepté, puis une requête de séance démarrant environ 20 s après l’appui, au-delà de l’attente de 15 s ; l’assertion échoue avant ce démarrage. Attente conditionnelle de la première étape portée à 30 s, sans pause fixe, reprise ni retrait des sept étapes vérifiées. Le même parcours passe déjà sur la PR 128. Rejeu ciblé local réussi en 1 min 46 : sept étapes et guide vérifiés ; CI du correctif requise. Aucune preuve de performance sur téléphone déduite du simulateur.
-
 
 ## 2026-11-14, Codex, F9 : dialogue de sauvegarde du mot de passe
 Rejeu local du constructeur interrompu après connexion : capture montrant le dialogue iOS d’enregistrement du mot de passe devant le suivi. Refus optionnel ajouté au sous-parcours commun de connexion, pour tous les scénarios ; aucune assertion applicative supprimée. Le chargement observé en CI reste distinct de ce dialogue et n’est pas déclaré corrigé sans rejeu.
@@ -664,7 +660,6 @@ Suite : recevoir la relecture, corriger les fiches puis produire et faire valide
 Vérifié sous Node 22/pnpm 10 : suite web complète 223 réussis, 20 ignorés, un délai dépassé sur la première connexion à froid ; parcours d’absence repris seul avec le seuil original, réussi. Total : 224 parcours ordinaires distincts réussis, puis quatre parcours IA dédiés avec prestataire simulé. Les deux parcours de guides vérifient également les trois thèmes aux largeurs 390/768/1440, axe et mouvement réduit. Types, lint (quatre avertissements préexistants), tests des paquets et design restent verts sur le code F3.
 Limites : les 150 fiches restent à faire valider par un coach compétent, les illustrations ne sont pas produites. Aucune approbation technique humaine n’est déduite des tests. PR préparée en brouillon ; aucune fusion F3 autorisée à ce stade.
 
-
 ## 2026-11-13, Codex, F5 : génération ordonnée et qualification non acquise
 
 Codé : contrat prestataire en arbre exercice/récupération/répétition ; les références et la projection compatible sont calculées côté serveur. Les tours absents de la consigne sont refusés ; une citation sans attache ne permet plus de conserver silencieusement une séance amputée. Reconnaissance des flexions grammaticales sans effacer direction, hauteur ou matériel, collisions d’alias conservées. Aucun modèle de production remplacé.
@@ -682,7 +677,6 @@ Premier corpus figé exécuté trois fois avec OpenAI réel : 49/80, 49/80 et 47
 Codé : matériel de proposition filtré avant sélection des candidats, revalidation serveur, charge nulle imposée dans le schéma, explication générée distinguée d’une citation en mode proposition. Les choix explicites de fiches lèvent seulement l’alias concerné et sont conservés ; les listes d’alias restent bornées. Une substitution détectée peut demander une clarification avec le nom inconnu, dans la limite globale de deux appels et 100 secondes pour la même opération. Tests ciblés, types et règles métier vérifiés ; régression complète et nouveau passage réel en cours.
 Décisions reçues : le fondateur relira les 150 guides ; ce n’est pas encore leur approbation. D-U-N-S à récupérer : procédure du compte Play organisation préparée, fiche de l’entreprise retrouvée sans numéro visible ; aucune demande externe, souscription ou création de compte Play effectuée.
 
-
 ## 2026-11-13, Codex, F5 en cours et recette réelle Mux/Resend
 
 En cours : `feat/planner-resolution`, depuis F3 ; corpus indépendant de 80 cas figé dans le commit `2f2daba` avant le réglage. Deux modes, résolution explicite avec création privée et reprise idempotente, sélection de candidats, circuits partagés avec le constructeur et charges par occurrence. Aucune publication automatique. La proposition spontanée reste bloquée tant que le catalogue commun n'a pas été approuvé techniquement ; les essais du prestataire avec catalogue fictif ne lèvent pas ce verrou.
@@ -690,7 +684,6 @@ Vérifié : six parcours navigateur F5 avec prestataire simulé ; création apr�
 Exploitation : PR 118 puis 122 fusionnées sur autorisation ; production `88d76e2` vérifiée, webhook Resend activé après le filtre. Les accès Mux Preview autorisés sont installés seulement en Preview. Une première copie du secret de webhook était masquée : corrigée depuis le prestataire ; les événements ont ensuite été rejoués et le premier asset est devenu disponible. Deuxième upload, lecture effective, annotation coach, réponse athlète, partage et révocation éprouvés sur un clip synthétique. Refus inter-athlètes et inter-espaces vérifiés. Fichier temporaire des secrets Mux supprimé ; aucun secret dans Git.
 Limites : lecture signée déjà délivrée valable jusqu'à une heure ; aucun téléphone physique, réseau dégradé, suppression Mux ni paiement réel éprouvé. Les inscriptions et le classement restent fermés. Ne pas relancer la graine Preview : le fichier de mot de passe local serait renouvelé alors que les comptes déjà présents sont ignorés.
 Suite : terminer F5, relever ses limites sans modifier les attendus figés ; intégrer 119–121 après CI verte, puis poursuivre illustrations/relecture coach, recette web et native.
-
 
 ## 2026-11-13, Codex, F3 : catalogue éditorial et diffusion des guides
 
