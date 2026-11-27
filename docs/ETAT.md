@@ -1,8 +1,12 @@
 # État du projet
 
-Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 27 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
+
+## Portrait et ses deux boutons · 27 novembre 2026
+
+Dans le profil, web et natif, le portrait est un grand rond avec deux boutons ronds posés sur son bord. Le « + » citron, en bas à droite, ouvre un menu : choisir une photo, prendre une photo (téléphone et web tactile), choisir un avatar. La poubelle, en bas à gauche, ramène aux initiales ; rien ne part au serveur pendant cinq secondes, où « Annuler » est proposé ; quitter l'écran confirme la suppression. Toucher la photo ouvre le recadrage. Le parcours Playwright `avatar` couvre le menu, l'annulation (la photo n'entre pas en file de suppression) et la suppression confirmée ; le flux Maestro `account-avatar` passe par le « + », la galerie et l'annulation. Lecteurs d'écran et téléphones physiques restent à éprouver.
 
 ## Fils privés autour de la séance · 25 novembre 2026
 

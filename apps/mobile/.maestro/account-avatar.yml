@@ -1,5 +1,5 @@
 # Photo de profil et avatars (lot M1) : la galerie « Le groupe » et « Animaux », l'avatar choisi qui suit la personne
-# jusqu'au sommaire, puis le retour aux initiales. La photo du téléphone (pellicule, appareil) n'est pas jouée ici :
+# jusqu'au sommaire, puis le retour aux initiales par la poubelle, avec son annulation. La photo du téléphone (pellicule, appareil) n'est pas jouée ici :
 # Maestro ne pilote pas le sélecteur du système. Le parcours se rejoue : il finit sur les initiales.
 appId: ${APP_ID}
 env:
@@ -22,15 +22,20 @@ env:
     visible:
       id: avatar-current
     timeout: 15000
-- scrollUntilVisible:
-    element:
+# Le « + » posé sur le bord du portrait ouvre la feuille : pellicule, appareil, avatar.
+- tapOn:
+    id: avatar-add
+- extendedWaitUntil:
+    visible:
       id: avatar-library
-- scrollUntilVisible:
-    element:
-      id: avatar-camera
-- scrollUntilVisible:
-    element:
-      text: "Le groupe"
+    timeout: 10000
+- assertVisible:
+    id: avatar-camera
+- tapOn:
+    id: avatar-choose
+- extendedWaitUntil:
+    visible: "Le groupe"
+    timeout: 10000
 - scrollUntilVisible:
     element:
       id: avatar-preset-athlete-highJump
@@ -40,28 +45,21 @@ env:
 - assertVisible: "Animaux"
 - tapOn:
     id: avatar-preset-animal-fox
-- scrollUntilVisible:
-    element:
-      id: avatar-notice
-    direction: UP
 - extendedWaitUntil:
     visible: "Avatar enregistré."
     timeout: 15000
-- scrollUntilVisible:
-    element:
-      id: avatar-current
-    direction: UP
 - assertVisible: "Avatar de .*Renard"
-- scrollUntilVisible:
-    element:
-      id: avatar-initials
+# La poubelle, sur le bord gauche : annulée une fois, puis laissée partir après ses cinq secondes.
+- tapOn:
+    id: avatar-initials
+- assertVisible: "Avatar supprimé."
+- tapOn:
+    id: avatar-undo
+- assertVisible: "Rien n'a été supprimé."
+- assertVisible: "Avatar de .*Renard"
 - tapOn:
     id: avatar-initials
 - extendedWaitUntil:
     visible: "Tes initiales s'affichent à nouveau."
-    timeout: 15000
-- scrollUntilVisible:
-    element:
-      id: avatar-current
-    direction: UP
+    timeout: 20000
 - assertVisible: "Initiales de .*"

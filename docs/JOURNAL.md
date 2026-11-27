@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Claude, portrait et ses deux boutons · 27 novembre 2026
+
+Branche `feat/portrait-actions`. La suppression reste côté client pendant cinq secondes : l'aperçu montre les initiales, puis `setAvatarPresetAction({ preset: null })` (web) ou `updateProfile` (natif) part à l'échéance, au démontage, à `pagehide` ou au passage en arrière-plan. Aucun changement serveur ni migration : la photo n'est mise en file de suppression qu'à l'envoi. Les boutons sont placés à 45° sur le cercle (85,355 % du côté) ; en natif, la taille vient de `onLayout`, `ui/avatar.tsx` n'est pas modifié. La galerie native est passée dans la feuille du « + » (`avatar-choose`). Identifiants gardés : `avatar-library`, `avatar-camera`, `avatar-initials` (la poubelle) ; nouveaux : `avatar-add`, `avatar-undo`, `avatar-recrop`.
+
 ## Codex, espaces, exercices et diffusion bêta · 26 novembre 2026
 
 Branche `feat/navigation-notifications-beta`. Deux migrations additives portent les notes de tournage par club et le suivi des testeurs. L’éditeur photo partage le recadrage web avec les WebView natives. Le modèle Selfie Segmenter v1 de Google et son moteur s’exécutent sur l’appareil. Le générateur produit désormais le même mot-symbole pour les e-mails, les applications et Stripe. La préparation d’un APK et sa publication sont décrites dans `docs/reference/fiches-stores.md`. Le build 28 sert déjà la bonne icône sur App Store Connect. Les bundles Expo et le parcours navigateur des deux séances ont été vérifiés. La PR ne diffuse aucun nouveau binaire. Les tests de navigation vérifient l’affichage immédiat des rubriques connectées et conservent le contrôle du fondu sur le site public. La liste des athlètes mesure la hauteur réelle du bandeau pour aligner ses colonnes pendant le défilement. Sur iOS, la recette des deux séances centre le bouton de création au-dessus de la barre d’onglets. La recherche d’exercice utilise la touche du clavier prévue pour valider la saisie.

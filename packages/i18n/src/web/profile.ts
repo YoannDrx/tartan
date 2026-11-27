@@ -4,9 +4,20 @@ export const profile = {
     section: "Photo de profil",
     detail: "Elle accompagne ton nom pour ton groupe : dans le suivi, les commentaires, les annonces et les vidéos.",
     upload: "Envoyer une photo",
-    replace: "Changer de photo",
+    // Les deux boutons posés sur le bord du portrait, et le menu du « + ».
+    change: "Changer la photo de profil",
+    fromLibrary: "Choisir une photo",
+    fromCamera: "Prendre une photo",
     choose: "Choisir un avatar",
-    initials: "Revenir aux initiales",
+    recrop: "Recadrer la photo",
+    recropHint: "Touche la photo pour la recadrer.",
+    removePhoto: "Supprimer la photo",
+    removePreset: "Supprimer l'avatar",
+    // La suppression attend cinq secondes avant de partir : le temps de l'annuler.
+    photoRemoved: "Photo supprimée.",
+    presetRemoved: "Avatar supprimé.",
+    undo: "Annuler",
+    restored: "Rien n'a été supprimé.",
     // Ce qui est affiché maintenant, lu par les lecteurs d'écran à côté de l'aperçu.
     currentPhoto: "Ta photo s'affiche.",
     currentPreset: (label: string) => `Ton avatar s'affiche : ${label}.`,
