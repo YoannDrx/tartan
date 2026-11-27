@@ -10,7 +10,9 @@ import { WebView } from "react-native-webview";
 import { z } from "zod";
 import { config } from "../lib/config";
 import { useIsOnline } from "../lib/network";
-import { CategoryGlyph } from "../ui/glyphs";
+import type { ExerciseFamily } from "@tartan/contracts";
+import { tokens } from "@tartan/design-tokens";
+import { CategoryGlyph, FamilyGlyph } from "../ui/glyphs";
 import { Play } from "../ui/icons";
 import { Tag, T } from "../ui/primitives";
 import { scene, radius, space, usePalette } from "../ui/theme";
@@ -177,9 +179,9 @@ export const ExerciseVideo = ({ media, rate }: { media: ExerciseMedia | null; ra
   const author = media && "author" in media && typeof media.author === "string" ? media.author : null;
   return (
     <View style={{ gap: space.xs }}>
-    <View style={{ height: 210, borderRadius: radius.block, overflow: "hidden", backgroundColor: scene.cardRaised }}>
-      {content}
-    </View>
+      <View style={{ height: 210, borderRadius: radius.block, overflow: "hidden", backgroundColor: scene.cardRaised }}>
+        {content}
+      </View>
       {author ? (
         <T variant="caption" tone="muted">
           {m.exercises.videoBy(author)}
@@ -200,6 +202,14 @@ type ExerciseRowProps = {
   testID?: string;
   // Un geste de plus au bout de la ligne (l'étoile du coach), hors de la cible qui ouvre la fiche.
   accessory?: ReactNode;
+  // Dans la bibliothèque : la vignette prend la teinte et le pictogramme de la famille.
+  family?: ExerciseFamily;
+};
+
+// La teinte d'une famille de la bibliothèque, dans le thème de la surface où elle est posée.
+export const useFamilyTint = (family: ExerciseFamily) => {
+  const p = usePalette();
+  return (p.dark ? tokens.familyDark : tokens.family)[family];
 };
 
 // Vignette 44 px, nom, prescription en texte secondaire, étiquette de catégorie.
@@ -224,8 +234,11 @@ const ExerciseRowBody = ({
   onPress,
   accessibilityHint,
   testID,
+  family,
 }: Omit<ExerciseRowProps, "accessory">) => {
   const p = usePalette();
+  const tint = (p.dark ? tokens.familyDark : tokens.family)[family ?? "strength"];
+  const glyph = family ? tint.text : p.text;
   const categoryLabel = (m.exerciseCategory as Record<string, string>)[category] ?? category;
   return (
     <Pressable
@@ -256,15 +269,17 @@ const ExerciseRowBody = ({
           width: 44,
           height: 44,
           borderRadius: radius.thumb,
-          backgroundColor: p.surfaceAlt,
+          backgroundColor: family ? tint.background : p.surfaceAlt,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         {hasVideo ? (
-          <Play size={18} color={p.text} fill={p.text} />
+          <Play size={18} color={glyph} fill={glyph} />
+        ) : family ? (
+          <FamilyGlyph family={family} size={20} color={glyph} />
         ) : (
-          <CategoryGlyph category={category} size={20} color={p.text} />
+          <CategoryGlyph category={category} size={20} color={glyph} />
         )}
       </View>
       <View style={{ flex: 1, gap: 1 }}>

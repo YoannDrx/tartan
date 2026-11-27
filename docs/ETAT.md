@@ -1,8 +1,12 @@
 # État du projet
 
-Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 27 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
+
+## Bibliothèque rangée par familles colorées · 27 novembre 2026
+
+Dans la bibliothèque d'exercices, chaque famille ouvre sur un bandeau de sa couleur, avec son pictogramme et son nombre de fiches. Le bandeau reste en haut de la liste pendant le défilement, sur le web comme sur l'app native. Les vignettes prennent la teinte de leur famille ; le filtre d'une famille garde son bandeau. Les neuf teintes existent en thème clair et en thèmes sombre et Tartan ; un test vérifie le contraste de chaque texte sur son fond. Le parcours des listes vérifie la couleur, la position collante et l'accessibilité à 1280 px et sur téléphone. Le rendu natif reste à éprouver sur téléphone.
 
 ## Fils privés autour de la séance · 25 novembre 2026
 

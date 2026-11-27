@@ -2834,6 +2834,8 @@ export const fr = {
       stairs: "Escaliers",
       warmup: "Échauffement",
     },
+    // Le nombre de fiches d'une famille, au bout de son bandeau dans la bibliothèque.
+    familyCount: (count: number) => (count > 1 ? `${count} fiches` : `${count} fiche`),
     levels: { beginner: "Débutant", intermediate: "Intermédiaire", advanced: "Avancé" },
   },
   // Les listes d'exercices du coach : le nom de la liste système et les refus que l'API renvoie aussi au mobile.

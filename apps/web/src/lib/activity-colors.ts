@@ -1,20 +1,19 @@
-import type { SessionType } from "@tartan/contracts";
+import { exerciseCategory, type ExerciseCategory, type ExerciseFamily, type SessionType } from "@tartan/contracts";
 
 // Les teintes suivent le thème choisi : elles sont définies dans globals.css.
-export const activityColors = (type: SessionType) => ({
+export const activityColors = (type: SessionType | ExerciseCategory) => ({
   background: `var(--activity-${type}-bg)`,
   text: `var(--activity-${type}-text)`,
 });
 
-// Une famille d'exercice prend la teinte de son activité : liseré, pictogramme et libellé l'accompagnent toujours.
-const CATEGORY_TONE: Record<string, SessionType> = {
-  strength: "strength",
-  plyo: "plyo",
-  running_drill: "running",
-  stairs: "stairs",
-  cones: "cones",
-  mobility: "mobility",
-  jump: "jump",
-  warmup: "mobility",
+// Une catégorie d'exercice prend sa teinte d'activité : liseré, pictogramme et libellé l'accompagnent toujours.
+export const categoryColors = (category: string | undefined) => {
+  const known = exerciseCategory.safeParse(category);
+  return activityColors(known.success ? known.data : "strength");
 };
-export const categoryColors = (category: string | undefined) => activityColors(CATEGORY_TONE[category ?? ""] ?? "strength");
+
+// La teinte d'une famille de la bibliothèque : bandeau de section et vignette, dans le thème choisi.
+export const familyColors = (family: ExerciseFamily) => ({
+  background: `var(--family-${family}-bg)`,
+  text: `var(--family-${family}-text)`,
+});

@@ -1,3 +1,4 @@
+import type { ExerciseFamily } from "@tartan/contracts";
 import { Flame } from "lucide-react";
 import type { SVGProps } from "react";
 import { cn } from "@/lib/cn";
@@ -55,6 +56,20 @@ const JumpBar = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+// La barre au-dessus de la tête : l'haltérophilie.
+const Overhead = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M3 5h18M6 3v4M18 3v4M9 5l2 6M15 5l-2 6M12 11v5M9 21l3-5 3 5" />
+  </Svg>
+);
+// La planche, en appui sur les avant-bras : le gainage.
+const Plank = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <circle cx="4.5" cy="9.5" r="2" />
+    <path d="M7 11.5 20 15.5M8 12v5h3M20 15.5V20M3 20h18" />
+  </Svg>
+);
+
 const byKind = {
   strength: Barbell,
   plyo: Hurdle,
@@ -72,6 +87,24 @@ export type ActivityKind = keyof typeof byKind;
 // Le type d'une séance ou la catégorie d'un exercice, toujours accompagné de son nom quelque part.
 export const ActivityPicto = ({ kind, className }: { kind: string; className?: string }) => {
   const Icon = byKind[kind as ActivityKind] ?? Barbell;
+  return <Icon aria-hidden className={cn("size-6 shrink-0", className)} />;
+};
+
+const byFamily = {
+  strength: Barbell,
+  weightlifting: Overhead,
+  mobility: Loop,
+  plyometrics: Hurdle,
+  running: Lanes,
+  core: Plank,
+  coordination: Cone,
+  stairs: Stairs,
+  warmup: Flame,
+} as const satisfies Record<ExerciseFamily, unknown>;
+
+// Le pictogramme d'une famille de la bibliothèque, toujours à côté de son nom.
+export const FamilyPicto = ({ family, className }: { family: ExerciseFamily; className?: string }) => {
+  const Icon = byFamily[family];
   return <Icon aria-hidden className={cn("size-6 shrink-0", className)} />;
 };
 

@@ -1,6 +1,6 @@
-import type { ExerciseCategory } from "@tartan/contracts";
+import type { ExerciseCategory, ExerciseFamily } from "@tartan/contracts";
 import type { ComponentType } from "react";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 import { Dumbbell, Flame, Footprints, Stretch } from "./icons";
 
 type GlyphProps = { size?: number; color: string };
@@ -46,5 +46,38 @@ const CATEGORY_GLYPH: Record<ExerciseCategory, ComponentType<GlyphProps>> = {
 
 export const CategoryGlyph = ({ category, size, color }: GlyphProps & { category: string }) => {
   const Glyph = CATEGORY_GLYPH[category as ExerciseCategory] ?? Dumbbell;
+  return <Glyph size={size} color={color} />;
+};
+
+// La barre au-dessus de la tête : l'haltérophilie.
+export const OverheadGlyph = ({ size = 22, color }: GlyphProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Path d="M3 5h18M6 3v4M18 3v4M9 5l2 6M15 5l-2 6M12 11v5M9 21l3-5 3 5" stroke={color} {...stroke} />
+  </Svg>
+);
+
+// La planche, en appui sur les avant-bras : le gainage.
+export const PlankGlyph = ({ size = 22, color }: GlyphProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Circle cx={4.5} cy={9.5} r={2} stroke={color} {...stroke} />
+    <Path d="M7 11.5 20 15.5M8 12v5h3M20 15.5V20M3 20h18" stroke={color} {...stroke} />
+  </Svg>
+);
+
+// Les familles de la bibliothèque : les mêmes dessins que sur le web, toujours à côté de leur nom.
+const FAMILY_GLYPH: Record<ExerciseFamily, ComponentType<GlyphProps>> = {
+  strength: CATEGORY_GLYPH.strength,
+  weightlifting: OverheadGlyph,
+  mobility: CATEGORY_GLYPH.mobility,
+  plyometrics: HurdleGlyph,
+  running: CATEGORY_GLYPH.running_drill,
+  core: PlankGlyph,
+  coordination: ConeGlyph,
+  stairs: StairsGlyph,
+  warmup: CATEGORY_GLYPH.warmup,
+};
+
+export const FamilyGlyph = ({ family, size, color }: GlyphProps & { family: ExerciseFamily }) => {
+  const Glyph = FAMILY_GLYPH[family];
   return <Glyph size={size} color={color} />;
 };
