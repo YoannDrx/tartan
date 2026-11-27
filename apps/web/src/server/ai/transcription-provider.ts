@@ -39,7 +39,8 @@ export function openAiTranscriptionProvider(
   return {
     async transcribe(audio, library = []) {
       const settings = env();
-      if (purpose === "planner" && !plannerServerEnabled(settings)) throw new PlannerProviderError("disabled");
+      // L’arrêt global coupe aussi la transcription des vocaux de séance.
+      if (!plannerServerEnabled(settings)) throw new PlannerProviderError("disabled");
       const key = settings.OPENAI_API_KEY ?? settings.OPEN_AI_API_KEY;
       if (!key || !plannerAudioIsWithinLimits(audio.bytes.byteLength, audio.durationSeconds))
         throw new PlannerProviderError("configuration");
