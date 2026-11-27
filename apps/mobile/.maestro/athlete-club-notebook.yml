@@ -1,0 +1,96 @@
+# Planifier pour soi depuis un club (décision du 27 novembre 2026) : l'athlète arrivé par le lien de son groupe
+# (`NEWCOMER_EMAIL`, créé par la CI) n'a pas de carnet. « Planifier », dans ses onglets, mène à l'ouverture allégée
+# du carnet (son nom et sa date de naissance sont connus), puis au planificateur. Le contrôle final vérifie par l'API
+# que le coach ne voit pas la séance. Rejoué, le carnet existe déjà : l'ouverture est sautée.
+appId: ${APP_ID}
+env:
+  EMAIL: ${NEWCOMER_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: open-settings
+    timeout: 30000
+- tapOn:
+    text: "Plus tard|Not Now"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    id: tab-plan
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "solo-title|ai-consent-accept|planner-instructions"
+    timeout: 30000
+- runFlow:
+    when:
+      visible:
+        id: solo-title
+    commands:
+      - assertVisible: "Ton carnet personnel"
+      # Ouverture allégée : pas de « Toi », l'entraînement puis les conditions.
+      - extendedWaitUntil:
+          visible:
+            id: solo-step
+            text: "Étape 1 sur 2.*"
+          timeout: 10000
+      - assertNotVisible:
+          id: solo-first-name
+      - scrollUntilVisible:
+          element:
+            id: solo-next
+          timeout: 10000
+      - tapOn:
+          id: solo-next
+      - extendedWaitUntil:
+          visible:
+            id: solo-step
+            text: "Étape 2 sur 2.*"
+          timeout: 10000
+      - tapOn:
+          id: solo-terms
+      - scrollUntilVisible:
+          element:
+            id: solo-create
+          timeout: 15000
+      - assertNotVisible: ".*€.*"
+      - takeScreenshot: club-notebook-terms
+      - tapOn:
+          id: solo-create
+      - extendedWaitUntil:
+          visible:
+            id: push-later
+          timeout: 30000
+      - tapOn:
+          id: push-later
+- tapOn:
+    id: ai-consent-accept
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: planner-instructions
+    timeout: 30000
+- tapOn:
+    id: planner-instructions
+- inputText: "Squat arriere, trois series de quatre aujourd'hui."
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: planner-generate
+      enabled: true
+    timeout: 15000
+- tapOn:
+    id: planner-generate
+- extendedWaitUntil:
+    visible:
+      id: planner-create-drafts
+      enabled: true
+    timeout: 60000
+- tapOn:
+    id: planner-create-drafts
+- scrollUntilVisible:
+    element:
+      id: planner-open-session-0
+    timeout: 30000
+- takeScreenshot: club-notebook-planner
+- runScript: scripts/club-notebook-check.js

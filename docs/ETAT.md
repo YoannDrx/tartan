@@ -1,8 +1,12 @@
 # État du projet
 
-Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 27 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
+
+## Planificateur de l'athlète invité · 27 novembre 2026
+
+L'athlète d'un club sans carnet trouve « Planifier » dans sa navigation, sur le web et dans les onglets de l'app. Le lien mène à l'ouverture allégée de son carnet : l'entraînement, puis les conditions, sans retaper son nom ni sa date de naissance. Il arrive ensuite sur le planificateur. L'ouverture ne dépend plus des inscriptions d'athlètes autonomes pour un athlète actif d'un club réel (`canOpenNotebook`). Elle reste refusée à un mineur, au coach, à l'adjoint et à l'athlète de la seule démonstration. Ce carnet n'envoie ni bienvenue ni conseils d'athlète autonome. `/planificateur` sans carnet mène à cette ouverture au lieu d'afficher « désactivé », et `GET /me` porte `notebook.available` pour l'app. Testé : 8 tests de service (droits, démonstration, mineur, inscriptions fermées, quotas séparés, invisibilité pour le coach) et un parcours Playwright par l'interface, inscriptions fermées. Le flux Maestro `athlete-club-notebook` tourne en CI iOS, inscriptions ouvertes. Pas encore éprouvé sur téléphone.
 
 ## Fils privés autour de la séance · 25 novembre 2026
 
@@ -167,6 +171,7 @@ Le pilote comporte douze illustrations détaillées et huit nouveaux gestes anim
 
 | Date | Décision |
 | --- | --- |
+| 27 nov. | L'athlète invité par un coach ouvre son carnet personnel pour planifier lui-même, inscriptions fermées comprises ; offert par Tartan, quota du coach intact, séances invisibles du coach ([PRODUCT.md](../PRODUCT.md#décision-du-27-novembre-2026)) |
 | 13 nov. | Avant la vente : constructeur à circuits, 150 exercices avec guides et visuels, planificateur à deux modes, vidéo collaborative ([PRODUCT.md](../PRODUCT.md)) |
 | 13 nov. | Google Play : compte organisation (D-U-N-S demandé le 14 novembre, numéro pas encore attribué) |
 | 13 nov. | Clé OpenAI actuelle conservée volontairement : risque non clos, plafond de dépense à poser |

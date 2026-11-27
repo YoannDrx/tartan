@@ -17,24 +17,33 @@ import { createPersonalSpaceAction } from "./personal-space.action";
 import { TrainingProfileFields } from "./training-profile-fields";
 
 const t = w.welcome.soloForm;
-const NAMES = [t.steps.start, t.steps.ready, t.steps.go] as const;
-const LAST = NAMES.length - 1;
+const FULL = ["start", "ready", "go"] as const;
+// Depuis un club, nom et date de naissance sont déjà connus : l'entraînement, puis les conditions.
+const LIGHT = ["ready", "go"] as const;
+type StepKey = (typeof FULL)[number];
 
 type Errors = Partial<Record<"firstName" | "lastName" | "birthDate" | "terms", string>>;
 
 // « Je m'entraîne seul » : trois temps, comme la création de l'espace d'un coach. Toi, ton entraînement, les
-// conditions ; puis l'espace personnel naît et l'athlète arrive sur sa journée.
+// conditions ; puis l'espace personnel naît et l'athlète arrive sur sa journée. `light` : l'athlète d'un club dont le
+// profil est complet ouvre son carnet sans retaper son nom ni sa date de naissance.
 export const PersonalSignupForm = ({
   planner = false,
+  light = false,
   firstName,
   lastName,
   birthDate,
 }: {
   planner?: boolean;
+  light?: boolean;
   firstName: string;
   lastName: string;
   birthDate: string;
 }) => {
+  const keys: readonly StepKey[] = light ? LIGHT : FULL;
+  const names = keys.map((key) => t.steps[key]);
+  const last = keys.length - 1;
+  const at = (key: StepKey) => keys.indexOf(key);
   const [step, setStep] = useState(0);
   const [values, setValues] = useState({ firstName, lastName, birthDate });
   const [profile, setProfile] = useState<TrainingProfile>({
@@ -83,16 +92,17 @@ export const PersonalSignupForm = ({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     // Entrée fait avancer d'un temps ; seul le dernier ouvre l'espace.
-    if (step === 0) {
-      if (checkProfile()) goTo(1);
+    if (keys[step] === "start") {
+      if (checkProfile()) goTo(step + 1);
       return;
     }
-    if (step < LAST) {
+    if (step < last) {
       goTo(step + 1);
       return;
     }
-    if (!checkProfile()) {
-      goTo(0);
+    // L'ouverture allégée n'a lieu qu'avec un profil complet : rien à revérifier ici.
+    if (!light && !checkProfile()) {
+      goTo(at("start"));
       return;
     }
     if (!consents.terms) {
@@ -116,48 +126,50 @@ export const PersonalSignupForm = ({
 
   return (
     <form noValidate data-step={step} onSubmit={submit} className="flex flex-col gap-6">
-      <Stepper step={step} names={NAMES} label={t.stepsLabel} />
+      <Stepper step={step} names={names} label={t.stepsLabel} />
       <p className="sr-only" role="status">
-        {m.onboarding.stepStatus(step + 1, NAMES.length, NAMES[step]!)}
+        {m.onboarding.stepStatus(step + 1, names.length, names[step]!)}
       </p>
-      <fieldset hidden={step !== 0} className="flex flex-col gap-4">
-        {legend(0, t.profileTitle)}
-        <div className="grid gap-4 tablet:grid-cols-2">
-          <Field label={m.onboarding.firstName} error={errors.firstName}>
+      {light ? null : (
+        <fieldset hidden={step !== at("start")} className="flex flex-col gap-4">
+          {legend(at("start"), t.profileTitle)}
+          <div className="grid gap-4 tablet:grid-cols-2">
+            <Field label={m.onboarding.firstName} error={errors.firstName}>
+              {(a) => (
+                <Input
+                  {...a}
+                  autoComplete="given-name"
+                  value={values.firstName}
+                  onChange={(event) => setValues({ ...values, firstName: event.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={m.onboarding.lastName} error={errors.lastName}>
+              {(a) => (
+                <Input
+                  {...a}
+                  autoComplete="family-name"
+                  value={values.lastName}
+                  onChange={(event) => setValues({ ...values, lastName: event.target.value })}
+                />
+              )}
+            </Field>
+          </div>
+          <Field label={m.invite.birthDate} error={errors.birthDate}>
             {(a) => (
-              <Input
+              <DateInput
                 {...a}
-                autoComplete="given-name"
-                value={values.firstName}
-                onChange={(event) => setValues({ ...values, firstName: event.target.value })}
+                autoComplete="bday"
+                readOnly={Boolean(birthDate)}
+                value={values.birthDate}
+                onChange={(event) => setValues({ ...values, birthDate: event.target.value })}
               />
             )}
           </Field>
-          <Field label={m.onboarding.lastName} error={errors.lastName}>
-            {(a) => (
-              <Input
-                {...a}
-                autoComplete="family-name"
-                value={values.lastName}
-                onChange={(event) => setValues({ ...values, lastName: event.target.value })}
-              />
-            )}
-          </Field>
-        </div>
-        <Field label={m.invite.birthDate} error={errors.birthDate}>
-          {(a) => (
-            <DateInput
-              {...a}
-              autoComplete="bday"
-              readOnly={Boolean(birthDate)}
-              value={values.birthDate}
-              onChange={(event) => setValues({ ...values, birthDate: event.target.value })}
-            />
-          )}
-        </Field>
-      </fieldset>
-      <fieldset hidden={step !== 1} className="flex flex-col gap-3">
-        {legend(1, t.trainingTitle)}
+        </fieldset>
+      )}
+      <fieldset hidden={step !== at("ready")} className="flex flex-col gap-3">
+        {legend(at("ready"), t.trainingTitle)}
         <TrainingProfileFields
           value={profile}
           keys={planner ? undefined : ["disciplines", "trainingObjectives"]}
@@ -166,9 +178,9 @@ export const PersonalSignupForm = ({
           onChange={setProfile}
         />
       </fieldset>
-      <fieldset hidden={step !== LAST} className="flex flex-col gap-3">
-        {legend(LAST, t.termsTitle)}
-        <p className="max-w-prose">{t.termsLead}</p>
+      <fieldset hidden={step !== last} className="flex flex-col gap-3">
+        {legend(last, t.termsTitle)}
+        <p className="max-w-prose">{light ? w.welcome.notebookForm.termsLead : t.termsLead}</p>
         <p className="t-caption font-normal text-soft">{t.quotas}</p>
         <CheckRow
           label={m.invite.consentTerms}
@@ -205,13 +217,13 @@ export const PersonalSignupForm = ({
         ) : (
           <span />
         )}
-        {step < LAST ? (
+        {step < last ? (
           <Button key="next" type="submit" size="lg">
             {m.onboarding.next}
           </Button>
         ) : (
           <Button key="create" type="submit" size="lg" disabled={isPending}>
-            {t.create}
+            {light ? w.welcome.notebookForm.create : t.create}
           </Button>
         )}
       </div>
@@ -221,7 +233,7 @@ export const PersonalSignupForm = ({
           if (open) return;
           setConfirming(false);
           // « Corriger » ramène à la date ; « Confirmer » laisse l'écran tel quel pendant la création.
-          if (!confirmed.current) goTo(0);
+          if (!confirmed.current) goTo(at("start"));
         }}
         title={m.age.checkTitle}
         description={

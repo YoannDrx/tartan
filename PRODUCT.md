@@ -108,7 +108,11 @@ Le même jour, le fondateur ajoute l'**athlète autonome** au périmètre (plan 
 
 - **S'inscrire sans coach.** Après la création du compte, un aiguillage propose trois chemins de même rang : « Je suis coach », « Je m'entraîne seul », « J'ai un lien d'invitation ». L'athlète qui s'entraîne seul ouvre un **espace personnel** dont il est l'unique membre : il y planifie et valide ses propres séances, avec le constructeur, le calendrier, les modèles et le planificateur, sans destinataires ; progrès, records, références de force, phases, vidéos, bibliothèque et listes y sont disponibles. Ni groupe, ni athlètes, ni annonces, ni abonnement.
 - **Rejoindre un coach.** Il garde son espace personnel et rejoint le groupe du coach comme tout athlète. Il peut **partager s'il le veut** son historique (records, références de force, historique des séances), case par case, en lecture seule et révocable ; ses données de santé ne sont jamais partagées par ce chemin.
-- **Gratuité avec quotas.** L'espace personnel est gratuit et jamais facturé, avec de petits quotas mensuels : 5 propositions du planificateur, 10 minutes de dictée, 4 vidéos. Aucun prix n'apparaît sur iOS et Android. Ses inscriptions ont leur propre réglage dans la console, ouvert par défaut, distinct de celui des coachs.
+- **Gratuité avec quotas.** L'espace personnel est gratuit et jamais facturé, avec de petits quotas mensuels : 5 propositions du planificateur, 10 minutes de dictée, 4 vidéos. Aucun prix n'apparaît sur iOS et Android. Ses inscriptions ont leur propre réglage dans la console, distinct de celui des coachs, fermé par défaut (`ATHLETE_SIGNUP_MODE`) tant que le fondateur ne l'ouvre pas.
+
+## Décision du 27 novembre 2026
+
+L'athlète invité par un coach peut se planifier ses propres séances avec le planificateur. Il ouvre pour cela son **carnet personnel** (l'espace personnel de l'athlète autonome, offre « Personnel » : 5 propositions et 10 minutes de dictée par mois, offertes par Tartan), même quand les inscriptions des athlètes autonomes sont fermées. Son nom et sa date de naissance viennent de son profil ; seules les conditions du carnet restent à accepter. Le quota du coach n'est jamais touché et ces séances restent invisibles du coach. « Planifier » figure dans sa navigation, sur le web comme dans l'app. Un mineur n'ouvre jamais de carnet.
 
 ## Offres
 

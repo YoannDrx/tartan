@@ -4744,6 +4744,15 @@ export const fr = {
       optional: "Ces deux accords sont facultatifs : tu pourras changer d'avis dans les réglages.",
       quotas: "Chaque mois : 5 propositions du planificateur, 10 minutes de dictée et 4 vidéos.",
       create: "Ouvrir mon espace",
+      // L'athlète d'un club ouvre son carnet pour planifier lui-même (décision du 27 novembre 2026).
+      notebook: {
+        title: "Ton carnet personnel",
+        lead: "Planifie tes propres séances avec le planificateur, à côté de ton club.",
+        termsLead:
+          "Ton carnet n'est visible que par toi : ton coach ne voit ni ces séances ni tes demandes au planificateur.",
+        create: "Ouvrir mon carnet",
+        back: "Revenir à ma journée",
+      },
       closed:
         "Tartan n'ouvre pas encore d'espace personnel aux athlètes. Si ton coach t'a envoyé un lien, ouvre-le pour rejoindre son groupe.",
       // Le sélecteur d'espace et les réglages : l'espace personnel n'a pas de rôle à dire.

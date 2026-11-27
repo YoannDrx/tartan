@@ -17,6 +17,7 @@ import { env } from "@/lib/env";
 import { PERSONAL_STEP_PATH } from "@/lib/onboarding-paths";
 import { prisma } from "@/lib/prisma";
 import { unsubscribePageUrl, unsubscribeUrl } from "./email-preferences.service";
+import { isClubAthlete } from "./notebook-access";
 import { readPersonalFacts } from "./onboarding.service";
 
 // Les e-mails de l'athlète autonome (docs/reference/emails.md) : bienvenue à l'ouverture de son espace personnel,
@@ -97,6 +98,8 @@ export const queuePersonalActivationEmails = async (now: Date = new Date()): Pro
   let queued = 0;
   for (const space of spaces) {
     if (!space.personalOwnerId || space.owner.profile?.emailTips === false) continue;
+    // Le carnet d'un athlète de club n'est pas un premier pas d'athlète autonome : pas de conseils par e-mail.
+    if (await isClubAthlete(space.personalOwnerId)) continue;
     const athlete = await prisma.athlete.findUnique({
       where: { organizationId_userId: { organizationId: space.id, userId: space.personalOwnerId } },
       select: { id: true },

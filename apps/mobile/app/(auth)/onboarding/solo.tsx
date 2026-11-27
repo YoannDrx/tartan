@@ -20,8 +20,10 @@ import { LoadingState } from "../../../src/ui/states";
 import { space } from "../../../src/ui/theme";
 
 const t = m.mobile.solo;
-const STEPS = ["start", "ready", "go"] as const;
-type Step = (typeof STEPS)[number];
+const FULL = ["start", "ready", "go"] as const;
+// Depuis un club, nom et date de naissance sont déjà connus : l'entraînement, puis les conditions.
+const LIGHT = ["ready", "go"] as const;
+type Step = (typeof FULL)[number];
 type Errors = Partial<Record<"firstName" | "lastName" | "birthDate" | "terms", string>>;
 
 // « Je m'entraîne seul » : les mêmes trois temps que le web. Toi (prénom, nom, date de naissance pour les adultes),
@@ -33,9 +35,16 @@ export default function SoloOnboarding() {
   const status = useSession((s) => s.status);
   const me = useMe(status === "signed-in");
   const setActive = useSpaceStore((s) => s.setActive);
-  // Le réglage est relu : un choix fermé entre-temps le dit avant le formulaire, pas après.
+  // Le réglage est relu : un choix fermé entre-temps le dit avant le formulaire, pas après. Le serveur dit aussi
+  // si ce compte peut ouvrir son carnet (`notebook`), même inscriptions fermées pour l'athlète d'un club.
   const options = useQuery({ queryKey: ["signup-options"], queryFn: api.signupOptions, staleTime: 0 });
-  const [step, setStep] = useState<Step>("start");
+  const club = Boolean(me.data?.spaces.some((s) => s.role === "athlete" && s.kind !== "personal"));
+  const light = club && Boolean(me.data?.firstName && me.data?.lastName && me.data?.birthDate);
+  const STEPS: readonly Step[] = light ? LIGHT : FULL;
+  const copy = club ? t.notebook : null;
+  const [chosen, setStep] = useState<Step>("start");
+  // Le profil se lit après le premier rendu : l'ouverture allégée commence au temps qui suit « Toi ».
+  const step: Step = light && chosen === "start" ? "ready" : chosen;
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [birth, setBirth] = useState<BirthParts>({ day: "", month: "", year: "" });
@@ -84,7 +93,7 @@ export default function SoloOnboarding() {
   if (me.data && me.data.spaces.length > 0 && !planner && !create.isPending) return <Redirect href="/" />;
 
   const index = STEPS.indexOf(step);
-  const closed = options.data && !options.data.athlete;
+  const closed = me.data?.notebook ? !me.data.notebook.available : options.data && !options.data.athlete;
 
   const checkProfile = (): boolean => {
     const next: Errors = {};
@@ -127,8 +136,8 @@ export default function SoloOnboarding() {
   return (
     <Shell>
       <View style={{ gap: space.sm }}>
-        <ScreenTitle title={t.title} testID="solo-title" />
-        <T>{t.lead}</T>
+        <ScreenTitle title={copy?.title ?? t.title} testID="solo-title" />
+        <T>{copy?.lead ?? t.lead}</T>
         <T variant="smallStrong" testID="solo-step" accessibilityLiveRegion="polite">
           {t.stepStatus(index + 1, STEPS.length, t.steps[step])}
         </T>
@@ -198,7 +207,7 @@ export default function SoloOnboarding() {
           <T variant="title2" heading>
             {t.termsTitle}
           </T>
-          <T variant="small">{t.termsLead}</T>
+          <T variant="small">{copy?.termsLead ?? t.termsLead}</T>
           <ConsentRow
             testID="solo-terms"
             label={t.terms}
@@ -240,16 +249,18 @@ export default function SoloOnboarding() {
               {formError}
             </T>
           ) : null}
-          <Button testID="solo-create" label={t.create} loading={create.isPending} onPress={submit} />
+          <Button testID="solo-create" label={copy?.create ?? t.create} loading={create.isPending} onPress={submit} />
         </Card>
       )}
       <Button
         testID="solo-back"
-        label={index === 0 || closed ? m.mobile.welcome.back : m.onboarding.back}
+        label={index === 0 || closed ? (copy?.back ?? m.mobile.welcome.back) : m.onboarding.back}
         variant="secondary"
         compact
         disabled={create.isPending}
-        onPress={() => (index === 0 || closed ? router.replace("/onboarding") : setStep(STEPS[index - 1]!))}
+        onPress={() =>
+          index === 0 || closed ? router.replace(club ? "/today" : "/onboarding") : setStep(STEPS[index - 1]!)
+        }
       />
     </Shell>
   );

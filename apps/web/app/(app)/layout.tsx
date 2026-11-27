@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
+import { plannerServerEnabled } from "@tartan/domain";
+import { env } from "@/lib/env";
 import { THEME_COOKIE, themePreference } from "@/features/shell/theme";
 import { OfflineProvider } from "@/features/offline/offline-provider";
 import { OnboardingProvider } from "@/features/onboarding/onboarding-context";
@@ -21,6 +23,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     staff ? getBillingAlert(actor.userId, space.organizationId) : null,
     getOnboardingMemory(actor.userId, space.organizationId),
   ]);
+  // L'athlète d'un club planifie pour lui dans son carnet, déjà ouvert ou à ouvrir depuis « Planifier ».
+  const notebook = spaces.find((s) => s.kind === "personal");
+  const notebookPlanner =
+    !staff &&
+    space.kind !== "personal" &&
+    (notebook ? Boolean(notebook.aiPlannerEnabled) : Boolean(me.notebook?.available) && plannerServerEnabled(env()));
   const name = `${me.firstName ?? ""} ${me.lastName ?? ""}`.trim() || null;
   const theme = themePreference((await cookies()).get(THEME_COOKIE)?.value);
   return (
@@ -50,6 +58,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             askSatisfaction={askSatisfaction}
             unseenRelease={unseen}
             billingAlert={billingAlert}
+            notebookPlanner={notebookPlanner}
           >
             {children}
           </AppShell>

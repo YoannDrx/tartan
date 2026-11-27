@@ -26,6 +26,8 @@ import { getAthleteCalendar } from "@/server/athlete-view.service";
 import { listAthletes } from "@/server/athlete.service";
 import { listGroups } from "@/server/org.service";
 import { listPlanning } from "@/server/session.service";
+import { canOpenNotebook } from "@/server/personal-space.service";
+import { NOTEBOOK_FOR_PLANNER } from "@/lib/onboarding-paths";
 import { CalendarPhases } from "@/features/phases/calendar-phases";
 
 export const metadata: Metadata = { title: m.nav.calendrier };
@@ -125,6 +127,8 @@ const AthleteCalendar = async ({ ctx, params }: { ctx: SpaceContext; params: Sea
   const isMonth = params.vue === "mois" || (params.vue !== "liste" && preference === "month");
   const month = validMonth(params.mois) ?? today.slice(0, 7);
   const notebook = ctx.spaces.find((s) => s.kind === "personal");
+  // Sans carnet, l'athlète d'un club l'ouvre d'ici et arrive sur le planificateur.
+  const openable = !notebook && !ctx.personal && (await canOpenNotebook(ctx.actor.userId));
   const switcher = (
     <nav aria-label={m.calendar.viewAndGroup} className="flex flex-wrap gap-2 py-1">
       {notebook && (
@@ -132,9 +136,11 @@ const AthleteCalendar = async ({ ctx, params }: { ctx: SpaceContext; params: Sea
           <Link href="/seances/nouvelle">{w.personal.planSession}</Link>
         </Button>
       )}
-      {notebook?.aiPlannerEnabled && (
+      {(notebook?.aiPlannerEnabled || openable) && (
         <Button asChild>
-          <Link href="/planificateur">{m.aiPlanner.personalCreate}</Link>
+          <Link prefetch={false} href={notebook ? "/planificateur" : NOTEBOOK_FOR_PLANNER}>
+            {m.aiPlanner.personalCreate}
+          </Link>
         </Button>
       )}
       <CalendarViewPill view="list" href="/calendrier?vue=liste" active={!isMonth} label={m.calendar.list} />

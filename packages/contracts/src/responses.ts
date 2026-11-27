@@ -47,6 +47,9 @@ export const meResponse = z.object({
   units: z.string(),
   locale: z.string(),
   spaces: z.array(spaceSummary),
+  // Le carnet personnel : déjà ouvert, ou ouvrable par ce compte (inscriptions d'athlètes ouvertes, ou athlète
+  // d'un club). Absent des serveurs d'avant le 27 novembre 2026 : l'app lit alors les options d'inscription.
+  notebook: z.object({ available: z.boolean() }).optional(),
   preferences: z
     .object({
       homeTone: z.enum(["calm", "energetic", "off"]).optional(),

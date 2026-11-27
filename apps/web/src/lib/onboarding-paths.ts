@@ -31,3 +31,6 @@ export const PERSONAL_STEP_PATH: Record<PersonalStepKey, string> = {
 // L'espace de démonstration s'ouvre depuis la page des premiers pas ; la carte « Pour démarrer » y mène.
 export const DEMO_SPACE_ENABLED = true as boolean;
 export const DEMO_SPACE_PATH = `${FIRST_STEPS_PATH}#demonstration`;
+
+// L'athlète d'un club sans carnet : l'ouverture de son carnet, qui ramène au planificateur.
+export const NOTEBOOK_FOR_PLANNER = "/bienvenue/seul?ensuite=planificateur";
