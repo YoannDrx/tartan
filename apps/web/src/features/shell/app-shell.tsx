@@ -14,16 +14,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { LogoMark, Wordmark } from "@/components/logo";
 import { selectableSpaces } from "@tartan/domain";
-import { chooseHomeAction } from "./shell.action";
-import { useAction } from "next-safe-action/hooks";
-import { onErr } from "@/features/settings/shared";
 import { ACTIVE_TAB } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
 import { installFeedback } from "@/lib/feedback";
@@ -34,6 +30,7 @@ import { UpdateWatcher } from "./update-watcher";
 import { InstallBanner } from "./install-banner";
 import { SatisfactionQuestion } from "./satisfaction";
 import { SettingsMenu, type Account } from "./settings-menu";
+import { SpaceSwitcher } from "./space-switcher";
 
 type Item = { href: string; label: string; icon: LucideIcon; mobile: boolean };
 
@@ -98,10 +95,8 @@ export const AppShell = ({
   children: ReactNode;
 }) => {
   const choices = selectableSpaces(spaces);
-  const router = useRouter();
   // Sons et vibrations des gestes, posés une fois pour toute l'app connectée.
   useEffect(() => installFeedback(), []);
-  const choose = useAction(chooseHomeAction, { onError: onErr, onSuccess: () => router.replace("/accueil") });
   const pathname = usePathname().replace(/^\/(carnet|club)(?=\/)/, "");
   const work = worldFor(pathname) === "world-work";
   const selectedClass = "bg-accent text-on-accent";
@@ -128,41 +123,10 @@ export const AppShell = ({
         data-tab-page={items.some((item) => item.href === pathname) || undefined}
         className={cn("app-header sticky z-30", barClass)}
       >
-        <div className="mx-auto flex min-h-14 max-w-[1440px] flex-wrap items-center gap-x-2 px-4 tablet:flex-nowrap tablet:gap-4 desktop:px-6">
-          {/* Sur téléphone, l'icône seule : la place revient au nom de l'espace (audit G6). */}
-          <Link href={staff ? "/suivi" : "/aujourdhui"} className="flex min-h-11 min-w-24 items-center gap-2">
-            <span className="tablet:hidden">
-              <LogoMark size={32} />
-              <span className="sr-only">{m.brand.name} </span>
-            </span>
-            <span className="max-tablet:hidden">
-              <Wordmark className="align-middle text-inherit" />
-            </span>
-            <span className="flex min-w-0 flex-col leading-tight">
-              <strong>{staff ? m.roles.coach : m.roles.athlete}</strong>{" "}
-              <span hidden={choices.length > 1} data-testid="space-name" className="max-w-32 truncate text-[13px]">
-                {space.organizationName}
-              </span>
-            </span>
-          </Link>
-          {choices.length > 1 && (
-            <select
-              aria-label={m.settings.switchSpace}
-              value={space.organizationId}
-              disabled={choose.isPending}
-              onChange={(event) => choose.execute({ organizationId: event.target.value })}
-              className="order-last mb-1 min-h-11 w-full min-w-0 truncate rounded-control tablet:order-none tablet:mb-0 tablet:w-auto bg-card px-2 text-card-fg tablet:max-w-52"
-            >
-              {!choices.some((s) => s.organizationId === space.organizationId) && (
-                <option value={space.organizationId}>{space.organizationName}</option>
-              )}
-              {choices.map((s) => (
-                <option key={s.organizationId} value={s.organizationId}>
-                  {s.organizationName} ({m.roles[s.role]})
-                </option>
-              ))}
-            </select>
-          )}
+        {/* Une seule ligne, de hauteur fixe, sur tous les écrans : la marque et le rôle, l'espace dessous, puis les
+            rubriques, la cloche et le compte. */}
+        <div className="mx-auto flex min-h-16 max-w-[1440px] items-center gap-2 px-4 py-2 tablet:gap-4 desktop:px-6">
+          <SpaceSwitcher space={space} spaces={choices} staff={staff} />
           <nav aria-label={w.shell.mainNav} className="hidden flex-1 items-center gap-1 desktop:flex">
             {items.map((item) => (
               <Link

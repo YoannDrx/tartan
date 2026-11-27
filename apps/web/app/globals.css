@@ -1003,10 +1003,24 @@ html:has(.app-header[data-tab-page])::view-transition-new(*) {
    le couloir et l'encre, et prend la couleur du texte sur un fond clair, où le citron ne se lirait pas. */
 .wordmark {
   --wordmark-line: var(--color-film-lime);
+  --wordmark-letters-mask: url("/brand/wordmark-letters.svg");
+  --wordmark-line-mask: url("/brand/wordmark-line.svg");
   position: relative;
   display: inline-block;
+  flex-shrink: 0;
   height: 26px;
   aspect-ratio: 408 / 107;
+}
+/* « Coach » et « Athlète » à côté de la marque : même police, même hauteur que « artan », l'initiale en couloirs. */
+.wordmark.role-wordmark-coach {
+  --wordmark-letters-mask: url("/brand/role-coach-letters.svg");
+  --wordmark-line-mask: url("/brand/role-coach-line.svg");
+  aspect-ratio: 376 / 107;
+}
+.wordmark.role-wordmark-athlete {
+  --wordmark-letters-mask: url("/brand/role-athlete-letters.svg");
+  --wordmark-line-mask: url("/brand/role-athlete-line.svg");
+  aspect-ratio: 431 / 107;
 }
 .wordmark::before,
 .wordmark::after {
@@ -1014,11 +1028,11 @@ html:has(.app-header[data-tab-page])::view-transition-new(*) {
   position: absolute;
   inset: 0;
   background-color: currentColor;
-  mask: url("/brand/wordmark-letters.svg") center / contain no-repeat;
+  mask: var(--wordmark-letters-mask) center / contain no-repeat;
 }
 .wordmark::after {
   background-color: var(--wordmark-line);
-  mask-image: url("/brand/wordmark-line.svg");
+  mask-image: var(--wordmark-line-mask);
 }
 .world-craie .wordmark,
 .world-soleil .wordmark,

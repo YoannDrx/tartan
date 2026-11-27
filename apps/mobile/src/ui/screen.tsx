@@ -3,7 +3,7 @@ import { m } from "@tartan/i18n";
 import { useFocusEffect, usePathname, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Linking, Image, Pressable, RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
+import { Linking, RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsOnline } from "../lib/network";
 import { useOpQueue } from "../lib/sync/op-queue";
@@ -17,7 +17,6 @@ import { reportClientVersion } from "../lib/notifications";
 import * as Updates from "expo-updates";
 import { SpaceSwitcher } from "./space-switcher";
 import { useActiveSpace } from "../lib/queries";
-import { homeFor } from "../lib/space-store";
 import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./theme";
 
 // La barre d'état suit le fond de l'écran au premier plan : encre sur la craie et le soleil, claire ailleurs.
@@ -119,7 +118,6 @@ const TabInner = ({
   scrollProps,
 }: Omit<TabScreenProps, "world">) => {
   useSceneStatusBar();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const p = usePalette();
   const pad = usePagePad();
@@ -128,7 +126,7 @@ const TabInner = ({
   useEffect(() => {
     if (!refreshing) setPulled(false);
   }, [refreshing]);
-  const { me, space: active } = useActiveSpace();
+  const { me } = useActiveSpace();
   const update = useQuery({
     queryKey: ["beta-update", me.data?.id],
     queryFn: async () => (await reportClientVersion()) ?? null,
@@ -136,41 +134,19 @@ const TabInner = ({
     refetchInterval: 15 * 60_000,
   });
 
+  // Une ligne de marque de hauteur fixe (« Tartan Coach », l'espace, le compte), puis le titre de l'onglet.
   const titleRow = (
     <>
-      {active && (
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={`${active.role === "athlete" ? m.brand.athlete : m.brand.coach}, ${active.organizationName}`}
-          onPress={() => router.replace(homeFor(active) ?? "/")}
-          style={{ minHeight: 44, flexDirection: "row", gap: space.sm, alignItems: "center" }}
-        >
-          <Image
-            accessibilityIgnoresInvertColors
-            source={
-              p.work || p.dark
-                ? require("../../assets/brand/wordmark-light.png")
-                : require("../../assets/brand/wordmark-dark.png")
-            }
-            resizeMode="contain"
-            style={{ width: 100, height: 28 }}
-          />
-          <View style={{ flex: 1 }}>
-            <T variant="smallStrong">{active.role === "athlete" ? m.roles.athlete : m.roles.coach}</T>
-            <T variant="caption" numberOfLines={1}>
-              {active.organizationName}
-            </T>
-          </View>
-        </Pressable>
-      )}
-      <SpaceSwitcher />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 56 }}>
+        <SpaceSwitcher />
+        <SettingsButton />
+      </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
         <View style={{ flex: 1, gap: 2 }}>
           <ScreenTitle title={title} plain={p.work} />
           {subtitle ? <T variant="small">{subtitle}</T> : null}
         </View>
         {right}
-        <SettingsButton />
       </View>
     </>
   );

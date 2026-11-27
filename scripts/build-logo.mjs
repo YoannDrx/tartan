@@ -21,11 +21,16 @@ const LEMON = "#C6F432";
 const BLACK = "#000000";
 
 // La marque, dans un carré de 160. Couloirs de 18,4 d'épaisseur, séparés par une ligne de 8.
-const rect = (x, y, width, height, fill) => `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${fill}"/>`;
+const rect = (x, y, width, height, fill) =>
+  `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${fill}"/>`;
 const glyph = ({ fill = WHITE, accent = LEMON, small = false } = {}) =>
   small
     ? // Sous 32 px, la ligne entre les couloirs se bouche : la lettre est pleine.
-      [rect(25.6, 32, 108.8, 44.8, fill), rect(57.6, 32, 44.8, 102.4, fill), rect(57.6, 121.6, 44.8, 12.8, accent)].join("")
+      [
+        rect(25.6, 32, 108.8, 44.8, fill),
+        rect(57.6, 32, 44.8, 102.4, fill),
+        rect(57.6, 121.6, 44.8, 12.8, accent),
+      ].join("")
     : [
         rect(25.6, 32, 108.8, 18.4, fill),
         rect(25.6, 58.4, 50.4, 18.4, fill),
@@ -87,7 +92,80 @@ const wordmark = () => {
   return { letters, line, width, height, artwork, viewBox };
 };
 
+// Les initiales des rôles, dans la grille du T (carré de 160, capitales de 32 à 134,4, couloirs de 18,4 séparés
+// d'une ligne de 8) : deux couloirs qui tournent, une ligne d'arrivée citron (décision du fondateur, 27 novembre 2026).
+// C : le virage d'une piste, deux couloirs concentriques ouverts à droite ; la ligne d'arrivée au bout du couloir
+// extérieur, en bas.
+// A : deux arches carrées emboîtées, la ligne d'arrivée en barre du A.
+const roleInitials = {
+  C: ({ fill = WHITE, accent = LEMON } = {}) => {
+    // Centre du virage, au milieu des capitales ; couloir extérieur de rayon 51,2 à 32,8, intérieur de 24,8 à 6,4.
+    const cx = 77.6;
+    const lane = (outer, inner, end) =>
+      `<path fill="${fill}" d="M${end} ${83.2 - outer}H${cx}A${outer} ${outer} 0 0 0 ${cx} ${83.2 + outer}H${end}V${83.2 + inner}H${cx}A${inner} ${inner} 0 0 1 ${cx} ${83.2 - inner}H${end}Z"/>`;
+    return [
+      lane(51.2, 32.8, 121.6),
+      rect(121.6, 116, 12.8, 18.4, accent),
+      rect(121.6, 32, 12.8, 18.4, fill),
+      lane(24.8, 6.4, 108),
+    ].join("");
+  },
+  A: ({ fill = WHITE, accent = LEMON } = {}) =>
+    [
+      rect(25.6, 32, 108.8, 18.4, fill),
+      rect(25.6, 32, 18.4, 102.4, fill),
+      rect(116, 32, 18.4, 102.4, fill),
+      rect(52, 58.4, 56, 18.4, fill),
+      rect(52, 58.4, 18.4, 76, fill),
+      rect(89.6, 58.4, 18.4, 76, fill),
+      rect(70.4, 92, 19.2, 12.8, accent),
+    ].join(""),
+};
+
+// Le rôle écrit comme « Tartan » : son initiale en couloirs, puis le reste du mot dans la même police, à la même taille.
+const roleWord = (letter, rest) => {
+  const size = 150;
+  const [t] = font.stringToGlyphs("T");
+  const [first, second] = font.stringToGlyphs(rest);
+  const scale = size / font.unitsPerEm;
+  const tBox = t.getPath(0, 0, size).getBoundingBox();
+  const cap = -tBox.y1;
+  const g = cap / 102.4;
+  const glyphRight = tBox.x1 + 108.8 * g;
+  const fBox = first.getBoundingBox();
+  const gap = (first.advanceWidth + font.getKerningValue(first, second) + second.getBoundingBox().x1 - fBox.x2) * scale;
+  const after = glyphRight + gap - fBox.x1 * scale;
+  const tail = font.getPath(rest, after, 0, size);
+  const tailBox = tail.getBoundingBox();
+  const x = Math.floor(tBox.x1);
+  const width = Math.ceil(tailBox.x2) - x;
+  const top = Math.max(Math.ceil(cap), Math.ceil(-tailBox.y1));
+  const height = top + Math.max(0, Math.ceil(tailBox.y2));
+  const at = `translate(${(tBox.x1 - 25.6 * g).toFixed(3)} ${(-cap - 32 * g).toFixed(3)}) scale(${g.toFixed(5)})`;
+  const viewBox = `${x} ${-top} ${width} ${height}`;
+  const draw = roleInitials[letter];
+  const letters = svg(
+    viewBox,
+    `<g transform="${at}">${draw({ accent: "none" })}</g>\n<path fill="${WHITE}" d="${tail.toPathData(2)}"/>`,
+  );
+  const line = svg(viewBox, `<g transform="${at}">${draw({ fill: "none" })}</g>`);
+  const artwork = (fill, accent) =>
+    `<g transform="${at}">${draw({ fill, accent })}</g><path fill="${fill}" d="${tail.toPathData(2)}"/>`;
+  return { letters, line, width, height, artwork, viewBox };
+};
+
 const word = wordmark();
+// Noms écrits en entier : `tests/brand-assets.test.ts` vérifie que chaque fichier contrôlé vient d'ici.
+const roles = [
+  {
+    art: roleWord("C", "oach"),
+    files: ["role-coach-letters.svg", "role-coach-line.svg", "role-coach-light.png", "role-coach-dark.png"],
+  },
+  {
+    art: roleWord("A", "thlète"),
+    files: ["role-athlete-letters.svg", "role-athlete-line.svg", "role-athlete-light.png", "role-athlete-dark.png"],
+  },
+];
 const lockup = ({ text = INK, accent = text === WHITE ? LEMON : INK } = {}) =>
   svg(word.viewBox, word.artwork(text, accent));
 
@@ -122,6 +200,21 @@ writeFileSync(path.join(web, "favicon.svg"), icon({ small: true }));
 writeFileSync(path.join(brand, "wordmark-letters.svg"), word.letters);
 writeFileSync(path.join(brand, "wordmark-line.svg"), word.line);
 console.log(`Mot « Tartan » : ${word.width} × ${word.height}.`);
+for (const { art, files } of roles) {
+  const [letters, line, light, dark] = files;
+  writeFileSync(path.join(brand, letters), art.letters);
+  writeFileSync(path.join(brand, line), art.line);
+  console.log(`Mot ${letters} : ${art.width} × ${art.height}.`);
+  for (const [out, text] of [
+    [light, WHITE],
+    [dark, INK],
+  ]) {
+    await sharp(Buffer.from(svg(art.viewBox, art.artwork(text, text === WHITE ? LEMON : INK))), { density: 300 })
+      .resize({ height: 224 })
+      .png()
+      .toFile(path.join(mobile, out));
+  }
+}
 
 // Web : onglet, écran d'accueil, PWA.
 await png(icon({ small: true }), 32, path.join(web, "favicon-32.png"));
@@ -137,7 +230,11 @@ await sharp(Buffer.from(lockup({ text: WHITE })), { density: 300 })
   .resize({ height: 72 })
   .png()
   .toFile(path.join(brand, "logo-email.png"));
-await sharp(Buffer.from(share()), { density: 150 }).resize(1200, 630).flatten({ background: BRICK }).png().toFile(path.join(brand, "og.png"));
+await sharp(Buffer.from(share()), { density: 150 })
+  .resize(1200, 630)
+  .flatten({ background: BRICK })
+  .png()
+  .toFile(path.join(brand, "og.png"));
 
 await sharp(Buffer.from(lockup({ text: WHITE })), { density: 300 })
   .resize({ width: 512 })
