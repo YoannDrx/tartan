@@ -150,6 +150,7 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 
 ### Points ouverts relevés en route
 
+- **Planificateur, proposition dupliquée** (relecture du lot 0, 27 novembre) : « Ajuster » reste proposé sur une copie, mais le serveur répond 409. La réservation d'un ajustement exige une opération payée portant l'identifiant de la proposition (`reservePlannerOperation`), et une copie n'en a pas. Reproduit par un test de service. Deux pistes, à trancher : relier la copie à l'opération payée de l'original (colonne additive), ce qui offre à chaque copie ses ajustements sans nouveau décompte ; ou ne plus proposer « Ajuster » sur une copie (champ de réponse à lire par le web et l'app).
 - Maestro iOS échoue par moments sur des parcours qui changent d'un passage à l'autre ; cause non établie.
 - `video-poc` est lent par moments en développement (réponse reçue jusqu'à 7 s après l'envoi), cause non trouvée ; les deux parcours vidéo tournent séparément en CI.
 - L'installation des navigateurs de la CI : cinq tentatives qui reprennent les téléchargements, et paquets système gardés en cache depuis la PR 166 (miroir Ubuntu à 50 Ko/s le 18 novembre).

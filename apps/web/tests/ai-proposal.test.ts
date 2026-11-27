@@ -1353,6 +1353,16 @@ it.each([true, false])(
     await expect(
       decidePlannerAdjustment(...args, { expectedVersion: pending.version, apply: !apply }, now),
     ).rejects.toMatchObject({ status: 409 });
+    // Refusé, l'ajustement quitte l'historique : l'appel suivant ne le renvoie pas au modèle.
+    expect(chosen.messages.some((message) => message.includes("Onze répétitions"))).toBe(apply);
+    expect(chosen.adjustmentCount).toBe(1);
+    const next = provider();
+    await clarifyPlannerProposal(
+      ...args,
+      { expectedVersion: chosen.version, operationId: randomUUID(), text: "Repos plus long", reviewed: true },
+      { provider: next, clock },
+    );
+    expect(JSON.stringify(next.interpret.mock.calls[0]![0]).includes("Onze répétitions")).toBe(apply);
   },
 );
 it("conserve le bloc protégé quand le prestataire le modifie", async () => {

@@ -1199,11 +1199,16 @@ export async function decidePlannerAdjustment(
       apply ? staged.selection : plannerSelection.parse(row.selection),
       plannerBindings.parse(row.bindings),
     );
+    // Refusé, l'ajustement sort de l'historique envoyé au modèle : il ne le réappliquera pas à la demande suivante.
+    // Tant qu'il attend sa décision, aucun autre message ne s'ajoute : c'est le dernier. L'essai reste décompté.
+    const messages = messagesSchema.parse(row.messages);
+    const refused = !apply && messages.length > 1 && isAdjustment(messages.at(-1) ?? null);
     await tx.aiPlannerProposal.update({
       where: { id: row.id },
       data: {
         adjustmentPreview: Prisma.DbNull,
         version: { increment: 1 },
+        ...(refused ? { messages: messages.slice(0, -1) } : {}),
         ...(apply
           ? { selection: staged.selection, interpretation: staged.candidate, savedReview: Prisma.DbNull }
           : row.savedReview
