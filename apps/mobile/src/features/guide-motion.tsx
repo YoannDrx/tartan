@@ -6,32 +6,14 @@ import { guidePositionAt } from "@tartan/mascot/v2/gesture";
 import type { GestureView } from "@tartan/mascot/v2/project";
 import { gestureEntry } from "@tartan/mascot/v2/registry";
 import { useEffect, useMemo, useState } from "react";
-import { AccessibilityInfo, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { framePace } from "../lib/frame-pace";
+import { useReducedMotion } from "../lib/reduced-motion";
 import { ExerciseScene, GestureScene } from "../ui/exercise-scene";
 import { Button, T } from "../ui/primitives";
 import { radius, space, usePalette } from "../ui/theme";
 
 const t = m.exerciseGuide.motion;
-
-// Le réglage « réduire les animations » de l'appareil. `null` tant qu'on ne le connaît pas : rien ne bouge.
-const useReducedMotion = () => {
-  const [reduced, setReduced] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    void AccessibilityInfo.isReduceMotionEnabled()
-      .catch(() => true)
-      .then((value) => {
-        if (!cancelled) setReduced(value);
-      });
-    const listener = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduced);
-    return () => {
-      cancelled = true;
-      listener.remove();
-    };
-  }, []);
-  return reduced;
-};
 
 // Une pastille de position ou un choix de vue : une cible de 44 points, pleine quand elle est choisie.
 const Chip = ({

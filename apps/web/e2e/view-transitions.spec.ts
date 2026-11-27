@@ -12,7 +12,9 @@ import {
 
 const nav = (page: Page) => page.getByRole("navigation", { name: "Navigation principale" }).locator("visible=true");
 
-test("les onglets connectés changent immédiatement, sans masquer le texte", async ({ page }, info) => {
+test("d'un onglet à l'autre, la page part vite, la suivante monte, le bandeau reste et l'onglet glisse", async ({
+  page,
+}, info) => {
   await createCoachSpace(page, `Fondu ${info.project.name}`);
   await page.goto("/suivi", { waitUntil: "networkidle" });
   // Un seul onglet actif visible : deux éléments du même nom feraient avorter la transition.
@@ -23,7 +25,15 @@ test("les onglets connectés changent immédiatement, sans masquer le texte", as
   await expect(page.getByRole("heading", { name: m.nav.calendrier, exact: true, level: 1 })).toBeVisible();
   const played = await firstTransition(page);
 
-  expect(played.filter((item) => item.duration > 0)).toEqual([]);
+  // L'ancienne page s'efface en un instant, la suivante monte ensuite : les deux textes ne se superposent pas.
+  expect(played.find((item) => item.name === "vt-out")).toMatchObject({ duration: motion.duration.instant });
+  expect(played.find((item) => item.name === "vt-rise")).toMatchObject({ duration: motion.duration.quick });
+  // Le bandeau piste garde sa place, l'onglet actif glisse jusqu'à la nouvelle rubrique.
+  expect(durationOf(played, "::view-transition-group(page-band)")).toBe(motion.duration.base);
+  expect(durationOf(played, "::view-transition-group(active-tab)")).toBe(motion.duration.base);
+  // Rien ne dépasse le plafond des écrans de travail, ni ne garde la durée par défaut du navigateur.
+  for (const item of played) expect(item.duration, item.pseudo).toBeLessThanOrEqual(motion.duration.enter);
+  expect(played.map((item) => item.duration)).not.toContain(250);
 
   await expect(nav(page).getByRole("link", { name: m.nav.calendrier, exact: true })).toHaveAttribute(
     "aria-current",

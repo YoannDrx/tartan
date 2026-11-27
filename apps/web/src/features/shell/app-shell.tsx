@@ -20,7 +20,8 @@ import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { selectableSpaces } from "@tartan/domain";
-import { ACTIVE_TAB } from "@/components/ui/view-transition";
+import { RouteTransition } from "@/components/ui/route-transition";
+import { ACTIVE_TAB, Stay } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
 import { installFeedback } from "@/lib/feedback";
 import { worldFor } from "@/lib/world";
@@ -117,59 +118,64 @@ export const AppShell = ({
   if (immersive) return <div className="overflow-x-clip">{children}</div>;
 
   return (
-    <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
-      <header
-        ref={measureHeader}
-        data-tab-page={items.some((item) => item.href === pathname) || undefined}
-        className={cn("app-header sticky z-30", barClass)}
-      >
-        {/* Une seule ligne, de hauteur fixe, sur tous les écrans : la marque et le rôle, l'espace dessous, puis les
+    <div className={cn(worldFor(pathname), "app-shell min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
+      {/* D'une rubrique à l'autre, l'en-tête et la barre d'onglets restent ; seul le contenu passe. */}
+      <Stay name="app-header">
+        <header ref={measureHeader} className={cn("app-header sticky z-30", barClass)}>
+          {/* Une seule ligne, de hauteur fixe, sur tous les écrans : la marque et le rôle, l'espace dessous, puis les
             rubriques, la cloche et le compte. */}
-        <div className="mx-auto flex min-h-16 max-w-[1440px] items-center gap-2 px-4 py-2 tablet:gap-4 desktop:px-6">
-          <SpaceSwitcher space={space} spaces={choices} staff={staff} />
-          <nav aria-label={w.shell.mainNav} className="hidden flex-1 items-center gap-1 desktop:flex">
-            {items.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                data-feedback="select"
-                aria-current={isActive(item.href) ? "page" : undefined}
-                className={cn(
-                  "inline-flex min-h-11 items-center rounded-full px-3.5 font-medium no-underline transition-colors",
-                  isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB} font-semibold` : "text-fg hover:bg-raise",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 tablet:flex-initial tablet:gap-2">
-            {/* Les rubriques hors de la barre d'onglets (§ 10.3) restent à portée de doigt. */}
-            {items
-              .filter((item) => !item.mobile)
-              .map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    data-feedback="select"
-                    aria-label={item.label}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                    className={cn(
-                      "inline-flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-raise desktop:hidden",
-                      isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB}` : "text-fg",
-                    )}
-                  >
-                    <Icon aria-hidden className="size-5" />
-                  </Link>
-                );
-              })}
-            <NotificationBell />
-            <SettingsMenu account={account} space={space} active={isActive("/reglages")} admin={admin} staff={staff} />
+          <div className="mx-auto flex min-h-16 max-w-[1440px] items-center gap-2 px-4 py-2 tablet:gap-4 desktop:px-6">
+            <SpaceSwitcher space={space} spaces={choices} staff={staff} />
+            <nav aria-label={w.shell.mainNav} className="hidden flex-1 items-center gap-1 desktop:flex">
+              {items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  data-feedback="select"
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  className={cn(
+                    "inline-flex min-h-11 items-center rounded-full px-3.5 font-medium no-underline transition-colors",
+                    isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB} font-semibold` : "text-fg hover:bg-raise",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 tablet:flex-initial tablet:gap-2">
+              {/* Les rubriques hors de la barre d'onglets (§ 10.3) restent à portée de doigt. */}
+              {items
+                .filter((item) => !item.mobile)
+                .map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      data-feedback="select"
+                      aria-label={item.label}
+                      aria-current={isActive(item.href) ? "page" : undefined}
+                      className={cn(
+                        "inline-flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-raise desktop:hidden",
+                        isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB}` : "text-fg",
+                      )}
+                    >
+                      <Icon aria-hidden className="size-5" />
+                    </Link>
+                  );
+                })}
+              <NotificationBell />
+              <SettingsMenu
+                account={account}
+                space={space}
+                active={isActive("/reglages")}
+                admin={admin}
+                staff={staff}
+              />
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </Stay>
 
       <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">
         {/* Dans la démonstration, le bandeau passe devant tout : on sait où l'on est et comment en sortir. */}
@@ -189,46 +195,49 @@ export const AppShell = ({
             </Link>
           </p>
         ) : null}
-        {/* Le contenu d'abord, l'athlète vient pour sa séance : les autres bandeaux passent dessous. */}
-        {children}
+        {/* Le contenu d'abord, l'athlète vient pour sa séance : les autres bandeaux passent dessous. D'une page à
+            l'autre, il s'efface puis la page suivante monte à sa place (globals.css, « Transitions de page »). */}
+        <RouteTransition className="flex flex-col gap-4">{children}</RouteTransition>
         <UpdateWatcher unseen={unseenRelease} />
         <InstallBanner />
         {askSatisfaction && !space.isDemo ? <SatisfactionQuestion /> : null}
       </main>
 
-      <nav
-        aria-label={w.shell.mainNav}
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-30 flex justify-around gap-1 px-1 pb-[env(safe-area-inset-bottom)] pt-1 desktop:hidden",
-          barClass,
-        )}
-      >
-        {items
-          .filter((item) => item.mobile)
-          .map((item) => {
-            const active = isActive(item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                data-feedback="select"
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[12px] leading-none no-underline",
-                  active
-                    ? `${selectedClass} ${ACTIVE_TAB} font-semibold`
-                    : work
-                      ? "font-medium text-fg"
-                      : "font-medium text-fg-muted",
-                )}
-              >
-                <Icon aria-hidden className="size-6" strokeWidth={2} />
-                {item.label}
-              </Link>
-            );
-          })}
-      </nav>
+      <Stay name="app-tabs">
+        <nav
+          aria-label={w.shell.mainNav}
+          className={cn(
+            "fixed inset-x-0 bottom-0 z-30 flex justify-around gap-1 px-1 pb-[env(safe-area-inset-bottom)] pt-1 desktop:hidden",
+            barClass,
+          )}
+        >
+          {items
+            .filter((item) => item.mobile)
+            .map((item) => {
+              const active = isActive(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  data-feedback="select"
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[12px] leading-none no-underline",
+                    active
+                      ? `${selectedClass} ${ACTIVE_TAB} font-semibold`
+                      : work
+                        ? "font-medium text-fg"
+                        : "font-medium text-fg-muted",
+                  )}
+                >
+                  <Icon aria-hidden className="size-6" strokeWidth={2} />
+                  {item.label}
+                </Link>
+              );
+            })}
+        </nav>
+      </Stay>
     </div>
   );
 };

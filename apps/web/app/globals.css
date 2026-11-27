@@ -912,10 +912,22 @@
   }
 }
 
-html:has(.app-header[data-tab-page])::view-transition-group(*),
-html:has(.app-header[data-tab-page])::view-transition-old(*),
-html:has(.app-header[data-tab-page])::view-transition-new(*) {
-  animation: none;
+/* Dans l'application (demande du fondateur du 27 novembre : « les transitions sautent ») : l'ancienne page part
+   vite, la nouvelle monte de quelques pixels juste après. Les deux textes ne se superposent jamais à demi
+   transparents ; le bandeau piste et l'en-tête restent, l'onglet actif glisse. Total sous le plafond de 200 ms. */
+@keyframes vt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.app-shell)::view-transition-old(.vt-page) {
+    animation: vt-out var(--duration-instant) var(--ease-elan) both;
+  }
+  html:has(.app-shell)::view-transition-new(.vt-page) {
+    animation: vt-rise var(--duration-quick) var(--ease-reception) var(--duration-instant) both;
+  }
 }
 
 /* Feuilles, dialogues, menus et messages : ils entrent en montant de quelques pixels et sortent plus vite

@@ -1,7 +1,8 @@
 import { usePathname } from "expo-router";
-import { tokens } from "@tartan/design-tokens";
+import { motion, tokens } from "@tartan/design-tokens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { playFeedback } from "../lib/feedback";
+import { useReducedMotion } from "../lib/reduced-motion";
 import { palettes, radius, space, textStyles, themedWorld, useWorkTheme, type WorldName } from "./theme";
 
 const BAR_HEIGHT = 64;
@@ -23,6 +24,7 @@ export const useTabBarOptions = () => {
   const theme = useWorkTheme();
   const band = tokens.band;
   const expressive = /(^|\/)today$/.test(usePathname());
+  const reduced = useReducedMotion();
   const bar = expressive
     ? {
         surface: tokens.scene.card,
@@ -40,7 +42,10 @@ export const useTabBarOptions = () => {
       };
   return {
     headerShown: false,
-    animation: "none",
+    // D'un onglet à l'autre, un fondu court (DESIGN.md, Mouvement) : la barre et le fond restent, le contenu passe.
+    // Le mouvement réduit de l'appareil coupe le fondu.
+    animation: reduced === false ? "fade" : "none",
+    transitionSpec: { animation: "timing", config: { duration: motion.duration.quick } },
     tabBarActiveTintColor: bar.selectedText,
     tabBarInactiveTintColor: bar.text,
     tabBarActiveBackgroundColor: bar.selection,
