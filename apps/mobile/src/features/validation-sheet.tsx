@@ -14,6 +14,7 @@ import { Button, Chip, Field, T } from "../ui/primitives";
 import { Sheet } from "../ui/sheet";
 import { radius, space, usePalette } from "../ui/theme";
 import { ValidationBurst } from "./validation-burst";
+import { playFeedback } from "../lib/feedback";
 
 type Sets = SessionLogInput["sets"];
 type Status = "done" | "partial";
@@ -215,6 +216,7 @@ export const ValidationSheet = ({
     busy.current = false;
     setSending(false);
     if (result.state === "error") {
+      playFeedback("error");
       setSendError(result.message);
       return false;
     }

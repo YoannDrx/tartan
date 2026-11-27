@@ -14,18 +14,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, type ReactNode } from "react";
 import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { LogoMark, Wordmark } from "@/components/logo";
 import { selectableSpaces } from "@tartan/domain";
-import { chooseHomeAction } from "./shell.action";
-import { useAction } from "next-safe-action/hooks";
-import { onErr } from "@/features/settings/shared";
-import { ACTIVE_TAB } from "@/components/ui/view-transition";
+import { RouteTransition } from "@/components/ui/route-transition";
+import { ACTIVE_TAB, Stay } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
+import { installFeedback } from "@/lib/feedback";
 import { worldFor } from "@/lib/world";
 import { DemoSpaceBanner } from "@/features/demo-space/demo-space-banner";
 import { NotificationBell } from "@/features/notifications/notification-bell";
@@ -33,6 +31,7 @@ import { UpdateWatcher } from "./update-watcher";
 import { InstallBanner } from "./install-banner";
 import { SatisfactionQuestion } from "./satisfaction";
 import { SettingsMenu, type Account } from "./settings-menu";
+import { SpaceSwitcher } from "./space-switcher";
 
 type Item = { href: string; label: string; icon: LucideIcon; mobile: boolean };
 
@@ -97,8 +96,8 @@ export const AppShell = ({
   children: ReactNode;
 }) => {
   const choices = selectableSpaces(spaces);
-  const router = useRouter();
-  const choose = useAction(chooseHomeAction, { onError: onErr, onSuccess: () => router.replace("/accueil") });
+  // Sons et vibrations des gestes, posés une fois pour toute l'app connectée.
+  useEffect(() => installFeedback(), []);
   const pathname = usePathname().replace(/^\/(carnet|club)(?=\/)/, "");
   const work = worldFor(pathname) === "world-work";
   const selectedClass = "bg-accent text-on-accent";
@@ -119,88 +118,64 @@ export const AppShell = ({
   if (immersive) return <div className="overflow-x-clip">{children}</div>;
 
   return (
-    <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
-      <header
-        ref={measureHeader}
-        data-tab-page={items.some((item) => item.href === pathname) || undefined}
-        className={cn("app-header sticky z-30", barClass)}
-      >
-        <div className="mx-auto flex min-h-14 max-w-[1440px] flex-wrap items-center gap-x-2 px-4 tablet:flex-nowrap tablet:gap-4 desktop:px-6">
-          {/* Sur téléphone, l'icône seule : la place revient au nom de l'espace (audit G6). */}
-          <Link href={staff ? "/suivi" : "/aujourdhui"} className="flex min-h-11 min-w-24 items-center gap-2">
-            <span className="tablet:hidden">
-              <LogoMark size={32} />
-              <span className="sr-only">{m.brand.name} </span>
-            </span>
-            <span className="max-tablet:hidden">
-              <Wordmark className="align-middle text-inherit" />
-            </span>
-            <span className="flex min-w-0 flex-col leading-tight">
-              <strong>{staff ? m.roles.coach : m.roles.athlete}</strong>{" "}
-              <span hidden={choices.length > 1} data-testid="space-name" className="max-w-32 truncate text-[13px]">
-                {space.organizationName}
-              </span>
-            </span>
-          </Link>
-          {choices.length > 1 && (
-            <select
-              aria-label={m.settings.switchSpace}
-              value={space.organizationId}
-              disabled={choose.isPending}
-              onChange={(event) => choose.execute({ organizationId: event.target.value })}
-              className="order-last mb-1 min-h-11 w-full min-w-0 truncate rounded-control tablet:order-none tablet:mb-0 tablet:w-auto bg-card px-2 text-card-fg tablet:max-w-52"
-            >
-              {!choices.some((s) => s.organizationId === space.organizationId) && (
-                <option value={space.organizationId}>{space.organizationName}</option>
-              )}
-              {choices.map((s) => (
-                <option key={s.organizationId} value={s.organizationId}>
-                  {s.organizationName} ({m.roles[s.role]})
-                </option>
+    <div className={cn(worldFor(pathname), "app-shell min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
+      {/* D'une rubrique à l'autre, l'en-tête et la barre d'onglets restent ; seul le contenu passe. */}
+      <Stay name="app-header">
+        <header ref={measureHeader} className={cn("app-header sticky z-30", barClass)}>
+          {/* Une seule ligne, de hauteur fixe, sur tous les écrans : la marque et le rôle, l'espace dessous, puis les
+            rubriques, la cloche et le compte. */}
+          <div className="mx-auto flex min-h-16 max-w-[1440px] items-center gap-2 px-4 py-2 tablet:gap-4 desktop:px-6">
+            <SpaceSwitcher space={space} spaces={choices} staff={staff} />
+            <nav aria-label={w.shell.mainNav} className="hidden flex-1 items-center gap-1 desktop:flex">
+              {items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  data-feedback="select"
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  className={cn(
+                    "inline-flex min-h-11 items-center rounded-full px-3.5 font-medium no-underline transition-colors",
+                    isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB} font-semibold` : "text-fg hover:bg-raise",
+                  )}
+                >
+                  {item.label}
+                </Link>
               ))}
-            </select>
-          )}
-          <nav aria-label={w.shell.mainNav} className="hidden flex-1 items-center gap-1 desktop:flex">
-            {items.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isActive(item.href) ? "page" : undefined}
-                className={cn(
-                  "inline-flex min-h-11 items-center rounded-full px-3.5 font-medium no-underline transition-colors",
-                  isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB} font-semibold` : "text-fg hover:bg-raise",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 tablet:flex-initial tablet:gap-2">
-            {/* Les rubriques hors de la barre d'onglets (§ 10.3) restent à portée de doigt. */}
-            {items
-              .filter((item) => !item.mobile)
-              .map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-label={item.label}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                    className={cn(
-                      "inline-flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-raise desktop:hidden",
-                      isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB}` : "text-fg",
-                    )}
-                  >
-                    <Icon aria-hidden className="size-5" />
-                  </Link>
-                );
-              })}
-            <NotificationBell />
-            <SettingsMenu account={account} space={space} active={isActive("/reglages")} admin={admin} staff={staff} />
+            </nav>
+            <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 tablet:flex-initial tablet:gap-2">
+              {/* Les rubriques hors de la barre d'onglets (§ 10.3) restent à portée de doigt. */}
+              {items
+                .filter((item) => !item.mobile)
+                .map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      data-feedback="select"
+                      aria-label={item.label}
+                      aria-current={isActive(item.href) ? "page" : undefined}
+                      className={cn(
+                        "inline-flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-raise desktop:hidden",
+                        isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB}` : "text-fg",
+                      )}
+                    >
+                      <Icon aria-hidden className="size-5" />
+                    </Link>
+                  );
+                })}
+              <NotificationBell />
+              <SettingsMenu
+                account={account}
+                space={space}
+                active={isActive("/reglages")}
+                admin={admin}
+                staff={staff}
+              />
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </Stay>
 
       <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">
         {/* Dans la démonstration, le bandeau passe devant tout : on sait où l'on est et comment en sortir. */}
@@ -220,45 +195,49 @@ export const AppShell = ({
             </Link>
           </p>
         ) : null}
-        {/* Le contenu d'abord, l'athlète vient pour sa séance : les autres bandeaux passent dessous. */}
-        {children}
+        {/* Le contenu d'abord, l'athlète vient pour sa séance : les autres bandeaux passent dessous. D'une page à
+            l'autre, il s'efface puis la page suivante monte à sa place (globals.css, « Transitions de page »). */}
+        <RouteTransition className="flex flex-col gap-4">{children}</RouteTransition>
         <UpdateWatcher unseen={unseenRelease} />
         <InstallBanner />
         {askSatisfaction && !space.isDemo ? <SatisfactionQuestion /> : null}
       </main>
 
-      <nav
-        aria-label={w.shell.mainNav}
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-30 flex justify-around gap-1 px-1 pb-[env(safe-area-inset-bottom)] pt-1 desktop:hidden",
-          barClass,
-        )}
-      >
-        {items
-          .filter((item) => item.mobile)
-          .map((item) => {
-            const active = isActive(item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[12px] leading-none no-underline",
-                  active
-                    ? `${selectedClass} ${ACTIVE_TAB} font-semibold`
-                    : work
-                      ? "font-medium text-fg"
-                      : "font-medium text-fg-muted",
-                )}
-              >
-                <Icon aria-hidden className="size-6" strokeWidth={2} />
-                {item.label}
-              </Link>
-            );
-          })}
-      </nav>
+      <Stay name="app-tabs">
+        <nav
+          aria-label={w.shell.mainNav}
+          className={cn(
+            "fixed inset-x-0 bottom-0 z-30 flex justify-around gap-1 px-1 pb-[env(safe-area-inset-bottom)] pt-1 desktop:hidden",
+            barClass,
+          )}
+        >
+          {items
+            .filter((item) => item.mobile)
+            .map((item) => {
+              const active = isActive(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  data-feedback="select"
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[12px] leading-none no-underline",
+                    active
+                      ? `${selectedClass} ${ACTIVE_TAB} font-semibold`
+                      : work
+                        ? "font-medium text-fg"
+                        : "font-medium text-fg-muted",
+                  )}
+                >
+                  <Icon aria-hidden className="size-6" strokeWidth={2} />
+                  {item.label}
+                </Link>
+              );
+            })}
+        </nav>
+      </Stay>
     </div>
   );
 };

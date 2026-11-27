@@ -1,10 +1,18 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import type { FeedbackCue } from "@tartan/design-tokens";
 import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
+// La pression se sent : le bouton s'enfonce un instant (sauf en mouvement réduit) et joue son retour
+// (`lib/feedback.ts`, « tap » par défaut, « off » pour se taire).
+const press =
+  "transition-[color,background-color,border-color,transform] duration-(--duration-instant) ease-reception active:scale-[0.97] motion-reduce:active:scale-100";
+
+type Feedback = { feedback?: FeedbackCue | "off" };
+
 const variants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold transition-colors disabled:opacity-50 no-underline",
+  `inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold disabled:opacity-50 no-underline ${press}`,
   {
     variants: {
       variant: {
@@ -29,13 +37,14 @@ const variants = cva(
   },
 );
 
-type Props = ComponentProps<"button"> & VariantProps<typeof variants> & { asChild?: boolean };
+type Props = ComponentProps<"button"> & VariantProps<typeof variants> & { asChild?: boolean } & Feedback;
 
-export const Button = ({ className, variant, size, asChild, type, ...props }: Props) => {
+export const Button = ({ className, variant, size, asChild, type, feedback = "tap", ...props }: Props) => {
   const Comp = asChild ? Slot.Root : "button";
   return (
     <Comp
       type={asChild ? undefined : (type ?? "button")}
+      data-feedback={feedback}
       className={cn(variants({ variant, size }), className)}
       {...props}
     />
@@ -43,7 +52,7 @@ export const Button = ({ className, variant, size, asChild, type, ...props }: Pr
 };
 
 const iconVariants = cva(
-  "inline-flex size-11 shrink-0 items-center justify-center transition-colors disabled:opacity-50",
+  `inline-flex size-11 shrink-0 items-center justify-center disabled:opacity-50 ${press}`,
   {
     variants: {
       tone: {
@@ -62,7 +71,15 @@ export const IconButton = ({
   label,
   tone,
   className,
+  feedback = "tap",
   ...props
-}: ComponentProps<"button"> & VariantProps<typeof iconVariants> & { label: string }) => (
-  <button type="button" aria-label={label} title={label} className={cn(iconVariants({ tone }), className)} {...props} />
+}: ComponentProps<"button"> & VariantProps<typeof iconVariants> & { label: string } & Feedback) => (
+  <button
+    type="button"
+    aria-label={label}
+    title={label}
+    data-feedback={feedback}
+    className={cn(iconVariants({ tone }), className)}
+    {...props}
+  />
 );

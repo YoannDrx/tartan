@@ -6,7 +6,7 @@ import { PresetArt, presetLabel } from "./avatar-art";
 import { textStyles, usePalette } from "./theme";
 
 // Les tailles des avatars, les mêmes que sur le web. Un avatar touchable se pose dans une cible d'au moins 44 points.
-export const AVATAR_SIZES = { xs: 24, sm: 32, md: 40, lg: 64, xl: 96, header: 80, portrait: 384 } as const;
+export const AVATAR_SIZES = { xs: 24, sm: 32, md: 40, lg: 64, xl: 96, header: 48, portrait: 384 } as const;
 export type AvatarSize = keyof typeof AVATAR_SIZES;
 
 export type AvatarPerson = {

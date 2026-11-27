@@ -7,4 +7,10 @@ export const shell = {
   backToSite: "Tartan, retour au site",
   // La page introuvable.
   backHome: "Revenir à l'accueil",
+  // Le sélecteur d'espace de l'en-tête : un compte coach chez lui et athlète ailleurs passe de l'un à l'autre.
+  spaces: {
+    title: "Mes espaces",
+    current: "Espace ouvert",
+    opening: "Ouverture…",
+  },
 } as const;

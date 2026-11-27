@@ -30,11 +30,12 @@ export const SettingsButton = () => {
       accessibilityLabel={m.mobile.a11y.openSettings}
       onPress={() => router.push("/settings")}
       style={({ pressed }) => ({
-        width: 80,
-        height: 80,
+        width: 52,
+        height: 52,
         alignItems: "center",
         justifyContent: "center",
         opacity: pressed ? 0.7 : 1,
+        transform: [{ scale: pressed ? 0.94 : 1 }],
       })}
     >
       <Avatar

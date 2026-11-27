@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectNoHorizontalScroll } from "./helpers";
+import { chooseSpace, createCoachSpace, expectNoHorizontalScroll, spaceSwitcher } from "./helpers";
 import { groupLink } from "./journeys";
 
 // T13 : un même compte, coach dans son espace et athlète dans celui d'un autre coach. Le choix de l'espace vit dans
@@ -35,33 +35,49 @@ test("changer d'espace : rôle et données de chaque espace, aucune fuite, cooki
   const joined = me.spaces.find((space) => space.role === "athlete")!;
   expect(joined.organizationName).toBe("Coaching Voisin");
   const cookie = async () => (await page.context().cookies()).find((c) => c.name === SPACE_COOKIE)?.value;
-  const brand = page.getByRole("link", { name: m.brand.coach });
+  // Plusieurs espaces : la marque « Tartan Coach » ouvre la liste des espaces.
+  const brand = spaceSwitcher(page);
 
   // Vers son propre espace : le suivi du coach, rien de l'espace du voisin.
   await page.goto("/accueil");
-  await expect(brand).toBeVisible();
+  await expect(brand.getByRole("img", { name: m.roles.coach })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
   expect(await cookie()).toBe(own.organizationId);
 
-  // Audit G6 : à 390 px, le sélecteur garde le nom de l'espace lisible et une cible de 44 px, pas un chevron seul.
+  // Audit G6 : à 390 px, l'en-tête tient sur une ligne ; la marque garde le nom de l'espace lisible et une cible de
+  // 44 px au moins.
   const viewport = page.viewportSize();
   await page.setViewportSize({ width: 390, height: 844 });
-  const name = page.getByRole("combobox", { name: m.settings.switchSpace });
-  await expect(name).toBeVisible();
-  await expect(name).toHaveValue(own.organizationId);
-  const nameBox = (await name.boundingBox())!;
-  expect(nameBox.width).toBeGreaterThanOrEqual(56);
+  await expect(brand).toBeVisible();
+  await expect(page.getByTestId("space-name")).toHaveText(own.organizationName);
   const target = (await brand.boundingBox())!;
   expect(target.height).toBeGreaterThanOrEqual(44);
   expect(target.width).toBeGreaterThanOrEqual(96);
   expect(target.x + target.width).toBeLessThanOrEqual(390);
+  // Une seule ligne : l'ancien sélecteur ajoutait un second rang, au-delà de 110 px.
+  expect((await page.locator("header.app-header").boundingBox())!.height).toBeLessThanOrEqual(80);
   await expectNoHorizontalScroll(page);
   if (viewport) await page.setViewportSize(viewport);
   await expect(page.getByText("Coaching Voisin", { exact: true })).toHaveCount(0);
 
-  // Vers l'espace où il est athlète : l'accueil de l'athlète, et le suivi lui est fermé.
-  await name.selectOption(joined.organizationId);
+  // La liste : une carte par espace, celle de l'espace ouvert cochée.
+  await brand.click();
+  await expect(page.getByRole("menuitemradio")).toHaveCount(2);
+  await expect(page.getByRole("menuitemradio", { name: own.organizationName })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
+  // Le menu sort en fondu : on le laisse partir avant de le rouvrir.
+  await expect(page.getByRole("menu")).toBeHidden();
+
+  // Vers l'espace où il est athlète : l'accueil de l'athlète, sans passer par l'accueil commun, et le suivi lui est
+  // fermé.
+  const visited: string[] = [];
+  page.on("framenavigated", (frame) => {
+    if (frame === page.mainFrame()) visited.push(new URL(frame.url()).pathname);
+  });
+  await chooseSpace(page, joined.organizationName);
   await expect(page.getByRole("heading", { name: /^Salut/ })).toBeVisible();
+  await expect(brand.getByRole("img", { name: m.roles.athlete })).toBeVisible();
+  expect(visited).not.toContain("/accueil");
   expect(await cookie()).toBe(joined.organizationId);
   await page.goto("/suivi");
   await expect(page).toHaveURL(/\/aujourdhui/);
@@ -79,7 +95,7 @@ test("changer d'espace : rôle et données de chaque espace, aucune fuite, cooki
   const response = await page.goto("/accueil");
   expect(response?.status()).toBeLessThan(400);
   await expect(page).toHaveURL(/\/(aujourdhui|suivi)/);
-  await expect(page.getByRole("link", { name: m.brand.athlete })).toBeVisible();
+  await expect(brand.getByRole("img", { name: m.roles.athlete })).toBeVisible();
   await expect(page.getByText("Coaching Tiers", { exact: true })).toHaveCount(0);
   expect((await page.request.get(`/api/v1/orgs/${forged}/athletes`)).status()).toBe(403);
   await Promise.all([otherContext.close(), third.close()]);

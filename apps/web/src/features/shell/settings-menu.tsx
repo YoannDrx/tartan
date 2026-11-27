@@ -64,12 +64,12 @@ export const SettingsMenu = ({
           aria-label={m.nav.reglages}
           data-testid="account-menu"
           className={cn(
-            "relative inline-flex size-16 shrink-0 items-center justify-center rounded-full data-[state=open]:bg-raise",
+            "relative inline-flex size-12 shrink-0 items-center justify-center rounded-full data-[state=open]:bg-raise",
             active ? "bg-accent text-on-accent" : "text-fg hover:bg-raise",
           )}
         >
-          <Avatar person={person} size="lg" />
-          <span className="absolute bottom-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-card text-fg">
+          <Avatar person={person} size="header" />
+          <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-card text-fg shadow-float">
             <Settings aria-hidden className="size-3" />
           </span>
         </DropdownMenu.Trigger>

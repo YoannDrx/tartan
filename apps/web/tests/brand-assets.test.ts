@@ -26,6 +26,10 @@ const PNGS: [file: string, width: number, height: number, alpha: boolean][] = [
   [`${web}/brand/logo-stripe.png`, 512, 134, true],
   [`${mobile}/wordmark-light.png`, 816, 214, true],
   [`${mobile}/wordmark-dark.png`, 816, 214, true],
+  [`${mobile}/role-coach-light.png`, 787, 224, true],
+  [`${mobile}/role-coach-dark.png`, 787, 224, true],
+  [`${mobile}/role-athlete-light.png`, 902, 224, true],
+  [`${mobile}/role-athlete-dark.png`, 902, 224, true],
   [`${web}/brand/og.png`, 1200, 630, false],
   [`${mobile}/icon-ios.png`, 1024, 1024, false],
   [`${mobile}/icon-ios-dark.png`, 1024, 1024, true],
@@ -49,6 +53,11 @@ const SVGS: [file: string, viewBox: string][] = [
   // Le mot « Tartan » de l'en-tête du site : `.wordmark` (globals.css) reprend ce rapport, 408 sur 107.
   [`${web}/brand/wordmark-letters.svg`, "3 -105 408 107"],
   [`${web}/brand/wordmark-line.svg`, "3 -105 408 107"],
+  // Les mots « Coach » et « Athlète » à côté de la marque : `.role-wordmark` (globals.css) reprend ces rapports.
+  [`${web}/brand/role-coach-letters.svg`, "3 -105 376 107"],
+  [`${web}/brand/role-coach-line.svg`, "3 -105 376 107"],
+  [`${web}/brand/role-athlete-letters.svg`, "3 -105 431 107"],
+  [`${web}/brand/role-athlete-line.svg`, "3 -105 431 107"],
 ];
 
 describe("fichiers du logo", () => {

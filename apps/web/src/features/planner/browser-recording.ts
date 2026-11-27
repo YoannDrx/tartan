@@ -1,3 +1,5 @@
+import { holdFeedback } from "@/lib/feedback";
+
 export const WEB_DICTATION_MAX_BYTES = 3 * 1024 * 1024;
 export const WEB_DICTATION_SECONDS = 179;
 export type BrowserRecordingState = "idle" | "starting" | "recording" | "finishing";
@@ -29,6 +31,8 @@ type Capture = {
   chunks: Blob[];
   bytes: number;
   timer?: ReturnType<typeof setTimeout>;
+  // Les sons de l'app se taisent pendant l'enregistrement : ils finiraient dans la dictée.
+  silence?: () => void;
 };
 
 // Aucun fichier, URL de blob, stockage local ou envoi ici. Le composant reçoit
@@ -47,6 +51,7 @@ export class BrowserPlannerRecording {
   private release(capture: Capture) {
     if (capture.closed) return;
     capture.closed = true;
+    capture.silence?.();
     clearTimeout(capture.timer);
     const recorder = capture.recorder;
     if (recorder) {
@@ -79,7 +84,7 @@ export class BrowserPlannerRecording {
 
   async start() {
     if (this.capture) return;
-    const capture: Capture = { closed: false, finishing: false, chunks: [], bytes: 0 };
+    const capture: Capture = { closed: false, finishing: false, chunks: [], bytes: 0, silence: holdFeedback() };
     this.capture = capture;
     this.callbacks.onState("starting");
     try {

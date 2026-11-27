@@ -111,6 +111,15 @@ export const signOutFromSettings = async (page: Page) => {
   await expect.poll(async () => (await page.request.get("/api/v1/me")).status()).toBe(401);
 };
 
+// Le sélecteur d'espace de l'en-tête, quand le compte en a plusieurs : la marque ouvre la liste des espaces.
+export const spaceSwitcher = (page: Page) => page.getByRole("button", { name: m.settings.switchSpace });
+
+// Change d'espace par l'en-tête : une carte par espace, nommée par le club.
+export const chooseSpace = async (page: Page, organizationName: string) => {
+  await spaceSwitcher(page).click();
+  await page.getByRole("menuitemradio", { name: organizationName }).click();
+};
+
 // L'onboarding du coach se fait en trois temps : chaque « Continuer » valide le temps affiché.
 export const nextOnboardingStep = async (page: Page) =>
   page.getByRole("button", { name: m.onboarding.next, exact: true }).click();

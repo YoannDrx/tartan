@@ -5,7 +5,7 @@ import { useActiveSpace } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
 import { BarGlyph } from "../../src/ui/glyphs";
 import { Calendar, Dumbbell, Home, Megaphone, Pencil, TrendingUp } from "../../src/ui/icons";
-import { useTabBarOptions, useWorldScene } from "../../src/ui/tabs";
+import { tabListeners, useTabBarOptions, useWorldScene } from "../../src/ui/tabs";
 
 export default function AthleteLayout() {
   const status = useSession((s) => s.status);
@@ -17,7 +17,7 @@ export default function AthleteLayout() {
   // L'athlète autonome, dans son espace personnel : ses rubriques d'athlète, plus « Planifier ». Pas d'annonces.
   const personal = isPersonalSpace(space);
   return (
-    <Tabs screenOptions={options}>
+    <Tabs screenOptions={options} screenListeners={tabListeners}>
       <Tabs.Screen
         name="today"
         options={{

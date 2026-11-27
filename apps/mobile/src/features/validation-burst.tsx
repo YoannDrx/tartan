@@ -2,6 +2,7 @@ import { m } from "@tartan/i18n";
 import { T } from "../ui/primitives";
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
+import { playFeedback } from "../lib/feedback";
 import { Check } from "../ui/icons";
 import { Jumper } from "../ui/jumper";
 import { color, scene } from "../ui/theme";
@@ -87,6 +88,9 @@ const Confetto = ({ piece, clock }: { piece: Piece; clock: Animated.Value }) => 
 export const ValidationBurst = ({ recordCount = 0 }: { recordCount?: number }) => {
   const clock = useRef(new Animated.Value(0)).current;
   const [playing, setPlaying] = useState(false);
+
+  // L'arpège et le retour haptique de succès accompagnent la séance validée, mouvement réduit compris.
+  useEffect(() => playFeedback("success"), []);
 
   useEffect(() => {
     let cancelled = false;

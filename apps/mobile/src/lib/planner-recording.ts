@@ -8,6 +8,7 @@ import {
 } from "expo-audio";
 import { File } from "expo-file-system";
 import { AppState, Platform } from "react-native";
+import { holdFeedback } from "./feedback-hold";
 import { claimPlannerRecorder } from "./planner-recording-files";
 import {
   PLANNER_AUDIO_EXTENSION,
@@ -54,6 +55,8 @@ export function createNativeDictationRecorder(onPermissionDialog: (open: boolean
   let uri: string | null = null;
   let audioModeChanged = false;
   let disposed = false;
+  // Les sons de l'app se taisent pendant la dictée ; ils reprennent une fois l'enregistrement libéré.
+  const silence = holdFeedback();
   return {
     prepare: async (signal) => {
       if (signal.aborted) throw new Error("dictation_cancelled");
@@ -137,6 +140,7 @@ export function createNativeDictationRecorder(onPermissionDialog: (open: boolean
         }
       } finally {
         releaseClaim();
+        silence();
       }
       if (failed) throw new Error("dictation_cleanup_failed");
     },

@@ -24,3 +24,16 @@ export const Logo = ({ height = 32, onDark = false }: { height?: number; onDark?
 export const Wordmark = ({ className }: { className?: string }) => (
   <span role="img" aria-label={w.shell.brand} className={cn("wordmark text-on-page", className)} />
 );
+
+// « Coach » ou « Athlète » écrit comme « Tartan » : même police, même hauteur, l'initiale dessinée en couloirs comme
+// le T. Ses masques viennent aussi de `scripts/build-logo.mjs` (« /brand/role-coach-letters.svg »,
+// « /brand/role-athlete-letters.svg »), peints par `.role-wordmark-*` (globals.css).
+export const RoleWordmark = ({
+  role,
+  label,
+  className,
+}: {
+  role: "coach" | "athlete";
+  label: string;
+  className?: string;
+}) => <span role="img" aria-label={label} className={cn("wordmark", `role-wordmark-${role}`, className)} />;

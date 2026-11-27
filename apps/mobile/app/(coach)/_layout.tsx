@@ -4,7 +4,7 @@ import { Redirect, Tabs } from "expo-router";
 import { useActiveSpace } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
 import { BarChart, Calendar, Library, Megaphone, Video } from "../../src/ui/icons";
-import { useTabBarOptions, useWorldScene } from "../../src/ui/tabs";
+import { tabListeners, useTabBarOptions, useWorldScene } from "../../src/ui/tabs";
 
 export default function CoachLayout() {
   const status = useSession((s) => s.status);
@@ -14,7 +14,7 @@ export default function CoachLayout() {
   if (status !== "signed-in") return <Redirect href="/sign-in" />;
   if (me.data && (!space || !isStaff(space.role))) return <Redirect href="/" />;
   return (
-    <Tabs screenOptions={options}>
+    <Tabs screenOptions={options} screenListeners={tabListeners}>
       <Tabs.Screen
         name="tracking"
         options={{

@@ -2,7 +2,14 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectAccessible, expectNoHorizontalScroll, uniqueEmail } from "./helpers";
+import {
+  chooseSpace,
+  createCoachSpace,
+  expectAccessible,
+  expectNoHorizontalScroll,
+  spaceSwitcher,
+  uniqueEmail,
+} from "./helpers";
 import { sql } from "./personas";
 
 // T19 : les pages qui n'avaient aucun parcours, avec de vraies données. Le compte est rempli par le script de
@@ -44,7 +51,7 @@ test("pages remplies : mes vidéos, une vidéo, progrès, actualisation des char
   await createCoachSpace(page, "Rempli", email);
   fill(email);
 
-  type Space = { organizationId: string; role: string };
+  type Space = { organizationId: string; organizationName: string; role: string };
   const me = (await (await page.request.get("/api/v1/me")).json()) as { id: string; spaces: Space[] };
   const own = me.spaces.find((space) => space.role === "owner")!;
   const club = me.spaces.find((space) => space.role === "athlete")!;
@@ -73,8 +80,7 @@ test("pages remplies : mes vidéos, une vidéo, progrès, actualisation des char
 
   // Côté athlète, dans le club.
   await page.goto("/reglages");
-  const switchSpace = page.getByRole("combobox", { name: m.settings.switchSpace });
-  await switchSpace.selectOption(club.organizationId);
+  await chooseSpace(page, club.organizationName);
   await expect(page.getByRole("heading", { name: /^Salut/ })).toBeVisible();
 
   await page.goto("/mes-videos");
@@ -92,8 +98,8 @@ test("pages remplies : mes vidéos, une vidéo, progrès, actualisation des char
   await check(page);
 
   // Côté coach, dans son espace : la page d'actualisation des charges d'une séance publiée.
-  await switchSpace.selectOption(own.organizationId);
-  await expect(page.getByRole("link", { name: m.brand.coach })).toBeVisible();
+  await chooseSpace(page, own.organizationName);
+  await expect(spaceSwitcher(page).getByRole("img", { name: m.roles.coach })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
   const sessionId = await sql(async (client) => {
     const { rows } = await client.query<{ id: string }>(

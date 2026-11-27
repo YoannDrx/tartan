@@ -9,6 +9,8 @@ const SIZES = {
   xs: { box: "size-6", text: "text-[12px]", px: 24 },
   sm: { box: "size-8", text: "text-[12px]", px: 32 },
   md: { box: "size-10", text: "text-[14px]", px: 40 },
+  // L'avatar du compte, dans l'en-tête : assez grand pour se reconnaître, sans dicter la hauteur de la barre.
+  header: { box: "size-11", text: "text-[16px]", px: 44 },
   lg: { box: "size-16", text: "text-[22px]", px: 64 },
   portrait: { box: "aspect-square w-full max-w-96", text: "text-6xl", px: 384 },
   xl: { box: "size-24", text: "text-[32px]", px: 96 },

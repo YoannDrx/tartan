@@ -18,7 +18,7 @@ import { capitalize, formatDayMonth, m } from "@tartan/i18n";
 import { useEvent, useEventListener } from "expo";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   AccessibilityActionEvent,
   AccessibilityInfo,
@@ -62,6 +62,7 @@ import {
   VideoDrawings,
   describeDrawing,
 } from "../../src/features/video-drawings";
+import { holdFeedback } from "../../src/lib/feedback-hold";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { color, radius, scene, space } from "../../src/ui/theme";
@@ -235,6 +236,8 @@ const Player = ({
     p.play();
   });
   const { isPlaying } = useEvent(player, "playingChange", { isPlaying: player.playing });
+  // Pendant la lecture, les sons de l'app se taisent : seul le retour haptique reste.
+  useEffect(() => (isPlaying ? holdFeedback() : undefined), [isPlaying]);
   const { status } = useEvent(player, "statusChange", { status: player.status });
   useEventListener(player, "statusChange", ({ status: next }) => {
     if (next === "error") onSourceError();
