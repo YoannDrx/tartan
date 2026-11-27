@@ -74,6 +74,9 @@ it("arrêt global, absence de clé et durée excessive coupent tout appel", asyn
   const fetcher = vi.fn<typeof fetch>();
   settings.AI_PLANNER_ENABLED = "false";
   await expect(openAiTranscriptionProvider(fetcher).transcribe(audio)).rejects.toMatchObject({ code: "disabled" });
+  await expect(openAiTranscriptionProvider(fetcher, "session").transcribe(audio)).rejects.toMatchObject({
+    code: "disabled",
+  });
   settings.AI_PLANNER_ENABLED = "true";
   settings.OPEN_AI_API_KEY = "";
   await expect(openAiTranscriptionProvider(fetcher).transcribe(audio)).rejects.toMatchObject({ code: "configuration" });
