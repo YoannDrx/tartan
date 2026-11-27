@@ -5,6 +5,7 @@ import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { AccessibilityInfo, ScrollView, View } from "react-native";
+import { FamilyBand, familySections } from "../../src/features/family-band";
 import { ExerciseRow, ExerciseVideo, parseMedia } from "../../src/features/media";
 import { MovementGuide } from "../../src/features/exercise-guide";
 import { QuickExerciseCreate } from "../../src/features/exercise-finder";
@@ -166,6 +167,51 @@ export default function Exercises() {
       : filtered;
   }, [exercises.data, search, category, family, filter, lists.lists]);
 
+  // Toute la bibliothèque, ou une seule famille : la liste se range par famille, chacune sous son bandeau coloré.
+  const sections = filter.kind === "all" && !category ? familySections(list, familyOf) : null;
+  const counts = useMemo(() => {
+    const total = new Map<ExerciseFamily, number>();
+    for (const exercise of list) total.set(familyOf(exercise), (total.get(familyOf(exercise)) ?? 0) + 1);
+    return total;
+  }, [list]);
+
+  const renderRow = (exercise: ExerciseSummary, index: number, position: number) => (
+    <View key={exercise.id}>
+      {position > 0 ? <Divider /> : null}
+      <ExerciseRow
+        family={familyOf(exercise)}
+        ordinal={index + 1}
+        testID={`exercise-row-${exercise.id}`}
+        name={exercise.name}
+        category={exercise.category}
+        summary={[
+          formatPrescription(exercise.defaultPrescription),
+          filmingEnabled && filming.data && (notes.get(exercise.id)?.filmed ? m.filming.filmed : m.filming.pending),
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+        hasVideo={
+          Boolean(parseMedia(exercise.media)) ||
+          Boolean(exercise.guide?.illustration.videos?.some((video) => video.streamUrl))
+        }
+        onPress={() => {
+          setOpenId(exercise.id);
+          setPanel("sheet");
+        }}
+        accessory={
+          canEdit ? (
+            <FavoriteToggle
+              testID={`exercise-star-${exercise.id}`}
+              name={exercise.name}
+              active={lists.isFavorite(exercise.id)}
+              onToggle={() => void lists.toggleFavorite(exercise)}
+            />
+          ) : undefined
+        }
+      />
+    </View>
+  );
+
   const emptyFilter =
     filter.kind === "favorites"
       ? t.lists.favoritesEmpty
@@ -179,6 +225,8 @@ export default function Exercises() {
     <TabScreen
       world="work"
       title={m.exercises.title}
+      // Le contenu avant la liste forme un seul enfant : chaque bandeau de famille vient ensuite, suivi de ses fiches.
+      stickyChildren={sections?.map((_, index) => 1 + 2 * index)}
       refreshing={exercises.isRefetching}
       onRefresh={() => {
         void exercises.refetch();
@@ -186,154 +234,129 @@ export default function Exercises() {
         if (filmingEnabled) void filming.refetch();
       }}
     >
-      {active?.role === "athlete" &&
-        me.data?.spaces.some((s) => s.kind === "personal") &&
-        me.data.spaces.some((s) => s.kind !== "personal" && s.role === "athlete") && (
-          <Button
-            variant="secondary"
-            label={active.kind === "personal" ? m.brand.clubLibrary : m.brand.notebook}
-            onPress={() => router.setParams({ carnet: active.kind === "personal" ? "0" : "1" })}
-          />
-        )}
-      {canEdit && exercises.data ? (
-        <Button
-          testID="exercise-new"
-          label={m.exercises.new}
-          icon={Plus}
-          onPress={() => router.push("/exercise/new")}
-        />
-      ) : null}
-      {active?.progressionEnabled ? (
-        <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
-      ) : null}
-      {exercises.data && exercises.data.length > 0 ? (
-        <>
-          <Field
-            label={m.mobile.exercises.searchLabel}
-            hideLabel
-            placeholder={m.mobile.exercises.searchLabel}
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="search"
-            autoCorrect={false}
-          />
-          {canEdit ? (
-            <View style={{ gap: space.sm }}>
-              <LibraryFilters filter={filter} lists={lists.lists} onChange={setChosen} />
-              <Button
-                testID="exercise-list-new"
-                compact
-                variant="ghost"
-                icon={Plus}
-                label={t.lists.new}
-                style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
-                onPress={() => setNewList(true)}
-              />
-            </View>
-          ) : null}
-          {shownList && !shownList.mine && shownList.ownerName ? (
-            <T variant="small" tone="muted" testID="exercise-list-readonly">
-              {t.lists.readOnly(shownList.ownerName)}
-            </T>
-          ) : null}
-          {createList ? (
+      <View style={{ gap: space.lg }}>
+        {active?.role === "athlete" &&
+          me.data?.spaces.some((s) => s.kind === "personal") &&
+          me.data.spaces.some((s) => s.kind !== "personal" && s.role === "athlete") && (
             <Button
-              testID="exercise-list-create-exercise"
               variant="secondary"
-              icon={Plus}
-              label={t.lists.createInList}
-              onPress={() => setCreating(true)}
+              label={active.kind === "personal" ? m.brand.clubLibrary : m.brand.notebook}
+              onPress={() => router.setParams({ carnet: active.kind === "personal" ? "0" : "1" })}
             />
-          ) : null}
-          {categories.length > 1 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-              <Chip label={m.mobile.exercises.all} active={!category} onPress={() => setCategory(null)} />
-              {categories.map((c) => (
-                <Chip
-                  key={c}
-                  label={(m.exerciseCategory as Record<string, string>)[c] ?? c}
-                  active={category === c}
-                  onPress={() => setCategory(c)}
+          )}
+        {canEdit && exercises.data ? (
+          <Button
+            testID="exercise-new"
+            label={m.exercises.new}
+            icon={Plus}
+            onPress={() => router.push("/exercise/new")}
+          />
+        ) : null}
+        {active?.progressionEnabled ? (
+          <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
+        ) : null}
+        {exercises.data && exercises.data.length > 0 ? (
+          <>
+            <Field
+              label={m.mobile.exercises.searchLabel}
+              hideLabel
+              placeholder={m.mobile.exercises.searchLabel}
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {canEdit ? (
+              <View style={{ gap: space.sm }}>
+                <LibraryFilters filter={filter} lists={lists.lists} onChange={setChosen} />
+                <Button
+                  testID="exercise-list-new"
+                  compact
+                  variant="ghost"
+                  icon={Plus}
+                  label={t.lists.new}
+                  style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
+                  onPress={() => setNewList(true)}
                 />
-              ))}
-            </ScrollView>
-          ) : null}
-          {families.length > 0 ? (
-            <View style={{ gap: space.sm }}>
-              <T variant="smallStrong">{m.exerciseGuide.family}</T>
+              </View>
+            ) : null}
+            {shownList && !shownList.mine && shownList.ownerName ? (
+              <T variant="small" tone="muted" testID="exercise-list-readonly">
+                {t.lists.readOnly(shownList.ownerName)}
+              </T>
+            ) : null}
+            {createList ? (
+              <Button
+                testID="exercise-list-create-exercise"
+                variant="secondary"
+                icon={Plus}
+                label={t.lists.createInList}
+                onPress={() => setCreating(true)}
+              />
+            ) : null}
+            {categories.length > 1 ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-                <Chip label={m.exerciseGuide.allFamilies} active={!family} onPress={() => setFamily(null)} />
-                {families.map((value) => (
+                <Chip label={m.mobile.exercises.all} active={!category} onPress={() => setCategory(null)} />
+                {categories.map((c) => (
                   <Chip
-                    key={value}
-                    label={m.exerciseGuide.families[value]}
-                    active={family === value}
-                    onPress={() => setFamily(value)}
+                    key={c}
+                    label={(m.exerciseCategory as Record<string, string>)[c] ?? c}
+                    active={category === c}
+                    onPress={() => setCategory(c)}
                   />
                 ))}
               </ScrollView>
-            </View>
-          ) : null}
-          <T variant="small" tone="muted" accessibilityLiveRegion="polite">
-            {t.results(list.length)}
-            {filmingEnabled &&
-              filming.data &&
-              ` · ${m.filming.progress(list.filter((exercise) => notes.get(exercise.id)?.filmed).length, list.length)}`}
-          </T>
-        </>
-      ) : null}
-      {exercises.isPending ? <LoadingState /> : null}
-      {exercises.isError && !exercises.data ? (
-        <ErrorState error={exercises.error} onRetry={() => void exercises.refetch()} />
-      ) : null}
-      {exercises.data?.length === 0 ? <EmptyState body={m.exercises.empty} /> : null}
-      {exercises.data && exercises.data.length > 0 && list.length === 0 ? (
-        <T tone="muted">{emptyFilter && !search.trim() ? emptyFilter : m.mobile.exercises.noResult}</T>
-      ) : null}
-      {list.length > 0 ? (
-        <ListSurface>
-          {list.map((e, i) => (
-            <View key={e.id}>
-              {i > 0 ? <Divider /> : null}
-              {filter.kind === "all" && !category && !family && (!i || familyOf(list[i - 1]!) !== familyOf(e)) && (
-                <T accessibilityRole="header" variant="smallStrong" style={{ padding: space.md }}>
-                  {m.exerciseGuide.families[familyOf(e)]}
-                </T>
-              )}
-              <ExerciseRow
-                ordinal={i + 1}
-                testID={`exercise-row-${e.id}`}
-                name={e.name}
-                category={e.category}
-                summary={[
-                  formatPrescription(e.defaultPrescription),
-                  filmingEnabled && filming.data && (notes.get(e.id)?.filmed ? m.filming.filmed : m.filming.pending),
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-                hasVideo={
-                  Boolean(parseMedia(e.media)) ||
-                  Boolean(e.guide?.illustration.videos?.some((video) => video.streamUrl))
-                }
-                onPress={() => {
-                  setOpenId(e.id);
-                  setPanel("sheet");
-                }}
-                accessory={
-                  canEdit ? (
-                    <FavoriteToggle
-                      testID={`exercise-star-${e.id}`}
-                      name={e.name}
-                      active={lists.isFavorite(e.id)}
-                      onToggle={() => void lists.toggleFavorite(e)}
+            ) : null}
+            {families.length > 0 ? (
+              <View style={{ gap: space.sm }}>
+                <T variant="smallStrong">{m.exerciseGuide.family}</T>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
+                  <Chip label={m.exerciseGuide.allFamilies} active={!family} onPress={() => setFamily(null)} />
+                  {families.map((value) => (
+                    <Chip
+                      key={value}
+                      label={m.exerciseGuide.families[value]}
+                      active={family === value}
+                      onPress={() => setFamily(value)}
                     />
-                  ) : undefined
-                }
-              />
-            </View>
-          ))}
-        </ListSurface>
-      ) : null}
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+            <T variant="small" tone="muted" accessibilityLiveRegion="polite">
+              {t.results(list.length)}
+              {filmingEnabled &&
+                filming.data &&
+                ` · ${m.filming.progress(list.filter((exercise) => notes.get(exercise.id)?.filmed).length, list.length)}`}
+            </T>
+          </>
+        ) : null}
+        {exercises.isPending ? <LoadingState /> : null}
+        {exercises.isError && !exercises.data ? (
+          <ErrorState error={exercises.error} onRetry={() => void exercises.refetch()} />
+        ) : null}
+        {exercises.data?.length === 0 ? <EmptyState body={m.exercises.empty} /> : null}
+        {exercises.data && exercises.data.length > 0 && list.length === 0 ? (
+          <T tone="muted">{emptyFilter && !search.trim() ? emptyFilter : m.mobile.exercises.noResult}</T>
+        ) : null}
+      </View>
+      {sections
+        ? sections.flatMap((section) => [
+            <FamilyBand
+              key={`band-${section.family}`}
+              family={section.family}
+              count={counts.get(section.family) ?? 0}
+            />,
+            <ListSurface
+              key={`rows-${section.family}`}
+              style={{ marginTop: -space.lg, borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+            >
+              {section.items.map(({ item, index }, position) => renderRow(item, index, position))}
+            </ListSurface>,
+          ])
+        : list.length > 0 && (
+            <ListSurface>{list.map((exercise, index) => renderRow(exercise, index, index))}</ListSurface>
+          )}
       {open && panel ? (
         <Sheet
           visible

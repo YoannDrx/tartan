@@ -106,6 +106,8 @@ type TabScreenProps = {
   refreshing?: boolean;
   onRefresh?: () => void;
   scrollProps?: ScrollViewProps;
+  // Les enfants qui restent collés en haut pendant le défilement, par leur rang parmi les enfants non vides.
+  stickyChildren?: number[];
 };
 
 // Écran d'onglet : accueil habituel, titre, contenu défilant, tirer pour actualiser.
@@ -117,6 +119,7 @@ const TabInner = ({
   refreshing,
   onRefresh,
   scrollProps,
+  stickyChildren,
 }: Omit<TabScreenProps, "world">) => {
   useSceneStatusBar();
   const router = useRouter();
@@ -223,6 +226,8 @@ const TabInner = ({
             />
           ) : undefined
         }
+        // Avant les enfants de l'écran : l'en-tête, la mise à jour s'il y en a une, l'état de synchronisation.
+        stickyHeaderIndices={stickyChildren?.map((index) => index + (update.data ? 3 : 2))}
         {...scrollProps}
       >
         {p.work ? <Scene scene="piste">{bandHeader}</Scene> : header}

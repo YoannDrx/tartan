@@ -43,8 +43,28 @@ test("listes du coach : favori, liste partagée, création dans la liste, séanc
   await page.getByRole("checkbox", { name: new RegExp(t.lists.share) }).check();
   await expect.poll(async () => (await lists()).find((list) => list.name === LIST)?.sharedWithCoaches).toBe(true);
 
-  // Depuis la bibliothèque : une étoile, et le rangement dans la liste.
+  // Toute la bibliothèque se range par famille : un bandeau coloré, son pictogramme et son nombre de fiches,
+  // qui reste sous l'en-tête pendant que sa section défile.
   await page.getByRole("button", { name: t.filters.all, exact: true }).click();
+  const strength = page.getByRole("region", {
+    name: new RegExp(`^${m.exerciseGuide.families.strength}\\s*\\d+ fiches$`),
+  });
+  const band = strength.getByRole("heading", { level: 2 });
+  await expect(band).toHaveCSS("position", "sticky");
+  await expect(band).toHaveAttribute("data-family", "strength");
+  await expect(strength.locator("[data-family='strength']").first()).toBeVisible();
+  const bandColor = await band.evaluate((element) => getComputedStyle(element).backgroundColor);
+  const sheetColor = await strength.evaluate((element) => getComputedStyle(element.parentElement!).backgroundColor);
+  expect(bandColor).not.toBe(sheetColor);
+  const firstRow = strength.getByRole("listitem").first();
+  await page.evaluate(() => window.scrollBy(0, 700));
+  await expect.poll(async () => (await firstRow.boundingBox())!.y).toBeLessThan((await band.boundingBox())!.y);
+  const header = await page.locator(".app-header").boundingBox();
+  expect(Math.abs((await band.boundingBox())!.y - (header!.y + header!.height))).toBeLessThan(2);
+  await expectAccessible(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
+
+  // Depuis la bibliothèque : une étoile, et le rangement dans la liste.
   await page.getByLabel(m.exercises.search, { exact: true }).fill("Goblet");
   const star = page.getByRole("button", { name: t.favorite.add("Goblet squat"), exact: true });
   await star.click();

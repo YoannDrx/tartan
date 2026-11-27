@@ -62,6 +62,13 @@ const activities = (palette: Record<string, { background: string; text: string }
       [`--activity-${key}-text`, value.text],
     ]),
   );
+const families = (palette: Record<string, { background: string; text: string }>) =>
+  Object.fromEntries(
+    Object.entries(palette).flatMap(([key, value]) => [
+      [`--family-${key}-bg`, value.background],
+      [`--family-${key}-text`, value.text],
+    ]),
+  );
 const work = (palette: typeof tokens.work | typeof tokens.workDark | typeof tokens.workTartan) => ({
   ...roles("--color-work-", palette),
   ...statuses("--color-work-st-", palette.status),
@@ -79,7 +86,7 @@ const sceneCard = {
   ...statuses("--color-st-", scene.status),
   "--color-on-status": scene.onStatus,
 };
-const dark = { ...activities(tokens.activityDark), ...work(tokens.workDark) };
+const dark = { ...activities(tokens.activityDark), ...families(tokens.familyDark), ...work(tokens.workDark) };
 
 // Chaque endroit de globals.css où une couleur s'écrit, et le jeton qu'elle reproduit.
 const EXPECTED: Record<string, Record<string, string>> = {
@@ -126,10 +133,14 @@ const EXPECTED: Record<string, Record<string, string>> = {
     "--color-on-band-action": band.onAction,
     "--color-band-action-hover": band.actionHover,
   },
-  ":root": activities(tokens.activity),
+  ":root": { ...activities(tokens.activity), ...families(tokens.family) },
   'html:has([data-theme="dark"])': dark,
   '@media (prefers-color-scheme: dark) > html:has([data-theme="system"])': dark,
-  'html:has([data-theme="tartan"])': { ...activities(tokens.activityDark), ...work(tokens.workTartan) },
+  'html:has([data-theme="tartan"])': {
+    ...activities(tokens.activityDark),
+    ...families(tokens.familyDark),
+    ...work(tokens.workTartan),
+  },
   "html:has(.world-work) .scene-dark": sceneCard,
 };
 

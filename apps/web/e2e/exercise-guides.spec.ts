@@ -41,7 +41,9 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   await page.getByRole("button", { name: m.exerciseGuide.families.weightlifting, exact: true }).click();
   await page.getByLabel(m.exercises.search, { exact: true }).fill("Squat snatch");
   // La fiche a sa propre adresse : on l'ouvre, on ne la regarde plus dans un dialogue.
-  await page.getByRole("link", { name: /^Arraché Haltérophilie/ }).click();
+  // Le filtre d'une famille garde son bandeau : la famille se lit au-dessus des fiches, plus sous chaque nom.
+  const weightlifting = page.getByRole("region", { name: new RegExp(`^${m.exerciseGuide.families.weightlifting}`) });
+  await weightlifting.getByRole("link", { name: /^Arraché(\s|$)/ }).click();
   await expect(page).toHaveURL(new RegExp(`/exercices/${snatch.id}$`));
   const sheet = page.getByRole("region", { name: m.exerciseGuide.title });
   // La version concise s'affiche ; le texte complet relu attend sous « Détail ».
@@ -105,7 +107,10 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: m.exerciseGuide.families.strength, exact: true }).click();
   await page.getByLabel(m.exercises.search, { exact: true }).fill("Good morning");
-  await page.getByRole("link", { name: /^Good morning Musculation/ }).click();
+  await page
+    .getByRole("region", { name: new RegExp(`^${m.exerciseGuide.families.strength}`) })
+    .getByRole("link", { name: /^Good morning(\s|$)/ })
+    .click();
   await expect(sheet.getByRole("list", { name: motion.positions }).getByRole("img")).toHaveCount(4);
   await expect(sheet.getByRole("group", { name: motion.view })).toBeVisible();
   const link = await groupLink(page);

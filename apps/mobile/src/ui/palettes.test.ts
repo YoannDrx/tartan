@@ -88,6 +88,16 @@ describe("palettes", () => {
 });
 
 it("les catégories de séance gardent un libellé lisible sur leur teinte", () => {
-  for (const tint of Object.values(tokens.activity))
+  for (const tint of [...Object.values(tokens.activity), ...Object.values(tokens.activityDark)])
     expect(contrast(tint.text, tint.background)).toBeGreaterThanOrEqual(4.5);
+});
+
+it("chaque famille de la bibliothèque a sa teinte, lisible dans les deux thèmes", () => {
+  for (const palette of [tokens.family, tokens.familyDark]) {
+    for (const tint of Object.values(palette)) expect(contrast(tint.text, tint.background)).toBeGreaterThanOrEqual(4.5);
+    // Deux familles ne partagent jamais leur fond : la couleur suffit à voir où une section commence.
+    expect(new Set(Object.values(palette).map((tint) => tint.background)).size).toBe(Object.keys(palette).length);
+  }
+  // Une seule liste de familles : celle des contrats, dans le même ordre.
+  expect(Object.keys(tokens.familyDark)).toEqual(Object.keys(tokens.family));
 });

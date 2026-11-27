@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Claude, bandeaux de famille de la bibliothèque · 27 novembre 2026
+
+Branche `feat/bibliotheque-sections`. Les jetons `family` et `familyDark` vivent dans `packages/design-tokens`, en miroir `--family-*` dans `globals.css` ; `activity` gagne `running_drill` et `warmup`, et `categoryColors` lit désormais la catégorie telle quelle. Sur le web, `family-band.tsx` regroupe les lignes affichées et pose le bandeau collant sous `--app-header-height` ; la `Sheet` passe en `overflow-clip` pour laisser coller le bandeau. Sur le natif, `TabScreen` accepte `stickyChildren`, compté après l'en-tête, la mise à jour et l'état de synchronisation : un enfant ajouté avant le contenu de l'écran doit mettre ce décalage à jour. Sous un bandeau, la famille n'est plus répétée sous le nom de la fiche, d'où les liens de `exercise-guides.spec.ts` cherchés dans la section.
+
 ## Claude, relecture des PR 187 à 209 · 27 novembre 2026
 
 Branche `fix/relecture-codex-novembre`. Relecture de sécurité des 134 commits de Codex : droits, carnets, consentement santé, vocaux, transcription, migrations. Aucun défaut grave. La transcription des vocaux de séance ignorait `AI_PLANNER_ENABLED=false` : l'arrêt global coupe désormais aussi cet appel au prestataire. Elle n'est toujours décomptée d'aucun quota d'espace, seulement bornée par auteur (30 en dix minutes) et par vocal. Restent ouverts, sans correctif ici : une proposition dupliquée ne peut pas être ajustée (409, opération payée cherchée sous l'identifiant de la copie), un ajustement refusé reste dans les messages envoyés au modèle, une réinvitation bêta est ignorée sans message tant que le nettoyage Apple ou Play n'est pas fait, et la note de tournage n'est pas reportée lors de la personnalisation d'une fiche.

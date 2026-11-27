@@ -8,7 +8,7 @@ import { ArrowDown, ArrowUp, ListOrdered, Pencil, Plus, Search, Trash2, X } from
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Sheet } from "@/components/sheet";
 import { EmptyState, PageHeader } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import {
   useExerciseLists,
   type ExerciseListsState,
 } from "./exercise-lists-ui";
+import { FamilyBand, familySections } from "./family-band";
 import { GestureThumb } from "./gesture-thumb";
 
 const t = w.exercises;
@@ -215,6 +216,70 @@ export const ExerciseLibrary = ({
     setShown(PAGE);
   };
   const ownList = list?.mine ? list : favorites;
+  // Tout, ou une seule famille : la liste se range par famille, chacune sous son bandeau coloré.
+  const sections = filter.kind === "all" || filter.kind === "family" ? familySections(visible) : null;
+  const counts = useMemo(() => {
+    const total = new Map<ExerciseFamily, number>();
+    for (const row of found) total.set(row.family, (total.get(row.family) ?? 0) + 1);
+    return total;
+  }, [found]);
+
+  // Sous le nom : la famille quand aucun bandeau ne la dit déjà, le tournage, et « ma fiche ».
+  const detail = (row: LibraryRow) => {
+    const known = [
+      sections ? null : m.exerciseGuide.families[row.family],
+      row.filmed === undefined ? null : row.filmed ? m.filming.filmed : m.filming.pending,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    if (row.shared) return known;
+    return known ? `${known}, ${t.sheet.source.mine.toLowerCase()}` : t.sheet.source.mine;
+  };
+
+  const renderRow = (row: LibraryRow, index: number) => (
+    <li key={row.id} className="flex items-center gap-1 py-1.5 pl-3 pr-1 tablet:pl-4">
+      <Link
+        href={`${basePath}/${row.id}`}
+        className="-my-1 flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-thumb py-1 text-inherit no-underline hover:bg-raise"
+      >
+        <span aria-hidden className="t-caption tabular-nums text-soft">
+          {index + 1}
+        </span>
+        <GestureThumb
+          motionKey={row.motionKey}
+          category={row.category}
+          video={row.hasFilmedVideo}
+          family={row.family}
+        />
+        <span className="min-w-0 leading-snug">
+          <span className="block break-words font-semibold">{row.name}</span>
+          {detail(row) ? <span className="t-caption block font-normal text-soft">{detail(row)}</span> : null}
+        </span>
+      </Link>
+      <span className="t-num w-40 shrink-0 text-[17px] max-desktop:hidden">{row.prescription}</span>
+      {editable && (
+        <>
+          <FavoriteButton
+            name={row.name}
+            active={state.isFavorite(row.id)}
+            onToggle={() => void state.toggleFavorite(row.id)}
+          />
+          {ownList ? (
+            <IconButton
+              label={t.lists.remove(row.name)}
+              onClick={async () => {
+                if (await state.setMember(ownList.id, row.id, false)) toast.ok(t.lists.removed);
+              }}
+            >
+              <X aria-hidden className="size-5" />
+            </IconButton>
+          ) : (
+            <FileButton name={row.name} onClick={() => setFiling({ id: row.id, name: row.name })} />
+          )}
+        </>
+      )}
+    </li>
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -303,59 +368,24 @@ export const ExerciseLibrary = ({
           {filter.kind === "favorites" ? t.lists.favoritesEmpty : list && !search ? t.lists.empty : m.exercises.noMatch}
         </EmptyState>
       ) : (
-        <Sheet>
-          <ul className="divide-y divide-card-line">
-            {visible.map((row, index) => (
-              <Fragment key={row.id}>
-                {filter.kind === "all" && visible[index - 1]?.family !== row.family && (
-                  <li className="bg-card-raised px-4 py-2">
-                    <h2 className="t-section">{m.exerciseGuide.families[row.family]}</h2>
-                  </li>
-                )}
-                <li className="flex items-center gap-1 py-1.5 pl-3 pr-1 tablet:pl-4">
-                  <Link
-                    href={`${basePath}/${row.id}`}
-                    className="-my-1 flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-thumb py-1 text-inherit no-underline hover:bg-raise"
-                  >
-                    <span aria-hidden className="t-caption tabular-nums text-soft">
-                      {index + 1}
-                    </span>
-                    <GestureThumb motionKey={row.motionKey} category={row.category} video={row.hasFilmedVideo} />
-                    <span className="min-w-0 leading-snug">
-                      <span className="block break-words font-semibold">{row.name}</span>
-                      <span className="t-caption block font-normal text-soft">
-                        {m.exerciseGuide.families[row.family]}
-                        {row.filmed !== undefined && ` · ${row.filmed ? m.filming.filmed : m.filming.pending}`}
-                        {row.shared ? null : `, ${t.sheet.source.mine.toLowerCase()}`}
-                      </span>
-                    </span>
-                  </Link>
-                  <span className="t-num w-40 shrink-0 text-[17px] max-desktop:hidden">{row.prescription}</span>
-                  {editable && (
-                    <>
-                      <FavoriteButton
-                        name={row.name}
-                        active={state.isFavorite(row.id)}
-                        onToggle={() => void state.toggleFavorite(row.id)}
-                      />
-                      {ownList ? (
-                        <IconButton
-                          label={t.lists.remove(row.name)}
-                          onClick={async () => {
-                            if (await state.setMember(ownList.id, row.id, false)) toast.ok(t.lists.removed);
-                          }}
-                        >
-                          <X aria-hidden className="size-5" />
-                        </IconButton>
-                      ) : (
-                        <FileButton name={row.name} onClick={() => setFiling({ id: row.id, name: row.name })} />
-                      )}
-                    </>
-                  )}
-                </li>
-              </Fragment>
-            ))}
-          </ul>
+        <Sheet className="overflow-clip">
+          {sections ? (
+            sections.map((section) => (
+              <section key={section.family} aria-labelledby={`famille-${section.family}`}>
+                <FamilyBand
+                  id={`famille-${section.family}`}
+                  family={section.family}
+                  count={counts.get(section.family) ?? 0}
+                />
+                {/* Une fiche atteinte au clavier s'arrête sous le bandeau collant, jamais derrière. */}
+                <ul className="divide-y divide-card-line [&_a]:scroll-mt-[calc(var(--offline-bar-height,0px)+var(--app-header-height,58px)+56px)] [&_button]:scroll-mt-[calc(var(--offline-bar-height,0px)+var(--app-header-height,58px)+56px)]">
+                  {section.rows.map(({ row, index }) => renderRow(row, index))}
+                </ul>
+              </section>
+            ))
+          ) : (
+            <ul className="divide-y divide-card-line">{visible.map((row, index) => renderRow(row, index))}</ul>
+          )}
         </Sheet>
       )}
       {found.length > shown ? (
