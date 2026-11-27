@@ -66,7 +66,10 @@ test("vidéo privée : envoi athlète, remarque coach, réponse et partage révo
     await athlete.page.goto("/mes-videos");
     await athlete.page.getByRole("button", { name: m.video.import, exact: true }).press("Enter");
     await expect(athlete.page.getByText(m.videoCollaboration.private, { exact: true })).toBeVisible();
-    await expect(athlete.page.getByLabel(m.videoCollaboration.athlete, { exact: true })).toHaveCount(0);
+    // Aucun choix d'athlète : la vidéo est la sienne. (La marque « Athlète » de l'en-tête porte le même nom.)
+    await expect(athlete.page.getByRole("combobox", { name: m.videoCollaboration.athlete, exact: true })).toHaveCount(
+      0,
+    );
     await inspectLayout(athlete.page, "upload");
     await athlete.page
       .getByLabel(m.videoCollaboration.file, { exact: true })
