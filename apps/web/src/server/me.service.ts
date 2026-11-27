@@ -20,6 +20,7 @@ import { AppError } from "@/lib/errors";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { setEmailPreference } from "./email-preferences.service";
+import { canOpenNotebook } from "./notebook-access";
 
 // L'espace de démonstration ne se liste que pour la web app, qui sait l'annoncer (bandeau, réglages) : l'API du
 // mobile et `/me` ne le montrent pas. Il vient toujours après les espaces réels.
@@ -92,6 +93,7 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
     select: { id: true, email: true, profile: true },
   });
   if (!user) throw notFound();
+  const spaces = await listSpaces(userId);
   return {
     id: user.id,
     email: user.email,
@@ -102,7 +104,8 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
     avatarPreset: knownAvatarPreset(user.profile?.avatarPreset),
     units: user.profile?.units ?? "kg",
     locale: user.profile?.locale ?? "fr",
-    spaces: await listSpaces(userId),
+    spaces,
+    notebook: { available: spaces.some((s) => s.kind === "personal") || (await canOpenNotebook(userId)) },
     preferences: {
       homeTone: readTone(user.profile?.homeTone),
       sessionTone: readTone(user.profile?.sessionTone),

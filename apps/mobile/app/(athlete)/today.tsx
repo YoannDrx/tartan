@@ -57,11 +57,13 @@ export default function Today() {
   const notebook = me.data?.spaces.find((s) => s.kind === "personal");
   const extraOrg = !personal ? (notebook?.organizationId ?? "") : "";
   const extra = useToday(extraOrg);
+  // Le serveur dit si ce compte peut ouvrir son carnet ; un serveur plus ancien, seulement les inscriptions.
   const signup = useQuery({
     queryKey: ["signup-options"],
     queryFn: api.signupOptions,
-    enabled: Boolean(me.data && !notebook),
+    enabled: Boolean(me.data && !notebook && !me.data.notebook),
   });
+  const openable = me.data?.notebook ? me.data.notebook.available : Boolean(signup.data?.athlete);
   const today = useToday(orgId);
   const client = useQueryClient();
   usePrefetchUpcomingSessions(orgId);
@@ -251,7 +253,7 @@ export default function Today() {
               </View>
             );
           })}
-          {notebook?.aiPlannerEnabled || (!notebook && signup.data?.athlete) ? (
+          {notebook?.aiPlannerEnabled || (!notebook && !personal && openable) ? (
             <Button
               testID="personal-planner"
               label={m.aiPlanner.personalCreate}

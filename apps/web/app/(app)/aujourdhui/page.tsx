@@ -26,7 +26,8 @@ import { getAthleteSession, getAthleteToday, getAthleteWelcome } from "@/server/
 import { getSignInMethods } from "@/server/credentials.service";
 import { getMe } from "@/server/me.service";
 import { getGuideContext, getOnboarding } from "@/server/onboarding.service";
-import { canCreatePersonalSpace } from "@/server/personal-space.service";
+import { canOpenNotebook } from "@/server/personal-space.service";
+import { NOTEBOOK_FOR_PLANNER } from "@/lib/onboarding-paths";
 import { PersonalGuide } from "@/features/onboarding/personal-guide";
 
 export const metadata: Metadata = { title: m.nav.aujourdhui };
@@ -229,7 +230,7 @@ export default async function AujourdhuiPage() {
   const { actor, organizationId, personal, space, spaces } = await requireAthleteSpace();
   const today = todayIso();
   const notebook = spaces.find((s) => s.kind === "personal");
-  const [data, welcome, methods, onboarding, me, guide, signupOpen, extra] = await Promise.all([
+  const [data, welcome, methods, onboarding, me, guide, notebookOpenable, extra] = await Promise.all([
     getAthleteToday(actor.userId, organizationId),
     getAthleteWelcome(actor.userId, organizationId),
     getSignInMethods(actor),
@@ -237,13 +238,13 @@ export default async function AujourdhuiPage() {
     getMe(actor.userId),
     // L'athlète autonome a ses premiers pas : deux modèles de départ pour planifier sa première séance.
     personal ? getGuideContext(actor.userId, organizationId) : null,
-    personal ? false : canCreatePersonalSpace(),
+    personal || notebook ? false : canOpenNotebook(actor.userId),
     !personal && notebook ? getAthleteToday(actor.userId, notebook.organizationId) : null,
   ]);
   const plannerHref = notebook?.aiPlannerEnabled
     ? "/planificateur"
-    : !notebook && signupOpen
-      ? "/bienvenue/seul?ensuite=planificateur"
+    : !notebook && notebookOpenable
+      ? NOTEBOOK_FOR_PLANNER
       : null;
   const personalGuide =
     personal && guide && onboarding.personal?.guideVisible

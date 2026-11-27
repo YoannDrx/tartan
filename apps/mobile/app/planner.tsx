@@ -1,7 +1,7 @@
 import { uuid, isoDate } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { NativePlanner } from "../src/features/native-planner";
 import { PlannerConsentNative } from "../src/features/planner-consent";
@@ -103,6 +103,14 @@ export default function PlannerScreen() {
         <LoadingState />
       </StackScreen>
     );
+  // L'athlète d'un club sans carnet planifie pour lui dans un carnet à ouvrir : il y est mené, sans « désactivé ».
+  if (
+    space?.role === "athlete" &&
+    space.kind !== "personal" &&
+    me.data.notebook?.available &&
+    !me.data.spaces.some((s) => s.kind === "personal")
+  )
+    return <Redirect href={{ pathname: "/(auth)/onboarding/solo", params: { ensuite: "planificateur" } }} />;
   if (!space?.aiPlannerEnabled || !orgId)
     return (
       <StackScreen title={m.aiPlanner.title}>

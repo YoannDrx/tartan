@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { requireAthleteAccess } from "./access";
 import { assertAdultDate, confirmBirthDate } from "./age.service";
+import { isClubAthlete } from "./notebook-access";
 import { ensurePlans } from "./billing.service";
 import { recordJoinConsents } from "./consent.service";
 import { startOnboarding } from "./onboarding.service";
@@ -34,6 +35,8 @@ export const signupOptions = async (): Promise<SignupOptions> => {
 };
 
 export const canCreatePersonalSpace = async (): Promise<boolean> => (await signupOptions()).athlete;
+
+export { canOpenNotebook, isClubAthlete } from "./notebook-access";
 
 export const findPersonalSpace = (userId: string) =>
   prisma.organization.findUnique({ where: { personalOwnerId: userId }, select: { id: true } });
@@ -65,7 +68,9 @@ export const createPersonalSpace = async (
     select: { id: true, athletes: { where: { userId }, select: { id: true } } },
   });
   if (existing?.athletes[0]) return { organizationId: existing.id, athleteId: existing.athletes[0].id };
-  if (!(await canCreatePersonalSpace())) throw new AppError(403, "signup_closed", w.welcome.athleteClosed);
+  // Inscriptions fermées : seul l'athlète d'un club l'ouvre encore. Son âge est contrôlé juste après.
+  const club = await isClubAthlete(userId);
+  if (!club && !(await canCreatePersonalSpace())) throw new AppError(403, "signup_closed", w.welcome.athleteClosed);
   await enforceRateLimit(`personal-space:${userId}`, 5, 3600);
   // Mêmes règles d'âge que l'espace d'un coach : la date déjà enregistrée prime, adultes seulement.
   const profile = await prisma.profile.findUnique({ where: { id: userId }, select: { birthDate: true } });
@@ -129,13 +134,17 @@ export const createPersonalSpace = async (
     await startOnboarding(tx, org.id, userId);
     // Les séances de départ, modifiables : il ne part pas d'une page blanche.
     await createStarterTemplates(tx, org.id, userId);
-    // La bienvenue de l'athlète autonome, mise en file avec l'espace : jamais celle du coach.
-    const { email } = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
-    await queuePersonalWelcome(tx, { organizationId: org.id, userId, email });
+    // La bienvenue de l'athlète autonome, mise en file avec l'espace : jamais celle du coach. L'athlète d'un club
+    // ouvre son carnet depuis l'app, déjà accueilli par son coach : pas d'e-mail.
+    if (!club) {
+      const { email } = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
+      await queuePersonalWelcome(tx, { organizationId: org.id, userId, email });
+    }
     return { organizationId: org.id, athleteId: athlete.id };
   });
   log.info("personal_space_created", { organizationId: created.organizationId });
   // Envoi tout de suite, limité à cette ligne ; en cas de panne, la tâche de notifications reprend.
+  if (club) return created;
   await flushEmailOutbox(new Date(), { dedupeKey: personalWelcomeKey(userId) }).catch(() =>
     log.warn("email_outbox_flush_failed"),
   );

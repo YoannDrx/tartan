@@ -40,3 +40,4 @@ executionOrder:
     - session-thread
     - sync-review
     - athlete-notebook
+    - athlete-club-notebook

@@ -1,5 +1,5 @@
 import { m } from "@tartan/i18n";
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, useRouter } from "expo-router";
 import { isPersonalSpace } from "../../src/lib/personal-space";
 import { useActiveSpace } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
@@ -12,10 +12,14 @@ export default function AthleteLayout() {
   const options = useTabBarOptions();
   const worldScene = useWorldScene();
   const { me, space } = useActiveSpace();
+  const router = useRouter();
   if (status !== "signed-in") return <Redirect href="/sign-in" />;
   if (me.data && space?.role !== "athlete") return <Redirect href="/" />;
   // L'athlète autonome, dans son espace personnel : ses rubriques d'athlète, plus « Planifier ». Pas d'annonces.
   const personal = isPersonalSpace(space);
+  // L'athlète d'un club : « Planifier » ouvre le planificateur de son carnet, ou mène à l'ouverture du carnet.
+  const notebook = me.data?.spaces.find((s) => s.kind === "personal");
+  const clubPlanner = !personal && Boolean(notebook ? notebook.aiPlannerEnabled : me.data?.notebook?.available);
   return (
     <Tabs screenOptions={options}>
       <Tabs.Screen
@@ -38,10 +42,17 @@ export default function AthleteLayout() {
         name="plan"
         options={{
           ...worldScene("work"),
-          href: personal ? undefined : null,
+          href: personal || clubPlanner ? undefined : null,
           title: m.mobile.solo.plan,
           tabBarButtonTestID: "tab-plan",
           tabBarIcon: ({ color, size }) => <Pencil color={color} size={size} />,
+        }}
+        listeners={{
+          tabPress: (event) => {
+            if (personal) return;
+            event.preventDefault();
+            router.push("/planner");
+          },
         }}
       />
       <Tabs.Screen

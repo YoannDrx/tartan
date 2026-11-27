@@ -84,6 +84,7 @@ export const AppShell = ({
   askSatisfaction = false,
   unseenRelease = null,
   billingAlert = null,
+  notebookPlanner = false,
   children,
 }: {
   staff: boolean;
@@ -94,6 +95,8 @@ export const AppShell = ({
   askSatisfaction?: boolean;
   unseenRelease?: ReleaseView | null;
   billingAlert?: "past_due" | null;
+  // Athlète de club : « Planifier » mène au planificateur de son carnet, ou à son ouverture.
+  notebookPlanner?: boolean;
   children: ReactNode;
 }) => {
   const choices = selectableSpaces(spaces);
@@ -112,7 +115,9 @@ export const AppShell = ({
       ? space.aiPlannerEnabled
         ? [...personalItems, plannerItem]
         : personalItems
-      : athleteItems;
+      : notebookPlanner
+        ? [...athleteItems, { href: "/planificateur", label: w.personal.nav.plan, icon: Sparkles, mobile: false }]
+        : athleteItems;
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   // Le mode séance et l'analyse vidéo prennent tout l'écran, en sombre.
   const immersive = /^\/(seance\/[^/]+\/mode|videos\/[^/]+|mes-videos\/[^/]+)/.test(pathname);

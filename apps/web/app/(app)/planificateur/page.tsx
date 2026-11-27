@@ -6,7 +6,7 @@ import { w } from "@tartan/i18n/web";
 import { PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { PlannerConsent, PlannerConsentWithdraw } from "@/features/planner/planner-consent";
-import { PlannerUnavailable } from "@/features/planner/planner-unavailable";
+import { openNotebookForPlanner, PlannerUnavailable } from "@/features/planner/planner-unavailable";
 import { WebPlanner } from "@/features/planner/web-planner";
 import { requireResourceSpace, orNotFound } from "@/features/shell/space";
 import { AppError } from "@/lib/errors";
@@ -24,8 +24,12 @@ export default async function PlannerPage({
 }: {
   searchParams: Promise<{ proposition?: string; date?: string; groupe?: string }>;
 }) {
-  const { actor, organizationId, space, personal } = await requireResourceSpace();
-  if (!space.aiPlannerEnabled) return <PlannerUnavailable space={space} />;
+  const ctx = await requireResourceSpace();
+  const { actor, organizationId, space, personal } = ctx;
+  if (!space.aiPlannerEnabled) {
+    await openNotebookForPlanner(ctx);
+    return <PlannerUnavailable space={space} />;
+  }
   if (!(await hasAiConsent(actor.userId))) return <PlannerConsent />;
   const params = await searchParams;
   if (

@@ -50,4 +50,13 @@ export const welcome = {
     create: "Ouvrir mon espace",
     quotas: "Gratuit : 5 propositions du planificateur, 10 minutes de dictée et 4 vidéos par mois.",
   },
+  // L'athlète d'un club ouvre son carnet pour planifier lui-même (décision du 27 novembre 2026).
+  notebookForm: {
+    title: "Ton carnet personnel",
+    lead: "Planifie tes propres séances avec le planificateur, à côté de ton club.",
+    termsLead:
+      "Ton carnet n'est visible que par toi : ton coach ne voit ni ces séances ni tes demandes au planificateur.",
+    create: "Ouvrir mon carnet",
+    back: "Revenir à ma journée",
+  },
 } as const;

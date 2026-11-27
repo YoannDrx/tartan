@@ -56,7 +56,13 @@ export const Stepper = ({
   names?: readonly string[];
   label?: string;
 }) => (
-  <ol aria-label={label} className={cn("grid gap-2", names.length === 3 ? "grid-cols-3" : "grid-cols-4")}>
+  <ol
+    aria-label={label}
+    className={cn(
+      "grid gap-2",
+      names.length === 2 ? "grid-cols-2" : names.length === 3 ? "grid-cols-3" : "grid-cols-4",
+    )}
+  >
     {names.map((name, index) => (
       <li
         key={name}

@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Claude, planificateur de l'athlète invité · 27 novembre 2026
+
+Branche `feat/planificateur-athlete-invite`. Le droit d'ouvrir un carnet vit dans `src/server/notebook-access.ts` (`canOpenNotebook`, `isClubAthlete`), à part du service du carnet pour que `getMe` le lise sans cycle d'imports ; `personal-space.service.ts` le réexporte. Les écrans web passent par `openNotebookForPlanner` (`planner-unavailable.tsx`) et le chemin `NOTEBOOK_FOR_PLANNER`. Le natif lit `me.notebook.available` et retombe sur `/signup-options` face à un serveur plus ancien. Le parcours Playwright ferme les inscriptions d'athlètes par la base et attend la fin du cache de 30 s des réglages, dans les deux sens. Le flux Maestro utilise `NEWCOMER_EMAIL` : il saute l'ouverture s'il est rejoué. Les conseils J1 à J7 du carnet ne partent plus vers un athlète de club. Relecture du lot 0 : un ajustement refusé sort désormais de l'historique envoyé au modèle (`decidePlannerAdjustment`) ; le 409 d'« Ajuster » sur une copie est décrit dans `docs/ETAT.md`, non corrigé.
+
 ## Claude, relecture des PR 187 à 209 · 27 novembre 2026
 
 Branche `fix/relecture-codex-novembre`. Relecture de sécurité des 134 commits de Codex : droits, carnets, consentement santé, vocaux, transcription, migrations. Aucun défaut grave. La transcription des vocaux de séance ignorait `AI_PLANNER_ENABLED=false` : l'arrêt global coupe désormais aussi cet appel au prestataire. Elle n'est toujours décomptée d'aucun quota d'espace, seulement bornée par auteur (30 en dix minutes) et par vocal. Restent ouverts, sans correctif ici : une proposition dupliquée ne peut pas être ajustée (409, opération payée cherchée sous l'identifiant de la copie), un ajustement refusé reste dans les messages envoyés au modèle, une réinvitation bêta est ignorée sans message tant que le nettoyage Apple ou Play n'est pas fait, et la note de tournage n'est pas reportée lors de la personnalisation d'une fiche.

@@ -6,7 +6,7 @@ import { historyDate, m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { PlannerUnavailable } from "@/features/planner/planner-unavailable";
+import { openNotebookForPlanner, PlannerUnavailable } from "@/features/planner/planner-unavailable";
 import { requireResourceSpace, orNotFound } from "@/features/shell/space";
 import { listPlannerProposals } from "@/server/ai/proposal.service";
 import { getPlannerUsage } from "@/server/ai/usage.service";
@@ -18,8 +18,12 @@ export default async function PlannerProposalsPage({
 }: {
   searchParams: Promise<{ avant?: string; filtre?: string }>;
 }) {
-  const { actor, organizationId, space } = await requireResourceSpace();
-  if (!space.aiPlannerEnabled) return <PlannerUnavailable space={space} />;
+  const ctx = await requireResourceSpace();
+  const { actor, organizationId, space } = ctx;
+  if (!space.aiPlannerEnabled) {
+    await openNotebookForPlanner(ctx);
+    return <PlannerUnavailable space={space} />;
+  }
   const { avant, filtre = "all" } = await searchParams;
   if (filtre !== "all" && filtre !== "created" && filtre !== "pending") notFound();
   if (avant && !uuid.safeParse(avant).success) notFound();
